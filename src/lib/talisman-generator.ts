@@ -7,7 +7,8 @@
 export interface TalismanParams {
   type: string; // TalismanType.id
   style: 'traditional' | 'modern';
-  bgColor?: string;
+  background?: string; // BackgroundPreset.id
+  bgColor?: string; // (레거시) 직접 배경색 지정
   animal?: string; // 띠 동물 이름
   title: string; // 두전(상단 제목)
   message: string; // 사용자 메시지
@@ -25,6 +26,50 @@ const TRADITIONAL = {
   gold: '#C8A000',
   border: '#8B4513',
 };
+
+/** 배경 프리셋 — 종이색에 따라 잉크·글자색을 함께 정의 (가독성 보장) */
+export interface BackgroundPreset {
+  id: string;
+  label: string;
+  swatch: string; // 선택 UI에 보여줄 대표색
+  trad: { bg: string; ink: string; text: string };
+  modern: { bg1: string; bg2: string; ink: string; accent: string };
+}
+
+export const BACKGROUND_PRESETS: BackgroundPreset[] = [
+  {
+    id: 'hwangji',
+    label: '황지',
+    swatch: '#F5E6B8',
+    trad: { bg: '#F5E6B8', ink: '#B22222', text: '#2B1810' },
+    modern: { bg1: '#F5EAD5', bg2: '#F5D5C8', ink: '#AA6B3F', accent: '#D4914F' },
+  },
+  {
+    id: 'hongji',
+    label: '홍지',
+    swatch: '#B93A32',
+    trad: { bg: '#B93A32', ink: '#F5D76E', text: '#FFF3D6' },
+    modern: { bg1: '#F5D5D5', bg2: '#F5C8D5', ink: '#A03A3A', accent: '#D46F6F' },
+  },
+  {
+    id: 'baekji',
+    label: '백지',
+    swatch: '#F7F3EA',
+    trad: { bg: '#F7F3EA', ink: '#B22222', text: '#33302A' },
+    modern: { bg1: '#EFEFF5', bg2: '#DDE8F5', ink: '#4F5FAA', accent: '#7A8FD4' },
+  },
+  {
+    id: 'simya',
+    label: '심야',
+    swatch: '#151226',
+    trad: { bg: '#151226', ink: '#E8C97A', text: '#D8D4F0' },
+    modern: { bg1: '#1C1830', bg2: '#2A1F42', ink: '#C9B8F0', accent: '#8F7AD4' },
+  },
+];
+
+function getPreset(id?: string): BackgroundPreset | undefined {
+  return id ? BACKGROUND_PRESETS.find((p) => p.id === id) : undefined;
+}
 
 const MODERN_PALETTES = [
   { bg1: '#E8D5F5', bg2: '#F5D5E8', ink: '#6B3FA0', accent: '#D46FA0' },
@@ -240,9 +285,8 @@ function svgStar(x: number, y: number, r: number, color: string): string {
 
 // ─── 전통 테두리 ────────────────────────────────────────────
 
-function traditionalBorder(w: number, h: number): string {
+function traditionalBorder(w: number, h: number, ink: string = TRADITIONAL.ink): string {
   const m = 12; // 여백
-  const ink = TRADITIONAL.ink;
   return `
     <rect x="${m}" y="${m}" width="${w - m * 2}" height="${h - m * 2}" fill="none" stroke="${ink}" stroke-width="3"/>
     <rect x="${m + 6}" y="${m + 6}" width="${w - m * 2 - 12}" height="${h - m * 2 - 12}" fill="none" stroke="${ink}" stroke-width="1.5"/>
@@ -285,6 +329,7 @@ function sealStamp(x: number, y: number, name: string, color: string): string {
 export function generateTalismanSVG(params: TalismanParams): string {
   const {
     style,
+    background,
     bgColor,
     animal,
     title,
@@ -297,15 +342,18 @@ export function generateTalismanSVG(params: TalismanParams): string {
   const W = 360;
   const H = 560;
 
+  const preset = getPreset(background);
+
   if (style === 'traditional') {
-    return generateTraditional(W, H, bgColor, animal, title, message, mantra, userName, symbols);
+    return generateTraditional(W, H, preset, bgColor, animal, title, message, mantra, userName, symbols);
   } else {
-    return generateModern(W, H, bgColor, animal, title, message, mantra, userName, symbols);
+    return generateModern(W, H, preset, bgColor, animal, title, message, mantra, userName, symbols);
   }
 }
 
 function generateTraditional(
   W: number, H: number,
+  preset: BackgroundPreset | undefined,
   bgColor: string | undefined,
   animal: string | undefined,
   title: string,
@@ -314,9 +362,9 @@ function generateTraditional(
   userName: string | undefined,
   symbols: string[] | undefined
 ): string {
-  const bg = bgColor || TRADITIONAL.bg;
-  const ink = TRADITIONAL.ink;
-  const black = TRADITIONAL.black;
+  const bg = preset?.trad.bg || bgColor || TRADITIONAL.bg;
+  const ink = preset?.trad.ink || TRADITIONAL.ink;
+  const black = preset?.trad.text || TRADITIONAL.black;
 
   // 패턴 장식 배치
   let decorations = '';
@@ -337,37 +385,37 @@ function generateTraditional(
     decorations += svgLightning(W - 70, 130, 1, ink);
   }
   if (symbols?.includes('태극')) {
-    decorations += svgYinYang(W / 2, H / 2 + 10, 20, ink);
+    decorations += svgYinYang(W / 2, 132, 16, ink);
   }
   if (symbols?.includes('별')) {
     decorations += svgStar(60, 150, 8, ink);
     decorations += svgStar(W - 60, 150, 8, ink);
   }
 
-  // 동물 심볼
+  // 동물 심볼 — 상단 존(제목 아래)에 배치해 문구와 겹치지 않게
   let animalSvg = '';
   if (animal && ANIMAL_PATHS[animal]) {
-    animalSvg = `<g transform="translate(${W / 2}, ${H / 2 - 20})" color="${ink}">${ANIMAL_PATHS[animal]}</g>`;
+    animalSvg = `<g transform="translate(${W / 2}, 205)" color="${ink}">${ANIMAL_PATHS[animal]}</g>`;
   }
 
   // 메시지 텍스트 (세로쓰기를 흉내내기 위해 한 글자씩 세로 배치)
-  const messageLines = wrapText(message, 8);
+  const messageLines = wrapText(message, 7);
   let messageText = '';
   const colCount = Math.min(messageLines.length, 3);
   for (let col = 0; col < colCount; col++) {
     const line = messageLines[col];
     const xPos = W / 2 + (colCount > 1 ? (colCount / 2 - col - 0.5) * 28 : 0);
     for (let i = 0; i < line.length; i++) {
-      messageText += `<text x="${xPos}" y="${260 + i * 24}" text-anchor="middle" font-size="16" fill="${black}" font-family="serif">${escapeXml(line[i])}</text>`;
+      messageText += `<text x="${xPos}" y="${290 + i * 24}" text-anchor="middle" font-size="16" fill="${black}" font-family="serif">${escapeXml(line[i])}</text>`;
     }
   }
 
-  // 인장
+  // 인장 — 각획(주문)보다 아래, 테두리 안쪽
   const seal = userName
-    ? sealStamp(W - 55, H - 65, userName, ink)
+    ? sealStamp(W - 55, H - 48, userName, ink)
     : '';
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
   <defs>
     <filter id="paper-texture">
       <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise"/>
@@ -383,7 +431,7 @@ function generateTraditional(
   <rect width="${W}" height="${H}" fill="${bg}" opacity="0.3" filter="url(#paper-texture)"/>
 
   <!-- 테두리 -->
-  ${traditionalBorder(W, H)}
+  ${traditionalBorder(W, H, ink)}
 
   <!-- 장식 패턴 -->
   ${decorations}
@@ -412,6 +460,7 @@ function generateTraditional(
 
 function generateModern(
   W: number, H: number,
+  preset: BackgroundPreset | undefined,
   bgColor: string | undefined,
   animal: string | undefined,
   title: string,
@@ -422,10 +471,10 @@ function generateModern(
 ): string {
   const paletteIdx = Math.abs(title.split('').reduce((s, c) => s + c.charCodeAt(0), 0)) % MODERN_PALETTES.length;
   const palette = MODERN_PALETTES[paletteIdx];
-  const bg1 = bgColor || palette.bg1;
-  const bg2 = palette.bg2;
-  const ink = palette.ink;
-  const accent = palette.accent;
+  const bg1 = preset?.modern.bg1 || bgColor || palette.bg1;
+  const bg2 = preset?.modern.bg2 || palette.bg2;
+  const ink = preset?.modern.ink || palette.ink;
+  const accent = preset?.modern.accent || palette.accent;
 
   // 장식
   let decorations = '';
@@ -442,20 +491,20 @@ function generateModern(
     decorations += svgLotus(W / 2, H - 160, 0.8, accent);
   }
   if (symbols?.includes('태극')) {
-    decorations += svgYinYang(W / 2, H / 2 + 15, 16, ink);
+    decorations += svgYinYang(W / 2, 140, 14, ink);
   }
 
-  // 동물
+  // 동물 — 상단 존(제목 아래)에 배치해 문구와 겹치지 않게
   let animalSvg = '';
   if (animal && ANIMAL_PATHS[animal]) {
-    animalSvg = `<g transform="translate(${W / 2}, ${H / 2 - 30})" color="${ink}">${ANIMAL_PATHS[animal]}</g>`;
+    animalSvg = `<g transform="translate(${W / 2}, 210)" color="${ink}">${ANIMAL_PATHS[animal]}</g>`;
   }
 
   // 메시지 (가로 쓰기, 여러 줄)
   const msgLines = wrapText(message, 14);
   let messageText = '';
   for (let i = 0; i < Math.min(msgLines.length, 4); i++) {
-    messageText += `<text x="${W / 2}" y="${280 + i * 28}" text-anchor="middle" font-size="16" fill="${ink}" font-family="'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif">${escapeXml(msgLines[i])}</text>`;
+    messageText += `<text x="${W / 2}" y="${300 + i * 28}" text-anchor="middle" font-size="16" fill="${ink}" font-family="'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif">${escapeXml(msgLines[i])}</text>`;
   }
 
   // 인장
@@ -463,7 +512,7 @@ function generateModern(
     ? sealStamp(W - 55, H - 60, userName, accent)
     : '';
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
   <defs>
     <linearGradient id="modern-bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="${bg1}"/>

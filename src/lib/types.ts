@@ -17,6 +17,8 @@ export interface TalismanInfo {
 export interface SavedTalisman extends TalismanInfo {
   savedAt: string; // ISO date string
   note?: string;
+  /** 직접 만든 부적의 SVG 마크업 (있으면 썸네일 대신 렌더링) */
+  svg?: string;
 }
 
 export const CATEGORY_COLORS: Record<TalismanCategory, string> = {

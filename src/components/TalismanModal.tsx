@@ -168,7 +168,15 @@ export default function TalismanModal({
           <div className="flex flex-col items-center px-6 pt-2">
             {/* Talisman SVG */}
             <div id="talisman-modal-svg">
-              <TalismanThumbnail id={talisman.id} category={talisman.category} size={200} />
+              {saved && talisman.svg ? (
+                <div
+                  style={{ width: 200, aspectRatio: '360 / 560' }}
+                  className="overflow-hidden rounded-xl"
+                  dangerouslySetInnerHTML={{ __html: talisman.svg }}
+                />
+              ) : (
+                <TalismanThumbnail id={talisman.id} category={talisman.category} size={200} />
+              )}
             </div>
 
             {/* Name + Hanja */}
@@ -189,6 +197,13 @@ export default function TalismanModal({
             <p className="mt-4 text-center text-sm leading-relaxed text-zinc-300">
               {talisman.description}
             </p>
+
+            {/* 내가 담은 문구 */}
+            {saved && talisman.note && (
+              <p className="mt-3 w-full rounded-xl border border-amber-800/20 bg-amber-900/10 px-4 py-2.5 text-center text-sm text-amber-200/90">
+                &ldquo;{talisman.note}&rdquo;
+              </p>
+            )}
 
             {/* Expandable sections */}
             <div className="mt-6 w-full">

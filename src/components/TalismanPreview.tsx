@@ -9,7 +9,10 @@ type TalismanPreviewProps = {
   style: "traditional" | "modern";
   message: string;
   userName?: string;
+  background?: string; // BackgroundPreset.id
   bgColor?: string;
+  animal?: string;
+  symbols?: string[];
   size?: "sm" | "md" | "lg";
   title?: string;
   mantra?: string;
@@ -33,7 +36,10 @@ export default function TalismanPreview({
   style,
   message,
   userName,
+  background,
   bgColor,
+  animal,
+  symbols,
   size = "md",
   title = "",
   mantra = "",
@@ -45,11 +51,14 @@ export default function TalismanPreview({
         style,
         message,
         userName,
+        background,
         bgColor,
+        animal,
+        symbols,
         title: title || "부적",
         mantra: mantra || "",
       }),
-    [type, style, message, userName, bgColor, title, mantra]
+    [type, style, message, userName, background, bgColor, animal, symbols, title, mantra]
   );
 
   const colors = getTalismanColors(type);

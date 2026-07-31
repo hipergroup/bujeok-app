@@ -14,6 +14,29 @@ function isSaved(t: SavedTalisman | TalismanInfo): t is SavedTalisman {
   return 'savedAt' in t;
 }
 
+/** 직접 만든 부적(svg 보유)이면 실제 모습, 아니면 장식 썸네일 */
+function TalismanVisual({
+  talisman,
+  width,
+}: {
+  talisman: SavedTalisman | TalismanInfo;
+  width: number;
+}) {
+  const customSvg = isSaved(talisman) ? talisman.svg : undefined;
+  if (customSvg) {
+    return (
+      <div
+        style={{ width, aspectRatio: '360 / 560' }}
+        className="overflow-hidden rounded-lg"
+        dangerouslySetInnerHTML={{ __html: customSvg }}
+      />
+    );
+  }
+  return (
+    <TalismanThumbnail id={talisman.id} category={talisman.category} size={width} />
+  );
+}
+
 export default function TalismanCard({ talisman, onClick, size = 'small' }: TalismanCardProps) {
   const color = CATEGORY_COLORS[talisman.category];
   const saved = isSaved(talisman);
@@ -42,7 +65,7 @@ export default function TalismanCard({ talisman, onClick, size = 'small' }: Tali
           />
         </div>
 
-        <TalismanThumbnail id={talisman.id} category={talisman.category} size={160} />
+        <TalismanVisual talisman={talisman} width={160} />
 
         <div className="flex w-full flex-col items-center gap-1">
           <div className="flex items-center gap-2">
@@ -81,7 +104,7 @@ export default function TalismanCard({ talisman, onClick, size = 'small' }: Tali
         />
       </div>
 
-      <TalismanThumbnail id={talisman.id} category={talisman.category} size={80} />
+      <TalismanVisual talisman={talisman} width={80} />
 
       <div className="flex flex-col items-center gap-0.5">
         <div className="flex items-center gap-1.5">

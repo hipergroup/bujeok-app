@@ -4,12 +4,27 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   DIALOGUE_FLOWS,
+  extractKeywords,
   type DialogueFlow,
 } from "@/data/dialogues";
-import { TalismanCategory } from "@/data/talismans";
+import {
+  TalismanCategory,
+  getTalismanRecommendation,
+  type TalismanType,
+} from "@/data/talismans";
+import { JIJI, getAnimal } from "@/data/saju";
 import ChatBubble, { type DialogueOption } from "@/components/ChatBubble";
 import TalismanPreview from "@/components/TalismanPreview";
-import { generateTalismanSVG } from "@/lib/talisman-generator";
+import {
+  generateTalismanSVG,
+  BACKGROUND_PRESETS,
+} from "@/lib/talisman-generator";
+import {
+  composeShareImage,
+  shareOrDownload,
+  type ShareFormat,
+} from "@/lib/share-card";
+import type { SavedTalisman } from "@/lib/types";
 
 /* ───────── types ───────── */
 
@@ -94,14 +109,36 @@ const ENCOURAGEMENT_MESSAGES: Record<string, string[]> = {
 
 /* ───────── constants ───────── */
 
-const BG_COLOR_OPTIONS = [
-  { label: "기본", value: "" },
-  { label: "심야", value: "#0a0a1a" },
-  { label: "심홍", value: "#1a0505" },
-  { label: "심록", value: "#051a0a" },
+/** 12지 수호 동물 선택지 (없음 포함) */
+const ANIMAL_OPTIONS: { label: string; emoji: string; value: string }[] = [
+  { label: "없음", emoji: "🚫", value: "" },
+  ...JIJI.map((ji) => ({ label: ji.animal, emoji: ji.emoji, value: ji.animal })),
 ];
 
 /* ───────── helpers ───────── */
+
+/** 온보딩에서 저장한 사용자 정보 → 이름·띠 동물 */
+function loadUserContext(): { name: string; animal: string } {
+  try {
+    const raw = localStorage.getItem("bujeok-user");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const year = parsed?.birth?.year;
+      return {
+        name: parsed?.name || "",
+        animal: typeof year === "number" ? getAnimal(year).name : "",
+      };
+    }
+    const profile = localStorage.getItem("user_profile");
+    if (profile) {
+      const parsed = JSON.parse(profile);
+      return { name: parsed?.name || "", animal: parsed?.animal || "" };
+    }
+  } catch {
+    // ignore
+  }
+  return { name: "", animal: "" };
+}
 
 function generateParticles(count: number) {
   return Array.from({ length: count }, (_, i) => ({
@@ -129,24 +166,53 @@ export default function TalismanPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [userInput, setUserInput] = useState("");
   const [chatDone, setChatDone] = useState(false);
+  const [responses, setResponses] = useState<Record<string, string>>({});
+  const [recommended, setRecommended] = useState<TalismanType | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   /* customization state */
   const [talismanStyle, setTalismanStyle] =
     useState<"traditional" | "modern">("traditional");
-  const [bgColor, setBgColor] = useState("");
+  const [background, setBackground] = useState("hwangji");
+  const [animalChoice, setAnimalChoice] = useState("");
   const [encouragement, setEncouragement] = useState("");
+  const [userCtx, setUserCtx] = useState({ name: "", animal: "" });
 
   /* reveal state */
   const [particles] = useState(() => generateParticles(40));
   const [saved, setSaved] = useState(false);
+  const [shareStatus, setShareStatus] = useState<ShareFormat | null>(null);
+
+  /* ── load user profile (인장 이름 + 띠 동물 기본값) ── */
+  useEffect(() => {
+    const ctx = loadUserContext();
+    setUserCtx(ctx);
+    setAnimalChoice(ctx.animal);
+  }, []);
 
   /* derived */
   const dialogue: DialogueFlow | null = selectedCategory
     ? DIALOGUE_FLOWS.find((f) => f.category === selectedCategory) ?? null
     : null;
-  const talismanName = dialogue ? `${dialogue.label} 부적` : "";
+  const talismanName = recommended
+    ? recommended.name
+    : dialogue
+      ? `${dialogue.label} 부적`
+      : "";
   const talismanType = dialogue?.category ?? "기타";
+
+  /* 생성기에 넘길 공통 파라미터 */
+  const talismanParams = {
+    type: recommended?.id ?? talismanType,
+    style: talismanStyle,
+    background,
+    animal: animalChoice || undefined,
+    title: talismanName,
+    message: encouragement,
+    mantra: recommended?.mantra ?? "",
+    userName: userCtx.name || undefined,
+    symbols: recommended?.symbols,
+  };
 
   /* ── auto-scroll chat ── */
   useEffect(() => {
@@ -168,6 +234,8 @@ export default function TalismanPage() {
     (catId: CategoryId) => {
       setSelectedCategory(catId);
       setPhase("chat");
+      setResponses({});
+      setRecommended(null);
       const flow = DIALOGUE_FLOWS.find((f) => f.category === catId);
       if (!flow) return;
       const firstStep = flow.steps[0];
@@ -201,6 +269,10 @@ export default function TalismanPage() {
       const step = dialogue.steps[currentStep];
       const nextIdx = currentStep + 1;
 
+      // 응답 기록 (부적 추천용 키워드 추출에 사용)
+      const newResponses = { ...responses, [step.id]: userText };
+      setResponses(newResponses);
+
       // add user message
       const userMsg: ChatMessage = {
         id: `user-${nextIdx}`,
@@ -212,13 +284,20 @@ export default function TalismanPage() {
 
       // step.next === null means this is the last step
       if (step.next === null) {
-        // show result message
+        // 대화 응답 → 키워드 → 43종 중 맞춤 부적 추천
+        const keywords = extractKeywords(dialogue, newResponses);
+        const rec = getTalismanRecommendation(
+          dialogue.category as TalismanCategory,
+          keywords
+        );
+        setRecommended(rec);
+
         setIsTyping(true);
         setTimeout(() => {
           setIsTyping(false);
           const resultMsg: ChatMessage = {
             id: "result",
-            text: `당신에게 어울리는 부적을 찾았어요! ✨\n\n「${dialogue.label} 부적」\n\n${dialogue.description}`,
+            text: `당신에게 어울리는 부적을 찾았어요! ✨\n\n「${rec.name} (${rec.hanja})」\n\n${rec.description}`,
             isBot: true,
           };
           setMessages((prev) => [...prev, resultMsg]);
@@ -247,7 +326,7 @@ export default function TalismanPage() {
         setCurrentStep(nextIdx);
       }, 1200);
     },
-    [dialogue, currentStep]
+    [dialogue, currentStep, responses]
   );
 
   const handleOptionSelect = useCallback(
@@ -266,58 +345,67 @@ export default function TalismanPage() {
     [userInput, advanceChat]
   );
 
-  /* 3. save to localStorage */
+  /* 3. save to 부적함 (bujeok-collection) */
   const handleSave = useCallback(() => {
-    if (!dialogue) return;
-    const talisman = {
-      id: `talisman-${Date.now()}`,
-      name: talismanName,
-      type: talismanType,
-      style: talismanStyle,
-      message: encouragement,
-      bgColor,
-      createdAt: new Date().toISOString(),
-      svg: generateTalismanSVG({
-        type: talismanType,
-        style: talismanStyle,
-        message: encouragement,
-        bgColor: bgColor || undefined,
-        title: talismanName,
-        mantra: "",
-      }),
+    if (!recommended) return;
+
+    const talisman: SavedTalisman = {
+      id: `custom-${Date.now()}`,
+      name: recommended.name,
+      hanja: recommended.hanja,
+      category: recommended.category,
+      description: recommended.description,
+      whenToUse: encouragement
+        ? `「${encouragement}」의 마음을 담아 직접 만든 부적입니다.`
+        : "직접 만든 나만의 맞춤 부적입니다.",
+      symbolsExplained: recommended.symbols.length
+        ? `${recommended.symbols.join(" · ")} 문양이 담겨 있습니다.`
+        : "나만의 문양이 담겨 있습니다.",
+      howToUse: recommended.usage,
+      svgKey: recommended.id,
+      savedAt: new Date().toISOString(),
+      note: encouragement || undefined,
+      svg: generateTalismanSVG(talismanParams),
     };
 
-    const existing = JSON.parse(
-      localStorage.getItem("bujeok-talismans") || "[]"
-    );
-    existing.push(talisman);
-    localStorage.setItem("bujeok-talismans", JSON.stringify(existing));
-    setSaved(true);
-  }, [dialogue, talismanName, talismanType, talismanStyle, encouragement, bgColor]);
+    try {
+      const existing: SavedTalisman[] = JSON.parse(
+        localStorage.getItem("bujeok-collection") || "[]"
+      );
+      existing.unshift(talisman);
+      localStorage.setItem("bujeok-collection", JSON.stringify(existing));
+      setSaved(true);
+    } catch {
+      // storage full 등 — 저장 실패 시 조용히 무시하지 않고 표시 유지
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recommended, encouragement, talismanStyle, background, animalChoice, userCtx]);
 
-  /* 4. share / download */
-  const handleDownload = useCallback(() => {
-    const svg = generateTalismanSVG({
-      type: talismanType,
-      style: talismanStyle,
-      message: encouragement,
-      bgColor: bgColor || undefined,
-      title: talismanName,
-      mantra: "",
-    });
-    const blob = new Blob([svg], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${talismanName}.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [talismanType, talismanStyle, encouragement, bgColor, talismanName]);
-
-  const handleCopyLink = useCallback(() => {
-    const text = `✨ 나만의 부적 「${talismanName}」을 만들었어요! 당신도 만들어보세요 🔮`;
-    navigator.clipboard.writeText(text);
-  }, [talismanName]);
+  /* 4. 공유 — 원본/스토리(9:16)/정사각(1:1) */
+  const handleShare = useCallback(
+    async (format: ShareFormat) => {
+      const svg = generateTalismanSVG(talismanParams);
+      try {
+        const blob = await composeShareImage(svg, format, {
+          name: talismanName,
+          hanja: recommended?.hanja,
+        });
+        const result = await shareOrDownload(
+          blob,
+          `수호부적_${talismanName}`,
+          `✨ 나만의 부적 「${talismanName}」을 만들었어요 🔮`
+        );
+        if (result !== "cancelled") {
+          setShareStatus(format);
+          setTimeout(() => setShareStatus(null), 2000);
+        }
+      } catch {
+        // 합성 실패 시 무시 (다음 시도 가능)
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [talismanName, recommended, talismanStyle, background, animalChoice, encouragement, userCtx]
+  );
 
   /* ══════════════════ RENDER ══════════════════ */
 
@@ -531,7 +619,12 @@ export default function TalismanPage() {
                 type={talismanType}
                 style={talismanStyle}
                 message={encouragement}
-                bgColor={bgColor || undefined}
+                background={background}
+                animal={animalChoice || undefined}
+                symbols={recommended?.symbols}
+                userName={userCtx.name || undefined}
+                title={talismanName}
+                mantra={recommended?.mantra}
                 size="md"
               />
             </motion.div>
@@ -559,23 +652,64 @@ export default function TalismanPage() {
                 </div>
               </div>
 
-              {/* bg color */}
+              {/* 배경 (종이) */}
               <div>
                 <label className="text-xs text-white/50 mb-2 block">
-                  배경 색상
+                  배경
                 </label>
                 <div className="flex gap-2">
-                  {BG_COLOR_OPTIONS.map((opt) => (
+                  {BACKGROUND_PRESETS.map((preset) => (
                     <button
-                      key={opt.value || "default"}
-                      onClick={() => setBgColor(opt.value)}
-                      className={`flex-1 py-2 rounded-xl text-xs transition-all duration-200 cursor-pointer ${
-                        bgColor === opt.value
-                          ? "bg-white/[0.12] border border-white/[0.2] text-white"
+                      key={preset.id}
+                      onClick={() => setBackground(preset.id)}
+                      className={`flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-xl text-xs transition-all duration-200 cursor-pointer ${
+                        background === preset.id
+                          ? "bg-white/[0.12] border border-white/[0.25] text-white"
                           : "bg-white/[0.04] border border-white/[0.06] text-white/50 hover:bg-white/[0.08]"
                       }`}
                     >
-                      {opt.label}
+                      <span
+                        className="h-6 w-6 rounded-full border border-white/20"
+                        style={{ backgroundColor: preset.swatch }}
+                      />
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 수호 동물 */}
+              <div>
+                <label className="text-xs text-white/50 mb-2 block">
+                  수호 동물
+                  {userCtx.animal && (
+                    <span className="ml-1.5 text-white/30">
+                      (내 띠: {userCtx.animal})
+                    </span>
+                  )}
+                </label>
+                <div className="grid grid-cols-7 gap-1.5">
+                  {ANIMAL_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value || "none"}
+                      onClick={() => setAnimalChoice(opt.value)}
+                      title={opt.label}
+                      className={`flex flex-col items-center gap-0.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer ${
+                        animalChoice === opt.value
+                          ? "bg-white/[0.14] border border-white/[0.25]"
+                          : "bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08]"
+                      }`}
+                    >
+                      <span className="text-base leading-none">{opt.emoji}</span>
+                      <span
+                        className={`text-[9px] ${
+                          animalChoice === opt.value
+                            ? "text-white"
+                            : "text-white/40"
+                        }`}
+                      >
+                        {opt.label}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -683,7 +817,12 @@ export default function TalismanPage() {
                 type={talismanType}
                 style={talismanStyle}
                 message={encouragement}
-                bgColor={bgColor || undefined}
+                background={background}
+                animal={animalChoice || undefined}
+                symbols={recommended?.symbols}
+                userName={userCtx.name || undefined}
+                title={talismanName}
+                mantra={recommended?.mantra}
                 size="lg"
               />
             </motion.div>
@@ -697,9 +836,14 @@ export default function TalismanPage() {
             >
               <h2 className="text-xl font-semibold text-amber-200/90 mb-2">
                 「{talismanName}」
+                {recommended && (
+                  <span className="ml-1.5 text-sm font-normal text-amber-200/50">
+                    {recommended.hanja}
+                  </span>
+                )}
               </h2>
               <p className="text-sm text-white/50 max-w-xs leading-relaxed">
-                {dialogue?.description}
+                {recommended?.description ?? dialogue?.description}
               </p>
             </motion.div>
 
@@ -721,26 +865,31 @@ export default function TalismanPage() {
               >
                 {saved ? "✓ 부적함에 담았어요" : "부적함에 담기"}
               </button>
-              <div className="flex gap-3">
-                <button
-                  onClick={handleDownload}
-                  className="flex-1 py-2.5 rounded-full text-xs font-medium cursor-pointer
-                    bg-white/[0.06] border border-white/[0.08]
-                    text-white/70 hover:bg-white/[0.12] hover:text-white
-                    active:scale-95 transition-all duration-200"
-                >
-                  공유하기
-                </button>
-                <button
-                  onClick={handleCopyLink}
-                  className="flex-1 py-2.5 rounded-full text-xs font-medium cursor-pointer
-                    bg-white/[0.06] border border-white/[0.08]
-                    text-white/70 hover:bg-white/[0.12] hover:text-white
-                    active:scale-95 transition-all duration-200"
-                >
-                  선물하기
-                </button>
+              <div className="flex gap-2">
+                {(
+                  [
+                    { format: "original", label: "이미지 저장", icon: "💾" },
+                    { format: "story", label: "스토리 카드", icon: "📱" },
+                    { format: "square", label: "정사각 카드", icon: "🖼️" },
+                  ] as const
+                ).map((btn) => (
+                  <button
+                    key={btn.format}
+                    onClick={() => handleShare(btn.format)}
+                    className={`flex-1 py-2.5 rounded-full text-xs font-medium cursor-pointer
+                      border active:scale-95 transition-all duration-200 ${
+                        shareStatus === btn.format
+                          ? "bg-green-500/20 border-green-400/30 text-green-300"
+                          : "bg-white/[0.06] border-white/[0.08] text-white/70 hover:bg-white/[0.12] hover:text-white"
+                      }`}
+                  >
+                    {shareStatus === btn.format ? "✓ 완료" : `${btn.icon} ${btn.label}`}
+                  </button>
+                ))}
               </div>
+              <p className="text-center text-[10px] text-white/25">
+                스토리 카드 9:16 · 정사각 카드 1:1 — 인스타·카톡 공유에 딱 맞아요
+              </p>
             </motion.div>
           </motion.div>
         )}
