@@ -6,6 +6,8 @@ const isGitHubPages = process.env.GITHUB_PAGES === "true";
 
 const nextConfig: NextConfig = {
   output: "export",
+  // 디렉터리/index.html 형태로 내보내 /talisman 과 /talisman/ 둘 다 동작하게 (GitHub Pages)
+  trailingSlash: true,
   basePath: isGitHubPages ? "/bujeok-app" : undefined,
   images: {
     unoptimized: true,
