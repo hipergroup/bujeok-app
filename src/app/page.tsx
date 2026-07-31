@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import BottomTab from "@/components/BottomTab";
 import HanjiBackground from "@/components/hanji/HanjiBackground";
@@ -11,10 +12,10 @@ import TalismanCategoryCard from "@/components/hanji/TalismanCategoryCard";
 import {
   MenuIcon,
   BellIcon,
-  SealLogo,
   BrushStroke,
   KnotMotif,
 } from "@/components/hanji/motifs";
+import appIcon from "../../public/brand/app-icon.png";
 import { HOME_ENERGIES } from "@/data/energies";
 
 const OnboardingPage = dynamic(() => import("./onboarding/page"), { ssr: false });
@@ -80,7 +81,7 @@ export default function HomePage() {
     return (
       <HanjiBackground>
         <div className="flex flex-1 items-center justify-center">
-          <SealLogo size={44} />
+          <Image src={appIcon} alt="수호부" priority className="w-24" />
         </div>
       </HanjiBackground>
     );

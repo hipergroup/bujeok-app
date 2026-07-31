@@ -32,7 +32,7 @@ export default function TraditionalHeader({
             src={wordmarkMark}
             alt="수호부"
             priority
-            className="h-11 w-auto"
+            className="h-12 w-auto"
           />
         )}
         {!wordmark && showSeal && <SealLogo size={30} />}
