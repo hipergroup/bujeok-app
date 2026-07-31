@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import BottomTab from "@/components/BottomTab";
 import FortuneCard from "@/components/FortuneCard";
+
+const OnboardingPage = dynamic(() => import("./onboarding/page"), { ssr: false });
 
 /* ── Animal Emoji Map ──────────────────── */
 const ANIMAL_EMOJI: Record<string, string> = {
@@ -87,15 +89,16 @@ const fadeUp = {
 
 /* ── Component ─────────────────────────── */
 export default function HomePage() {
-  const router = useRouter();
   const [ready, setReady] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [userName, setUserName] = useState("");
   const [animal, setAnimal] = useState("");
 
   useEffect(() => {
     const onboarded = localStorage.getItem("onboarding_completed");
     if (!onboarded) {
-      router.replace("/onboarding");
+      setNeedsOnboarding(true);
+      setReady(true);
       return;
     }
 
@@ -112,11 +115,11 @@ export default function HomePage() {
       setUserName("수호자");
     }
     setReady(true);
-  }, [router]);
+  }, []);
 
   if (!ready) {
     return (
-      <div className="flex flex-1 items-center justify-center min-h-dvh">
+      <div className="flex flex-1 items-center justify-center min-h-dvh" style={{background:"#0a0a1a"}}>
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -126,6 +129,10 @@ export default function HomePage() {
         </motion.div>
       </div>
     );
+  }
+
+  if (needsOnboarding) {
+    return <OnboardingPage />;
   }
 
   const fortune = getTodayFortune();

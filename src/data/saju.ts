@@ -3,6 +3,17 @@
 // 천간(天干), 지지(地支), 오행(五行) 기반 사주팔자 산출
 // ============================================================
 
+import {
+  getSajuYear,
+  getMonthBranchIndex,
+  getIpchun,
+  getSolarTerm,
+  SOLAR_TERM_NAMES,
+} from './solar-terms';
+
+// 절기 관련 유틸을 saju 모듈에서도 그대로 노출 (외부 사용 편의)
+export { getSajuYear, getMonthBranchIndex, getIpchun, getSolarTerm, SOLAR_TERM_NAMES };
+
 /** 오행 (五行) */
 export type Oheng = '목' | '화' | '토' | '금' | '수';
 
@@ -43,6 +54,16 @@ export interface OhengScore {
   토: number;
   금: number;
   수: number;
+}
+
+/** 사주 계산 옵션 */
+export interface SajuOptions {
+  /**
+   * 야자시(夜子時) 처리 방식.
+   * false(기본) : 23:00~23:59 도 당일 일주 그대로 사용 — 한국 만세력 관행(자정 기준)
+   * true        : 23:00 부터 다음날 일주로 넘김 — 중국식 자시 기준
+   */
+  lateNightZi?: boolean;
 }
 
 /** 삼재 판단 결과 */
@@ -88,24 +109,30 @@ export const JIJI: JiJi[] = [
   { name: '해', hanja: '亥', oheng: '수', animal: '돼지', emoji: '🐷', yin: true },
 ];
 
-// ─── 월주 천간 산출 테이블 (년간 기준) ────────────────────────
-// 갑/기년 → 병인월, 을/경년 → 무인월, 병/신년 → 경인월, 정/임년 → 임인월, 무/계년 → 갑인월
-const MONTH_STEM_BASE: number[] = [2, 4, 6, 8, 0]; // 년간 인덱스 0-1→2, 2-3→4, ...
+// ─── 월주 천간 산출 테이블 (년간 기준 월간 조견표) ───────────
+// 갑/기년 → 병인월, 을/경년 → 무인월, 병/신년 → 경인월,
+// 정/임년 → 임인월, 무/계년 → 갑인월
+// (년간 index % 5) 로 조회한다. 갑(0)·기(5) → 2(병), 을(1)·경(6) → 4(무) ...
+const MONTH_STEM_BASE: number[] = [2, 4, 6, 8, 0];
 
-// ─── 시주 천간 산출 테이블 (일간 기준) ────────────────────────
-const HOUR_STEM_BASE: number[] = [0, 2, 4, 6, 8]; // 일간 인덱스 0-1→0, 2-3→2, ...
+// ─── 시주 천간 산출 테이블 (일간 기준 시간 조견표) ─────────────
+// 갑/기일 → 갑자시, 을/경일 → 병자시, 병/신일 → 무자시,
+// 정/임일 → 경자시, 무/계일 → 임자시
+// (일간 index % 5) 로 조회한다.
+const HOUR_STEM_BASE: number[] = [0, 2, 4, 6, 8];
 
-// ─── 기준일: 1900년 1월 1일은 경자(庚子)일 → 천간6(경), 지지0(자) ───
-const BASE_YEAR = 1900;
-const BASE_YEAR_STEM = 6; // 경(庚) = index 6
-const BASE_YEAR_BRANCH = 0; // 자(子) = index 0
+// ─── 60갑자 기준점 ────────────────────────────────────────
+// 서기 4년(갑자년)을 기준으로 (년 - 4) % 60 이 60갑자 순번이 된다.
+const YEAR_GAPJA_OFFSET = 4;
 
-// ─── 일주 계산용 기준점 (1900-01-01 = 경자일, JD 기반) ───────
-const BASE_JD_STEM = 6; // 경 = 6
-const BASE_JD_BRANCH = 0; // 자 = 0
+// ─── 일주(日柱) 기준점 ────────────────────────────────────
+// 율리우스적일수(JDN) 기준 60갑자 순번 = (JDN + 49) % 60
+// 검증: 2000-01-01 (JDN 2451545) → (2451545+49)%60 = 54 → 무오(戊午)일
+//       1900-01-01 (JDN 2415021) → 갑술(甲戌)일
+const DAY_GAPJA_OFFSET = 49;
 
 /**
- * 율리우스 일수 계산 (그레고리력 기준)
+ * 율리우스 적일수(JDN) 계산 (그레고리력 기준, 정수)
  */
 function toJulianDay(year: number, month: number, day: number): number {
   const a = Math.floor((14 - month) / 12);
@@ -122,80 +149,113 @@ function toJulianDay(year: number, month: number, day: number): number {
   );
 }
 
-const BASE_JD = toJulianDay(1900, 1, 1);
-
 /**
- * 년주 (年柱) 계산
- * 음력 기준으로는 입춘 이전이면 전년도지만 간략화하여 양력 기준 사용
+ * 년주 (年柱) 계산 — 만세력 기준
+ *
+ * 사주의 한 해는 양력 1월 1일이 아니라 **입춘(立春)** 에 시작된다.
+ * 예) 1990-01-20 생 → 아직 1990년 입춘(2/4) 전이므로 1989년(기사년) 생으로 본다.
+ *
+ * @param year  양력 연도
+ * @param month 양력 월 (1-12)
+ * @param day   양력 일
+ * @param hour  시 (0-23)
  */
-function getYearPillar(year: number): { stem: CheonGan; branch: JiJi } {
-  const diff = year - BASE_YEAR;
-  const stemIdx = ((BASE_YEAR_STEM + diff) % 10 + 10) % 10;
-  const branchIdx = ((BASE_YEAR_BRANCH + diff) % 12 + 12) % 12;
-  return { stem: CHEONGAN[stemIdx], branch: JIJI[branchIdx] };
+function getYearPillar(
+  year: number,
+  month: number,
+  day: number,
+  hour: number
+): { stem: CheonGan; branch: JiJi; sajuYear: number } {
+  const sajuYear = getSajuYear(year, month, day, hour);
+  const idx = sajuYear - YEAR_GAPJA_OFFSET;
+  const stemIdx = ((idx % 10) + 10) % 10;
+  const branchIdx = ((idx % 12) + 12) % 12;
+  return { stem: CHEONGAN[stemIdx], branch: JIJI[branchIdx], sajuYear };
 }
 
 /**
- * 월주 (月柱) 계산
- * 음력 월 기반, 간략화: month(1-12)를 지지 인(寅)=1월 기준으로 매핑
+ * 월주 (月柱) 계산 — 만세력 기준
+ *
+ * 월지(月支)는 달력의 월이 아니라 **12절(節)의 절입일** 로 나뉜다.
+ *   입춘~경칩 = 인월(寅), 경칩~청명 = 묘월(卯), ... 소한~입춘 = 축월(丑)
+ * 월간(月干)은 년간(年干)에 따른 조견표로 결정한다.
+ *   월간 = (MONTH_STEM_BASE[년간 % 5] + 인월로부터의 개월수) % 10
+ *
+ * @param yearStemIdx 년간(年干) 인덱스 0-9
  */
 function getMonthPillar(
   year: number,
-  month: number
+  month: number,
+  day: number,
+  hour: number,
+  yearStemIdx: number
 ): { stem: CheonGan; branch: JiJi } {
-  // 월지: 1월=인(2), 2월=묘(3), ... 11월=자(0), 12월=축(1)
-  const branchIdx = (month + 1) % 12;
+  // 절기 기반 월지
+  const branchIdx = getMonthBranchIndex(year, month, day, hour);
 
-  // 월간: 년간에 따라 결정
-  const yearStemIdx = getYearPillar(year).stem
-    ? CHEONGAN.indexOf(getYearPillar(year).stem)
-    : 0;
-  const baseIdx = MONTH_STEM_BASE[Math.floor(yearStemIdx / 2) % 5];
-  const stemIdx = (baseIdx + (month - 1)) % 10;
+  // 인월(寅, index 2)을 0번째로 세었을 때의 순번
+  const monthsFromIn = ((branchIdx - 2) % 12 + 12) % 12;
+
+  const baseIdx = MONTH_STEM_BASE[((yearStemIdx % 5) + 5) % 5];
+  const stemIdx = (baseIdx + monthsFromIn) % 10;
 
   return { stem: CHEONGAN[stemIdx], branch: JIJI[branchIdx] };
 }
 
 /**
  * 일주 (日柱) 계산
- * 율리우스 일수 차이 기반
+ * 율리우스 적일수 기반 60갑자 순환.
+ * (하루의 경계는 자정 00:00 기준 = 조자시(朝子時) 방식)
  */
 function getDayPillar(
   year: number,
   month: number,
-  day: number
+  day: number,
+  hour: number = 0,
+  options: SajuOptions = {}
 ): { stem: CheonGan; branch: JiJi } {
-  const jd = toJulianDay(year, month, day);
-  const diff = jd - BASE_JD;
-  const stemIdx = ((BASE_JD_STEM + diff) % 10 + 10) % 10;
-  const branchIdx = ((BASE_JD_BRANCH + diff) % 12 + 12) % 12;
-  return { stem: CHEONGAN[stemIdx], branch: JIJI[branchIdx] };
+  let jd = toJulianDay(year, month, day);
+  // 야자시 옵션: 23시 이후는 다음날 일주로 본다
+  if (options.lateNightZi && hour >= 23) jd += 1;
+  const gapja = ((jd + DAY_GAPJA_OFFSET) % 60 + 60) % 60;
+  return { stem: CHEONGAN[gapja % 10], branch: JIJI[gapja % 12] };
 }
 
 /**
  * 시주 (時柱) 계산
- * 시간(0-23)을 2시간 단위 지지로 매핑
- * 23-01:자, 01-03:축, 03-05:인, ... 21-23:해
+ *
+ * 시지(時支): 23-01시 자(子), 01-03 축(丑), 03-05 인(寅) ... 21-23 해(亥)
+ * 시간(時干): 일간(日干) 기준 조견표
+ *   시간 = (HOUR_STEM_BASE[일간 % 5] + 시지 인덱스) % 10
  */
 function getHourPillar(
   year: number,
   month: number,
   day: number,
-  hour: number
+  hour: number,
+  options: SajuOptions = {}
 ): { stem: CheonGan; branch: JiJi } {
-  // 시지 계산
+  // 시지 계산 (23시~00시 59분은 자시)
   const branchIdx = Math.floor(((hour + 1) % 24) / 2);
 
   // 시간: 일간에 따라 결정
-  const dayStemIdx = CHEONGAN.indexOf(getDayPillar(year, month, day).stem);
-  const baseIdx = HOUR_STEM_BASE[Math.floor(dayStemIdx / 2) % 5];
+  const dayStemIdx = CHEONGAN.indexOf(
+    getDayPillar(year, month, day, hour, options).stem
+  );
+  const baseIdx = HOUR_STEM_BASE[((dayStemIdx % 5) + 5) % 5];
   const stemIdx = (baseIdx + branchIdx) % 10;
 
   return { stem: CHEONGAN[stemIdx], branch: JIJI[branchIdx] };
 }
 
 /**
- * 사주팔자 산출
+ * 사주팔자 산출 (만세력 · 24절기 기반)
+ *
+ * - 년주: 입춘(立春) 기준으로 해가 바뀐다
+ * - 월주: 12절(節)의 절입 시각 기준으로 달이 바뀐다
+ * - 일주: 율리우스 적일수 기반 60갑자
+ * - 시주: 2시간 단위 12지 + 일간 기준 조견표
+ *
  * @param year 출생년 (양력)
  * @param month 출생월 (1-12)
  * @param day 출생일 (1-31)
@@ -205,12 +265,14 @@ export function getSaju(
   year: number,
   month: number,
   day: number,
-  hour: number
+  hour: number,
+  options: SajuOptions = {}
 ): SajuResult {
-  const yearPillar = getYearPillar(year);
-  const monthPillar = getMonthPillar(year, month);
-  const dayPillar = getDayPillar(year, month, day);
-  const hourPillar = getHourPillar(year, month, day, hour);
+  const yearPillar = getYearPillar(year, month, day, hour);
+  const yearStemIdx = CHEONGAN.indexOf(yearPillar.stem);
+  const monthPillar = getMonthPillar(year, month, day, hour, yearStemIdx);
+  const dayPillar = getDayPillar(year, month, day, hour, options);
+  const hourPillar = getHourPillar(year, month, day, hour, options);
 
   return {
     yearStem: yearPillar.stem,
@@ -221,6 +283,56 @@ export function getSaju(
     dayBranch: dayPillar.branch,
     hourStem: hourPillar.stem,
     hourBranch: hourPillar.branch,
+  };
+}
+
+/**
+ * 사주 상세 정보 (사주 기준 연도 포함)
+ * 입춘 이전 출생자의 실제 사주 연도를 알아야 할 때 사용한다.
+ */
+export function getSajuDetail(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  options: SajuOptions = {}
+): SajuResult & { sajuYear: number; monthBranchIndex: number } {
+  const yearPillar = getYearPillar(year, month, day, hour);
+  const yearStemIdx = CHEONGAN.indexOf(yearPillar.stem);
+  const monthPillar = getMonthPillar(year, month, day, hour, yearStemIdx);
+  const dayPillar = getDayPillar(year, month, day, hour, options);
+  const hourPillar = getHourPillar(year, month, day, hour, options);
+
+  return {
+    yearStem: yearPillar.stem,
+    yearBranch: yearPillar.branch,
+    monthStem: monthPillar.stem,
+    monthBranch: monthPillar.branch,
+    dayStem: dayPillar.stem,
+    dayBranch: dayPillar.branch,
+    hourStem: hourPillar.stem,
+    hourBranch: hourPillar.branch,
+    sajuYear: yearPillar.sajuYear,
+    monthBranchIndex: getMonthBranchIndex(year, month, day, hour),
+  };
+}
+
+/**
+ * 사주팔자를 "갑자" 형태의 문자열 4개로 반환 (검증/표시용)
+ */
+export function getSajuText(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  options: SajuOptions = {}
+): { year: string; month: string; day: string; hour: string } {
+  const s = getSaju(year, month, day, hour, options);
+  return {
+    year: s.yearStem.name + s.yearBranch.name,
+    month: s.monthStem.name + s.monthBranch.name,
+    day: s.dayStem.name + s.dayBranch.name,
+    hour: s.hourStem.name + s.hourBranch.name,
   };
 }
 
@@ -264,10 +376,27 @@ export function getOheng(saju: SajuResult): OhengScore {
 
 /**
  * 띠 동물 조회
+ *
+ * 띠(생년 지지) 역시 만세력에서는 **입춘** 을 기준으로 바뀐다.
+ * 월/일이 함께 주어지면 입춘 경계를 반영해 정확한 띠를 돌려준다.
+ * (기존 호출부 호환을 위해 year 만 넘기면 양력 연도 기준으로 동작한다.)
+ *
  * @param year 출생년도
+ * @param month 출생월 (선택)
+ * @param day 출생일 (선택)
+ * @param hour 출생시 (선택, 기본 12시)
  */
-export function getAnimal(year: number): AnimalInfo {
-  const idx = ((year - 4) % 12 + 12) % 12;
+export function getAnimal(
+  year: number,
+  month?: number,
+  day?: number,
+  hour: number = 12
+): AnimalInfo {
+  const y =
+    month !== undefined && day !== undefined
+      ? getSajuYear(year, month, day, hour)
+      : year;
+  const idx = ((y - 4) % 12 + 12) % 12;
   const ji = JIJI[idx];
   return {
     name: ji.animal,
@@ -298,8 +427,12 @@ const SAMJAE_TYPES: ('들삼재' | '눌삼재' | '날삼재')[] = [
 
 /**
  * 삼재 판별
+ *
+ * 출생 연도의 지지(띠) 그룹과 대상 연도의 지지로 판정한다.
+ * 정확한 입춘 경계가 필요하면 미리 getSajuYear() 로 변환한 값을 넘긴다.
+ *
  * @param year 대상 연도 (올해)
- * @param birthYear 출생 연도
+ * @param birthYear 출생 연도 (사주 기준 연도)
  */
 export function isSamjae(year: number, birthYear: number): SamjaeResult {
   const birthBranchIdx = ((birthYear - 4) % 12 + 12) % 12;

@@ -3,6 +3,18 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// 만세력(24절기) 기반 정확한 사주 모듈
+import {
+  getSaju,
+  getSajuYear,
+  getOheng,
+  getAnimal,
+  isSamjae,
+  type SajuResult,
+  type Oheng,
+} from '@/data/saju';
+import { saveProfile } from '@/lib/store';
+
 // ─────────────────────────────────────────────
 // Constants & Data
 // ─────────────────────────────────────────────
@@ -13,39 +25,36 @@ const GOLD_DARK = '#B8912F';
 const BG_DARK = '#0A0A12';
 const BG_CARD = '#13131F';
 
-const ANIMALS = [
-  { name: '쥐', emoji: '🐀', element: '수' },
-  { name: '소', emoji: '🐂', element: '토' },
-  { name: '호랑이', emoji: '🐅', element: '목' },
-  { name: '토끼', emoji: '🐇', element: '목' },
-  { name: '용', emoji: '🐉', element: '토' },
-  { name: '뱀', emoji: '🐍', element: '화' },
-  { name: '말', emoji: '🐎', element: '화' },
-  { name: '양', emoji: '🐑', element: '토' },
-  { name: '원숭이', emoji: '🐒', element: '금' },
-  { name: '닭', emoji: '🐓', element: '금' },
-  { name: '개', emoji: '🐕', element: '토' },
-  { name: '돼지', emoji: '🐖', element: '수' },
-] as const;
+/**
+ * 12지시 선택지.
+ * `value` 는 24시간제 실제 "시(hour)" 값이며, 각 지시(支時)의 대표 시각이다.
+ * (사주 모듈은 23:00~00:59 를 자시로 처리하므로 자시는 0시로 둔다)
+ * -1 = 시간 모름
+ */
+const HOUR_UNKNOWN = -1;
+/** 시간을 모를 때 계산에 사용하는 기본 시각 (오시 정중앙) */
+const DEFAULT_HOUR = 12;
 
 const HOURS = [
   { label: '자시 (23:00~01:00)', value: 0 },
-  { label: '축시 (01:00~03:00)', value: 1 },
-  { label: '인시 (03:00~05:00)', value: 2 },
-  { label: '묘시 (05:00~07:00)', value: 3 },
-  { label: '진시 (07:00~09:00)', value: 4 },
-  { label: '사시 (09:00~11:00)', value: 5 },
-  { label: '오시 (11:00~13:00)', value: 6 },
-  { label: '미시 (13:00~15:00)', value: 7 },
-  { label: '신시 (15:00~17:00)', value: 8 },
-  { label: '유시 (17:00~19:00)', value: 9 },
-  { label: '술시 (19:00~21:00)', value: 10 },
-  { label: '해시 (21:00~23:00)', value: 11 },
-  { label: '모르겠어요', value: -1 },
+  { label: '축시 (01:00~03:00)', value: 2 },
+  { label: '인시 (03:00~05:00)', value: 4 },
+  { label: '묘시 (05:00~07:00)', value: 6 },
+  { label: '진시 (07:00~09:00)', value: 8 },
+  { label: '사시 (09:00~11:00)', value: 10 },
+  { label: '오시 (11:00~13:00)', value: 12 },
+  { label: '미시 (13:00~15:00)', value: 14 },
+  { label: '신시 (15:00~17:00)', value: 16 },
+  { label: '유시 (17:00~19:00)', value: 18 },
+  { label: '술시 (19:00~21:00)', value: 20 },
+  { label: '해시 (21:00~23:00)', value: 22 },
+  { label: '모르겠어요', value: HOUR_UNKNOWN },
 ] as const;
 
-const CHEONGAN = ['갑', '을', '병', '정', '무', '기', '경', '신', '임', '계'] as const;
-const JIJI = ['자', '축', '인', '묘', '진', '사', '오', '미', '신', '유', '술', '해'] as const;
+/** 시간 미상이면 기본 시각으로 대체 */
+function effectiveHour(hour: number): number {
+  return hour === HOUR_UNKNOWN || hour < 0 ? DEFAULT_HOUR : hour;
+}
 
 const OHENG_COLORS: Record<string, string> = {
   '목': '#4CAF50',
@@ -62,83 +71,6 @@ const OHENG_DESCRIPTIONS: Record<string, string> = {
   '금': '결단과 의리의 기운이 강합니다. 정의감이 강하고 깔끔한 성격이며, 집중력과 실행력이 뛰어납니다.',
   '수': '지혜와 유연의 기운이 강합니다. 깊은 사고력을 지녔으며, 적응력이 뛰어나고 섬세합니다.',
 };
-
-// 삼재 years by animal group
-const SAMJAE_GROUPS: number[][] = [
-  [0, 4, 8],   // 쥐, 용, 원숭이 → 인묘진 (2022,2023,2024 / 2034,2035,2036 ...)
-  [1, 5, 9],   // 소, 뱀, 닭 → 사오미
-  [2, 6, 10],  // 호랑이, 말, 개 → 신유술
-  [3, 7, 11],  // 토끼, 양, 돼지 → 해자축
-];
-
-// ─────────────────────────────────────────────
-// Saju Calculation Utilities
-// ─────────────────────────────────────────────
-
-function getAnimalIndex(year: number): number {
-  return (year - 4) % 12;
-}
-
-function getCheonganIndex(year: number): number {
-  return (year - 4) % 10;
-}
-
-function calcMonthPillar(yearGanIdx: number, month: number) {
-  const baseGan = (yearGanIdx % 5) * 2 + 2;
-  const monthGanIdx = (baseGan + month - 1) % 10;
-  const monthJiIdx = (month + 1) % 12;
-  return { gan: CHEONGAN[monthGanIdx], ji: JIJI[monthJiIdx] };
-}
-
-function calcDayPillar(year: number, month: number, day: number) {
-  // Simplified day pillar calculation
-  const baseDate = new Date(1900, 0, 1);
-  const targetDate = new Date(year, month - 1, day);
-  const diffDays = Math.floor((targetDate.getTime() - baseDate.getTime()) / 86400000);
-  const ganIdx = (diffDays + 6) % 10;
-  const jiIdx = diffDays % 12;
-  return {
-    gan: CHEONGAN[ganIdx < 0 ? ganIdx + 10 : ganIdx],
-    ji: JIJI[jiIdx < 0 ? jiIdx + 12 : jiIdx],
-  };
-}
-
-function calcHourPillar(dayGan: string, hourIdx: number) {
-  if (hourIdx < 0) return { gan: '?', ji: '?' };
-  const dayGanIdx = CHEONGAN.indexOf(dayGan as typeof CHEONGAN[number]);
-  const baseGan = (dayGanIdx % 5) * 2;
-  const ganIdx = (baseGan + hourIdx) % 10;
-  return { gan: CHEONGAN[ganIdx], ji: JIJI[hourIdx] };
-}
-
-function ganToOheng(gan: string): string {
-  const map: Record<string, string> = {
-    '갑': '목', '을': '목', '병': '화', '정': '화', '무': '토',
-    '기': '토', '경': '금', '신': '금', '임': '수', '계': '수',
-  };
-  return map[gan] || '토';
-}
-
-function jiToOheng(ji: string): string {
-  const map: Record<string, string> = {
-    '자': '수', '축': '토', '인': '목', '묘': '목', '진': '토', '사': '화',
-    '오': '화', '미': '토', '신': '금', '유': '금', '술': '토', '해': '수',
-  };
-  return map[ji] || '토';
-}
-
-function checkSamjae(animalIdx: number, currentYear: number): boolean {
-  const group = SAMJAE_GROUPS.find(g => g.includes(animalIdx));
-  if (!group) return false;
-  const groupIdx = SAMJAE_GROUPS.indexOf(group);
-  const samjaeStartJiIdx = [2, 5, 8, 11][groupIdx]; // 인, 사, 신, 해
-  const currentJiIdx = getAnimalIndex(currentYear);
-  return (
-    currentJiIdx === samjaeStartJiIdx ||
-    currentJiIdx === (samjaeStartJiIdx + 1) % 12 ||
-    currentJiIdx === (samjaeStartJiIdx + 2) % 12
-  );
-}
 
 // ─────────────────────────────────────────────
 // Floating Particles Component
@@ -585,13 +517,23 @@ function StepBirthInfo({
       value: i + 1,
     })), []);
 
+  // 입춘(立春) 기준 정확한 띠 — 만세력 모듈 사용
+  const animal = useMemo(
+    () => getAnimal(info.year, info.month, info.day, effectiveHour(info.hour)),
+    [info.year, info.month, info.day, info.hour]
+  );
+
+  // 사주 기준 연도 (입춘 전 출생이면 전년도)
+  const sajuYear = useMemo(
+    () => getSajuYear(info.year, info.month, info.day, effectiveHour(info.hour)),
+    [info.year, info.month, info.day, info.hour]
+  );
+
   // Dynamic background hue based on selection
   const bgHue = useMemo(() => {
-    const animalIdx = getAnimalIndex(info.year);
-    const element = ANIMALS[animalIdx].element;
     const hueMap: Record<string, number> = { '목': 120, '화': 0, '토': 40, '금': 45, '수': 210 };
-    return hueMap[element] ?? 0;
-  }, [info.year]);
+    return hueMap[animal.element] ?? 0;
+  }, [animal.element]);
 
   return (
     <motion.div
@@ -735,15 +677,15 @@ function StepBirthInfo({
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.7 }}
       >
-        {(() => {
-          const animal = ANIMALS[getAnimalIndex(info.year)];
-          return (
-            <div className="flex items-center justify-center gap-2" style={{ color: `${GOLD}77` }}>
-              <span className="text-2xl">{animal.emoji}</span>
-              <span className="text-sm">{info.year}년 {animal.name}띠</span>
-            </div>
-          );
-        })()}
+        <div className="flex items-center justify-center gap-2" style={{ color: `${GOLD}77` }}>
+          <span className="text-2xl">{animal.emoji}</span>
+          <span className="text-sm">{sajuYear}년 {animal.name}띠</span>
+        </div>
+        {sajuYear !== info.year && (
+          <p className="mt-1 text-[11px]" style={{ color: `${GOLD}55` }}>
+            입춘(立春) 전 출생이라 사주상 {sajuYear}년생으로 봅니다
+          </p>
+        )}
       </motion.div>
 
       {/* Next button */}
@@ -778,35 +720,42 @@ function StepSajuResult({
   info: BirthInfo;
   onNext: () => void;
 }) {
-  const animalIdx = getAnimalIndex(info.year);
-  const animal = ANIMALS[animalIdx];
+  const hourKnown = info.hour !== HOUR_UNKNOWN;
+  const hour = effectiveHour(info.hour);
 
-  const yearGanIdx = getCheonganIndex(info.year);
-  const yearGan = CHEONGAN[yearGanIdx];
-  const yearJi = JIJI[animalIdx];
+  // ── 만세력(24절기) 기반 정확한 사주팔자 ──
+  const saju: SajuResult = useMemo(
+    () => getSaju(info.year, info.month, info.day, hour),
+    [info.year, info.month, info.day, hour]
+  );
 
-  const monthPillar = calcMonthPillar(yearGanIdx, info.month);
-  const dayPillar = calcDayPillar(info.year, info.month, info.day);
-  const hourPillar = calcHourPillar(dayPillar.gan, info.hour);
+  // 입춘 기준 사주 연도 & 띠
+  const sajuYear = useMemo(
+    () => getSajuYear(info.year, info.month, info.day, hour),
+    [info.year, info.month, info.day, hour]
+  );
+  const animal = useMemo(
+    () => getAnimal(info.year, info.month, info.day, hour),
+    [info.year, info.month, info.day, hour]
+  );
 
+  // 사주팔자 (전통 표기 순서: 시주 · 일주 · 월주 · 년주)
   const pillars = [
-    { label: '시주', gan: hourPillar.gan, ji: hourPillar.ji },
-    { label: '일주', gan: dayPillar.gan, ji: dayPillar.ji },
-    { label: '월주', gan: monthPillar.gan, ji: monthPillar.ji },
-    { label: '년주', gan: yearGan, ji: yearJi },
+    { label: '시주', gan: saju.hourStem, ji: saju.hourBranch },
+    { label: '일주', gan: saju.dayStem, ji: saju.dayBranch },
+    { label: '월주', gan: saju.monthStem, ji: saju.monthBranch },
+    { label: '년주', gan: saju.yearStem, ji: saju.yearBranch },
   ];
 
-  // Calculate 오행 balance
-  const ohengCount: Record<string, number> = { '목': 0, '화': 0, '토': 0, '금': 0, '수': 0 };
-  for (const p of pillars) {
-    if (p.gan !== '?') ohengCount[ganToOheng(p.gan)]++;
-    if (p.ji !== '?') ohengCount[jiToOheng(p.ji)]++;
-  }
-  const maxOheng = Math.max(...Object.values(ohengCount));
-  const dominantOheng = Object.entries(ohengCount).reduce((a, b) => (b[1] > a[1] ? b : a))[0];
+  // ── 오행 균형 (0-100 점수) ──
+  const oheng = useMemo(() => getOheng(saju), [saju]);
+  const ohengEntries = Object.entries(oheng) as [Oheng, number][];
+  const maxOheng = Math.max(...ohengEntries.map(([, v]) => v), 1);
+  const dominantOheng = ohengEntries.reduce((a, b) => (b[1] > a[1] ? b : a))[0];
 
+  // ── 삼재 판별 (사주 기준 연도로 판정) ──
   const currentYear = new Date().getFullYear();
-  const isSamjae = checkSamjae(animalIdx, currentYear);
+  const samjae = useMemo(() => isSamjae(currentYear, sajuYear), [currentYear, sajuYear]);
 
   return (
     <motion.div
@@ -844,6 +793,10 @@ function StepSajuResult({
         <p className="mt-2 text-lg font-medium" style={{ color: GOLD }}>
           당신은 <strong>{animal.name}띠</strong>입니다
         </p>
+        <p className="mt-1 text-xs" style={{ color: `${GOLD}66` }}>
+          {sajuYear}년 {saju.yearStem.name}{saju.yearBranch.name}년생
+          {sajuYear !== info.year && ' · 입춘 전 출생'}
+        </p>
       </motion.div>
 
       {/* 천간지지 Four Pillars */}
@@ -858,36 +811,50 @@ function StepSajuResult({
           사주팔자 · 천간지지
         </p>
         <div className="grid grid-cols-4 gap-2">
-          {pillars.map((p, i) => (
-            <motion.div
-              key={p.label}
-              className="flex flex-col items-center gap-1"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.9 + i * 0.15 }}
-            >
-              <span className="text-[10px]" style={{ color: `${GOLD}66` }}>{p.label}</span>
-              <div
-                className="flex w-full flex-col items-center gap-1 rounded-xl py-3"
-                style={{ background: `${GOLD}10`, border: `1px solid ${GOLD}18` }}
+          {pillars.map((p, i) => {
+            const estimated = p.label === '시주' && !hourKnown;
+            return (
+              <motion.div
+                key={p.label}
+                className="flex flex-col items-center gap-1"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.9 + i * 0.15 }}
               >
-                <span
-                  className="text-xl font-bold"
-                  style={{ color: p.gan !== '?' ? OHENG_COLORS[ganToOheng(p.gan)] : `${GOLD}44` }}
-                >
-                  {p.gan}
+                <span className="text-[10px]" style={{ color: `${GOLD}66` }}>
+                  {p.label}{estimated ? ' *' : ''}
                 </span>
-                <div className="h-px w-6" style={{ background: `${GOLD}25` }} />
-                <span
-                  className="text-xl font-bold"
-                  style={{ color: p.ji !== '?' ? OHENG_COLORS[jiToOheng(p.ji)] : `${GOLD}44` }}
+                <div
+                  className="flex w-full flex-col items-center gap-1 rounded-xl py-3"
+                  style={{
+                    background: `${GOLD}10`,
+                    border: `1px solid ${GOLD}18`,
+                    opacity: estimated ? 0.45 : 1,
+                  }}
                 >
-                  {p.ji}
-                </span>
-              </div>
-            </motion.div>
-          ))}
+                  <span
+                    className="text-xl font-bold"
+                    style={{ color: OHENG_COLORS[p.gan.oheng] }}
+                  >
+                    {p.gan.name}
+                  </span>
+                  <div className="h-px w-6" style={{ background: `${GOLD}25` }} />
+                  <span
+                    className="text-xl font-bold"
+                    style={{ color: OHENG_COLORS[p.ji.oheng] }}
+                  >
+                    {p.ji.name}
+                  </span>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
+        <p className="mt-3 text-center text-[10px]" style={{ color: `${GOLD}55` }}>
+          {hourKnown
+            ? '24절기(만세력) 기준으로 산출되었습니다'
+            : '* 태어난 시간을 몰라 오시(11~13시) 기준으로 추정했습니다'}
+        </p>
       </motion.div>
 
       {/* 오행 Chart */}
@@ -902,7 +869,7 @@ function StepSajuResult({
           오행 균형
         </p>
         <div className="flex items-end justify-center gap-3">
-          {Object.entries(ohengCount).map(([name, count], i) => (
+          {ohengEntries.map(([name, score], i) => (
             <motion.div
               key={name}
               className="flex flex-col items-center gap-1"
@@ -912,12 +879,12 @@ function StepSajuResult({
               style={{ originY: 1 }}
             >
               <span className="text-xs font-bold" style={{ color: `${GOLD}CC` }}>
-                {count}
+                {score}
               </span>
               <div
                 className="w-10 rounded-lg transition-all"
                 style={{
-                  height: maxOheng > 0 ? (count / maxOheng) * 80 + 8 : 8,
+                  height: (score / maxOheng) * 80 + 8,
                   background: `linear-gradient(to top, ${OHENG_COLORS[name]}CC, ${OHENG_COLORS[name]}66)`,
                   boxShadow: `0 0 10px ${OHENG_COLORS[name]}40`,
                   minHeight: 8,
@@ -957,7 +924,7 @@ function StepSajuResult({
       </motion.div>
 
       {/* 삼재 Warning */}
-      {isSamjae && (
+      {samjae.is && (
         <motion.div
           className="relative z-10 mb-4 rounded-2xl p-4"
           style={{
@@ -979,6 +946,7 @@ function StepSajuResult({
             <div>
               <p className="mb-1 text-sm font-bold" style={{ color: '#F44336' }}>
                 올해는 삼재(三災)의 해입니다
+                {samjae.type ? ` · ${samjae.type}` : ''}
               </p>
               <p className="text-xs leading-relaxed" style={{ color: '#F4433699' }}>
                 삼재의 기운을 막아주는 <strong>삼재부</strong>를 권장합니다.
@@ -1024,20 +992,43 @@ function StepTalismanGift({
   const [saved, setSaved] = useState(false);
 
   const handleSave = useCallback(() => {
-    // Save to localStorage
+    const hour = effectiveHour(info.hour);
+    const hourKnown = info.hour !== HOUR_UNKNOWN;
+
+    // 만세력 기반 사주 산출 (홈 화면 등에서 재사용)
+    const saju = getSaju(info.year, info.month, info.day, hour);
+    const sajuYear = getSajuYear(info.year, info.month, info.day, hour);
+    const animal = getAnimal(info.year, info.month, info.day, hour);
+    const oheng = getOheng(saju);
+    const samjae = isSamjae(new Date().getFullYear(), sajuYear);
+    const now = new Date().toISOString();
+    const displayName = info.name.trim() || '수호자';
+
     const userData = {
       birth: {
         year: info.year,
         month: info.month,
         day: info.day,
-        hour: info.hour,
+        hour, // 0-23 실제 시각
+        hourKnown,
       },
       name: info.name,
+      animal: animal.name,
+      animalEmoji: animal.emoji,
+      sajuYear,
+      saju: {
+        year: saju.yearStem.name + saju.yearBranch.name,
+        month: saju.monthStem.name + saju.monthBranch.name,
+        day: saju.dayStem.name + saju.dayBranch.name,
+        hour: saju.hourStem.name + saju.hourBranch.name,
+      },
+      oheng,
+      samjae,
       onboardingCompleted: true,
       firstTalisman: {
         type: 'hosinbu',
         name: '호신부',
-        receivedAt: new Date().toISOString(),
+        receivedAt: now,
       },
       talismans: [
         {
@@ -1045,12 +1036,46 @@ function StepTalismanGift({
           type: 'hosinbu',
           name: '호신부 (護身符)',
           description: '몸과 마음을 보호하는 부적',
-          receivedAt: new Date().toISOString(),
+          receivedAt: now,
           isGift: true,
         },
       ],
     };
     localStorage.setItem('bujeok-user', JSON.stringify(userData));
+
+    // 홈 화면(src/app/page.tsx)이 참조하는 키
+    localStorage.setItem(
+      'user_profile',
+      JSON.stringify({
+        name: displayName,
+        animal: animal.name,
+        animalEmoji: animal.emoji,
+        element: animal.element,
+        birthYear: info.year,
+        birthMonth: info.month,
+        birthDay: info.day,
+        birthHour: hour,
+        birthHourKnown: hourKnown,
+        sajuYear,
+        saju: userData.saju,
+        oheng,
+        samjae,
+      })
+    );
+    localStorage.setItem('onboarding_completed', 'true');
+
+    // 공용 스토어(bujeok_app_v1)에도 프로필 반영
+    saveProfile({
+      name: displayName,
+      birthYear: info.year,
+      birthMonth: info.month,
+      birthDay: info.day,
+      birthHour: hour,
+      birthHourKnown: hourKnown,
+      animal: animal.name,
+      completedOnboarding: true,
+    });
+
     setSaved(true);
     setTimeout(() => {
       onComplete();

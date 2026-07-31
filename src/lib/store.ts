@@ -11,10 +11,16 @@ import type { DailyFortune } from '../data/fortune';
 /** 사용자 프로필 */
 export interface UserProfile {
   name: string;
+  /** 양력 출생 연도 (사주 연도는 입춘 기준이라 다를 수 있음 — getSajuYear 참고) */
   birthYear: number;
   birthMonth: number;
   birthDay: number;
-  birthHour: number; // 0-23
+  /** 출생 시각 0-23 (12지시 선택 시 각 지시의 대표 시각) */
+  birthHour: number;
+  /** 출생 시간을 실제로 아는지 여부. false면 birthHour는 기본값(12시) 추정치 */
+  birthHourKnown?: boolean;
+  /** 입춘 기준으로 산출된 띠 동물 이름 (예: '뱀') */
+  animal?: string;
   completedOnboarding: boolean;
 }
 
