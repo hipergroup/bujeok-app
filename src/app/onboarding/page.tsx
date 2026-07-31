@@ -2,7 +2,16 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
+import TraditionalButton from '@/components/hanji/TraditionalButton';
+import {
+  MountainMotif,
+  KnotMotif,
+  LotusMotif,
+} from '@/components/hanji/motifs';
+import { generateTalismanSVG } from '@/lib/talisman-generator';
+import wordmarkFull from '../../../public/brand/wordmark.png';
 
 // 만세력(24절기) 기반 정확한 사주 모듈
 import {
@@ -20,11 +29,12 @@ import { saveProfile } from '@/lib/store';
 // Constants & Data
 // ─────────────────────────────────────────────
 
-const GOLD = '#D4A853';
-const GOLD_LIGHT = '#E8C97A';
-const GOLD_DARK = '#B8912F';
-const BG_DARK = '#0A0A12';
-const BG_CARD = '#13131F';
+// 한지 테마 팔레트 — 기존 변수명을 유지한 채 색만 교체 (알파 접미사 호환)
+const GOLD = '#A72B21'; // 주홍 (포인트)
+const GOLD_LIGHT = '#C4544A';
+const GOLD_DARK = '#8A231B';
+const BG_DARK = '#F2E6CC'; // 한지 바탕
+const BG_CARD = '#F6EDD9';
 
 /**
  * 12지시 선택지.
@@ -57,12 +67,13 @@ function effectiveHour(hour: number): number {
   return hour === HOUR_UNKNOWN || hour < 0 ? DEFAULT_HOUR : hour;
 }
 
+// 밝은 한지 배경에서 읽히도록 명도를 낮춘 오행색
 const OHENG_COLORS: Record<string, string> = {
-  '목': '#4CAF50',
-  '화': '#F44336',
-  '토': '#FFC107',
-  '금': '#E0E0E0',
-  '수': '#2196F3',
+  '목': '#3D8B40',
+  '화': '#C0392B',
+  '토': '#C08A12',
+  '금': '#8D8778',
+  '수': '#1F6FB5',
 };
 
 const OHENG_DESCRIPTIONS: Record<string, string> = {
@@ -126,7 +137,7 @@ function FloatingParticles({ count = 30 }: { count?: number }) {
 
 function ProgressBar({ step, total }: { step: number; total: number }) {
   return (
-    <div className="absolute top-0 left-0 right-0 z-50 flex items-center gap-2 px-6 pt-4">
+    <div className="absolute top-0 left-0 right-0 z-50 flex items-center gap-2 px-6 pt-[max(1rem,env(safe-area-inset-top))]">
       {Array.from({ length: total }, (_, i) => (
         <div
           key={i}
@@ -272,101 +283,48 @@ function ScrollPicker({
 // ─────────────────────────────────────────────
 
 function HosinbuTalisman() {
+  // 새 한지 디자인 생성기로 그린 웰컴 호신부 — 앱 전체 부적과 동일한 화풍
+  const svg = useMemo(
+    () =>
+      generateTalismanSVG({
+        type: 'hosinbu-gift',
+        style: 'traditional',
+        background: 'hwangji',
+        accent: '#A72B21',
+        title: '호신부',
+        hanja: '護身符',
+        message: '몸과 마음의 평안을 지켜드릴게요',
+        mantra: '급급여율령 (急急如律令)',
+      }),
+    []
+  );
+
   return (
     <motion.div
       className="relative mx-auto"
-      style={{ width: 220, height: 320 }}
+      style={{ width: 220 }}
       initial={{ scale: 0.3, opacity: 0, rotateY: 90 }}
       animate={{ scale: 1, opacity: 1, rotateY: 0 }}
       transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
     >
-      {/* Outer glow */}
+      {/* 은은한 주홍빛 */}
       <motion.div
         className="absolute inset-0 rounded-2xl"
         style={{
-          background: `radial-gradient(ellipse at center, ${GOLD}40 0%, transparent 70%)`,
-          filter: 'blur(30px)',
+          background: `radial-gradient(ellipse at center, ${GOLD}30 0%, transparent 70%)`,
+          filter: 'blur(26px)',
         }}
-        animate={{
-          opacity: [0.5, 1, 0.5],
-          scale: [0.95, 1.05, 0.95],
-        }}
+        animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.95, 1.04, 0.95] }}
         transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
       />
-
-      {/* Talisman body */}
       <div
-        className="relative flex h-full w-full flex-col items-center justify-between overflow-hidden rounded-2xl p-4"
+        className="relative overflow-hidden rounded-xl"
         style={{
-          background: `linear-gradient(170deg, #1a0505 0%, #2a0808 40%, #1a0505 100%)`,
-          border: `2px solid ${GOLD}60`,
-          boxShadow: `0 0 40px ${GOLD}30, inset 0 0 40px ${GOLD}08`,
+          aspectRatio: '360 / 560',
+          boxShadow: '0 2px 6px rgba(122,74,52,0.25), 0 10px 30px rgba(122,74,52,0.2)',
         }}
-      >
-        {/* Top border decoration */}
-        <div className="flex w-full items-center justify-center gap-1">
-          <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}60)` }} />
-          <span style={{ color: GOLD, fontSize: 12 }}>☰</span>
-          <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, ${GOLD}60, transparent)` }} />
-        </div>
-
-        {/* Header characters */}
-        <div className="flex gap-3" style={{ color: GOLD }}>
-          <span className="text-lg font-bold">勅</span>
-          <span className="text-lg font-bold">令</span>
-        </div>
-
-        {/* Central symbol area */}
-        <div className="flex flex-col items-center gap-2">
-          {/* Outer circle */}
-          <div
-            className="flex items-center justify-center rounded-full"
-            style={{
-              width: 100,
-              height: 100,
-              border: `2px solid ${GOLD}50`,
-              background: `radial-gradient(circle, ${GOLD}10, transparent)`,
-            }}
-          >
-            <motion.div
-              className="flex items-center justify-center rounded-full"
-              style={{
-                width: 70,
-                height: 70,
-                border: `1.5px solid ${GOLD}40`,
-                background: `radial-gradient(circle, ${GOLD}15, transparent)`,
-              }}
-              animate={{ rotate: 360 }}
-              transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-            >
-              <span style={{ color: GOLD, fontSize: 28 }}>護</span>
-            </motion.div>
-          </div>
-
-          {/* Vertical text */}
-          <div className="flex flex-col items-center gap-0.5" style={{ color: GOLD, fontSize: 14 }}>
-            <span>護</span>
-            <span>身</span>
-            <span>大</span>
-            <span>吉</span>
-          </div>
-        </div>
-
-        {/* Trigram symbols */}
-        <div className="flex w-full justify-around" style={{ color: `${GOLD}70`, fontSize: 11 }}>
-          <span>☰</span>
-          <span>☵</span>
-          <span>☲</span>
-          <span>☷</span>
-        </div>
-
-        {/* Bottom decoration */}
-        <div className="flex w-full items-center justify-center gap-1">
-          <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}40)` }} />
-          <span style={{ color: `${GOLD}60`, fontSize: 10 }}>急急如律令</span>
-          <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, ${GOLD}40, transparent)` }} />
-        </div>
-      </div>
+        dangerouslySetInnerHTML={{ __html: svg }}
+      />
     </motion.div>
   );
 }
@@ -377,83 +335,61 @@ function HosinbuTalisman() {
 
 function StepWelcome({ onNext }: { onNext: () => void }) {
   const features = [
-    { icon: '🔮', text: '사주 기반 맞춤 운세' },
-    { icon: '🎴', text: '전통 부적 43종 수록' },
-    { icon: '✨', text: 'AI 맞춤형 부적 생성' },
+    {
+      Motif: MountainMotif,
+      color: '#1F3E63',
+      text: '만세력 기반 정확한 사주 풀이',
+    },
+    {
+      Motif: KnotMotif,
+      color: '#A72B21',
+      text: '마음을 담아 만드는 나만의 부적',
+    },
+    {
+      Motif: LotusMotif,
+      color: '#6B7D63',
+      text: '오늘의 마음을 나누는 다정한 상담',
+    },
   ];
 
   return (
     <motion.div
-      className="flex min-h-full flex-col items-center justify-center px-6"
+      className="flex min-h-full flex-col items-center justify-center px-6 py-[max(3rem,env(safe-area-inset-top))]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
     >
-      <FloatingParticles count={40} />
+      <FloatingParticles count={24} />
 
-      {/* Logo area */}
+      {/* 붓글씨 워드마크 (수호부 + 守護符印 낙관 + 태그라인) */}
       <motion.div
-        className="relative z-10 mb-4 flex flex-col items-center"
-        initial={{ y: -30, opacity: 0 }}
+        className="relative z-10 mb-10 flex w-full flex-col items-center"
+        initial={{ y: -24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 1, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
       >
-        {/* Glow behind logo */}
-        <div
-          className="absolute -inset-10 rounded-full opacity-30"
-          style={{
-            background: `radial-gradient(circle, ${GOLD}50 0%, transparent 70%)`,
-            filter: 'blur(20px)',
-          }}
+        <Image
+          src={wordmarkFull}
+          alt="수호부 — 오늘의 마음을 지키는 부적"
+          priority
+          className="w-[82%] max-w-[330px]"
         />
-        <motion.div
-          className="relative text-6xl font-black tracking-widest"
-          style={{
-            color: GOLD,
-            textShadow: `0 0 30px ${GOLD}60, 0 0 60px ${GOLD}30, 0 2px 4px rgba(0,0,0,0.8)`,
-            fontFamily: 'serif',
-          }}
-          animate={{
-            textShadow: [
-              `0 0 30px ${GOLD}60, 0 0 60px ${GOLD}30`,
-              `0 0 40px ${GOLD}80, 0 0 80px ${GOLD}50`,
-              `0 0 30px ${GOLD}60, 0 0 60px ${GOLD}30`,
-            ],
-          }}
-          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          수호부적
-        </motion.div>
       </motion.div>
 
-      {/* Subtitle */}
-      <motion.p
-        className="relative z-10 mb-12 text-center text-base tracking-wide"
-        style={{ color: `${GOLD}99` }}
-        initial={{ y: 10, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.8, delay: 0.7 }}
-      >
-        당신만을 위한 맞춤형 디지털 부적
-      </motion.p>
-
       {/* Features */}
-      <div className="relative z-10 mb-14 flex w-full max-w-xs flex-col gap-4">
+      <div className="relative z-10 mb-12 flex w-full max-w-xs flex-col gap-3">
         {features.map((f, i) => (
           <motion.div
             key={i}
-            className="flex items-center gap-4 rounded-2xl px-5 py-4"
-            style={{
-              background: `linear-gradient(135deg, ${GOLD}08, ${GOLD}04)`,
-              border: `1px solid ${GOLD}15`,
-              backdropFilter: 'blur(10px)',
-            }}
-            initial={{ x: -40, opacity: 0 }}
+            className="hanji-card flex items-center gap-4 rounded-xl px-5 py-4"
+            initial={{ x: -32, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 1.0 + i * 0.15, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.5, delay: 0.7 + i * 0.15, ease: [0.16, 1, 0.3, 1] }}
           >
-            <span className="text-2xl">{f.icon}</span>
-            <span className="text-sm font-medium" style={{ color: `${GOLD}DD` }}>
+            <span style={{ color: f.color }}>
+              <f.Motif size={26} />
+            </span>
+            <span className="font-serif-kr text-sm font-medium text-[var(--color-meok)]">
               {f.text}
             </span>
           </motion.div>
@@ -461,22 +397,14 @@ function StepWelcome({ onNext }: { onNext: () => void }) {
       </div>
 
       {/* CTA Button */}
-      <motion.button
-        className="relative z-10 w-full max-w-xs rounded-2xl px-8 py-4 text-lg font-bold tracking-wider"
-        style={{
-          background: `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})`,
-          color: '#0A0A12',
-          boxShadow: `0 4px 30px ${GOLD}40, 0 0 60px ${GOLD}20`,
-        }}
+      <motion.div
+        className="relative z-10 w-full max-w-xs"
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, delay: 1.5 }}
-        whileHover={{ scale: 1.03, boxShadow: `0 4px 40px ${GOLD}60` }}
-        whileTap={{ scale: 0.97 }}
-        onClick={onNext}
+        transition={{ duration: 0.6, delay: 1.2 }}
       >
-        시작하기
-      </motion.button>
+        <TraditionalButton onClick={onNext}>시작하기</TraditionalButton>
+      </motion.div>
     </motion.div>
   );
 }
@@ -543,11 +471,11 @@ function StepBirthInfo({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Animated background overlay */}
+      {/* Animated background overlay — 밝은 한지 위 은은한 오행빛 */}
       <motion.div
         className="pointer-events-none absolute inset-0"
         animate={{
-          background: `radial-gradient(ellipse at 50% 80%, hsla(${bgHue}, 60%, 15%, 0.3) 0%, transparent 60%)`,
+          background: `radial-gradient(ellipse at 50% 80%, hsla(${bgHue}, 45%, 55%, 0.12) 0%, transparent 60%)`,
         }}
         transition={{ duration: 1 }}
       />
@@ -694,7 +622,7 @@ function StepBirthInfo({
         className="relative z-10 mt-auto w-full rounded-2xl px-8 py-4 text-base font-bold tracking-wider"
         style={{
           background: `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})`,
-          color: '#0A0A12',
+          color: '#F6EDD9',
           boxShadow: `0 4px 30px ${GOLD}40`,
         }}
         whileHover={{ scale: 1.02 }}
@@ -963,7 +891,7 @@ function StepSajuResult({
         className="relative z-10 mt-auto w-full rounded-2xl px-8 py-4 text-base font-bold tracking-wider"
         style={{
           background: `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})`,
-          color: '#0A0A12',
+          color: '#F6EDD9',
           boxShadow: `0 4px 30px ${GOLD}40`,
         }}
         whileHover={{ scale: 1.02 }}
@@ -1158,7 +1086,7 @@ function StepTalismanGift({
           background: saved
             ? `linear-gradient(135deg, #4CAF50, #388E3C)`
             : `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})`,
-          color: saved ? '#fff' : '#0A0A12',
+          color: '#F6EDD9',
           boxShadow: saved ? `0 4px 30px #4CAF5040` : `0 4px 30px ${GOLD}40`,
         }}
         whileHover={!saved ? { scale: 1.02 } : {}}
@@ -1244,8 +1172,7 @@ export default function OnboardingPage() {
 
   return (
     <div
-      className="relative flex min-h-dvh flex-col overflow-hidden"
-      style={{ background: BG_DARK }}
+      className="hanji-surface relative flex min-h-dvh flex-col overflow-x-hidden text-[var(--color-meok)]"
     >
       {/* Progress bar — hidden on step 0 (welcome) */}
       {step > 0 && <ProgressBar step={step} total={totalSteps} />}
