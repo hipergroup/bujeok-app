@@ -9,8 +9,8 @@ import {
   type DialogueFlow,
 } from "@/data/dialogues";
 import {
-  TalismanCategory,
   TALISMANS,
+  TalismanCategory,
   getTalismanRecommendation,
   type TalismanType,
 } from "@/data/talismans";
@@ -105,6 +105,16 @@ const SUPPORTIVE_TALISMAN = {
     "마음이 편안해지기를 기원합니다",
   ],
 };
+
+/**
+ * 위로 부적에 대응하는 43종 카탈로그 항목(정신안정부).
+ * 위기 신호가 감지되면 키워드 기반 추천 대신 이 부적을 사용합니다.
+ * (카탈로그가 바뀌어도 앱이 죽지 않도록 건강 계열 → 전체 순으로 폴백)
+ */
+const SUPPORTIVE_TALISMAN_TYPE: TalismanType =
+  TALISMANS.find((t) => t.name === SUPPORTIVE_TALISMAN.name) ??
+  TALISMANS.find((t) => t.category === TalismanCategory.Health) ??
+  TALISMANS[0];
 
 /** 12지 수호 동물 선택지 (없음 포함) */
 const ANIMAL_OPTIONS: { label: string; emoji: string; value: string }[] = [
@@ -237,6 +247,9 @@ function TalismanFlow() {
     ? DIALOGUE_FLOWS.find((f) => f.category === selectedCategory) ?? null
     : null;
   const accent = selectedEnergy?.color ?? "#A72B21";
+
+  /* 위기 신호가 감지된 경우(supportiveMode)에는
+     키워드 기반 추천보다 위로 부적이 항상 우선합니다. */
   const talismanName = supportiveMode
     ? SUPPORTIVE_TALISMAN.name
     : recommended
@@ -345,11 +358,11 @@ function TalismanFlow() {
       // step.next === null means this is the last step
       if (step.next === null) {
         // 대화 응답 → 키워드 → 43종 중 맞춤 부적 추천
+        // 단, 위기 신호가 감지된 경우에는 키워드 추천보다 위로 부적이 우선합니다.
         const kws = extractKeywords(dialogue, newResponses);
         setKeywords(kws);
         const rec = supportiveModeRef.current
-          ? TALISMANS.find((t) => t.name === SUPPORTIVE_TALISMAN.name) ??
-            getTalismanRecommendation(TalismanCategory.Health, kws)
+          ? SUPPORTIVE_TALISMAN_TYPE
           : getTalismanRecommendation(dialogue.category, kws);
         setRecommended(rec);
 
@@ -607,6 +620,8 @@ function TalismanFlow() {
             transition={{ duration: 0.35 }}
             className="mx-auto flex w-full max-w-lg flex-1 flex-col"
           >
+            {/* header — 뒤로가기는 상단 TraditionalHeader가 담당하며,
+                resetToCategory()가 위기 안내 상태(supportiveMode 등)까지 초기화합니다. */}
             <div
               className="px-4 pb-2 text-center text-xs text-[var(--color-galsaek)]"
               style={{ borderBottom: "1px solid rgba(122,74,52,0.2)" }}
@@ -1013,6 +1028,7 @@ function TalismanFlow() {
                 </a>
               </div>
             </motion.div>
+
           </motion.div>
         )}
       </AnimatePresence>
