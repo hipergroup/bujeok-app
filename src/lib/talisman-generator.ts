@@ -67,7 +67,31 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
     trad: { bg: '#151226', ink: '#E8C97A', text: '#D8D4F0' },
     modern: { bg1: '#1C1830', bg2: '#2A1F42', ink: '#C9B8F0', accent: '#8F7AD4' },
   },
+  {
+    id: 'namsaekji',
+    label: '남색',
+    swatch: '#1F3E63',
+    trad: { bg: '#1F3E63', ink: '#DAA017', text: '#F2E6CC' },
+    modern: { bg1: '#2A4A73', bg2: '#1F3E63', ink: '#E8D9B0', accent: '#DAA017' },
+  },
+  {
+    id: 'ssukji',
+    label: '쑥색',
+    swatch: '#6B7D63',
+    trad: { bg: '#6B7D63', ink: '#F2E6CC', text: '#FBF6E8' },
+    modern: { bg1: '#7C8E74', bg2: '#6B7D63', ink: '#F2E6CC', accent: '#DCC9A5' },
+  },
+  {
+    id: 'geumji',
+    label: '황금',
+    swatch: '#DAA017',
+    trad: { bg: '#DAA017', ink: '#7A4A34', text: '#3E2A1C' },
+    modern: { bg1: '#E5B23A', bg2: '#DAA017', ink: '#7A4A34', accent: '#A72B21' },
+  },
 ];
+
+/** 밝은 중립 종이 — 이 경우에만 기운색(accent)이 테두리를 결정한다 */
+const LIGHT_PAPERS = new Set(['hwangji', 'baekji']);
 
 function getPreset(id?: string): BackgroundPreset | undefined {
   return id ? BACKGROUND_PRESETS.find((p) => p.id === id) : undefined;
@@ -369,7 +393,10 @@ function generateTraditional(
 
   const trad = preset?.trad ?? { bg: '#F2E6CC', ink: '#A72B21', text: '#2E2E2E' };
   const bg = trad.bg || bgColor || '#F2E6CC';
-  const accent = params.accent || trad.ink; // 기운 포인트: 테두리·문양·강조
+  // 밝은 종이(한지·백지)에서만 기운색이 테두리·문양을 결정.
+  // 색지(남색·쑥·황금·홍·심야)는 종이에 맞는 잉크색이 우선 (시안: 남색지+금테).
+  const isLightPaper = !preset || LIGHT_PAPERS.has(preset.id);
+  const accent = isLightPaper ? params.accent || trad.ink : trad.ink;
   const text = trad.text; // 기원 문구 (먹)
   const SEAL_RED = '#A72B21'; // 낙관은 인주색 고정
 
@@ -399,13 +426,19 @@ function generateTraditional(
     animalSvg = `<g transform="translate(${W / 2}, 208)" color="${accent}" opacity="0.9">${ANIMAL_PATHS[animal]}</g>`;
   }
 
-  // ── 기원 문구 (가로쓰기, 최대 4줄) ──
-  const msgLines = wrapText(message, 9).slice(0, 4);
-  const msgStartY = animalSvg ? 288 : 268;
+  // ── 기원 문구 (세로쓰기 — 오른쪽 열부터, 시안 방식) ──
+  const msgCols = wrapText(message, 7).slice(0, 3);
+  const colGap = 38;
+  const charH = 28;
+  const msgStartY = animalSvg ? 272 : 248;
   let messageText = '';
-  for (let i = 0; i < msgLines.length; i++) {
-    messageText += `<text x="${W / 2}" y="${msgStartY + i * 32}" text-anchor="middle" font-size="18" fill="${text}" font-family="'Gowun Batang', 'AppleMyungjo', serif">${escapeXml(msgLines[i])}</text>`;
-  }
+  msgCols.forEach((col, i) => {
+    const x = W / 2 + ((msgCols.length - 1) / 2 - i) * colGap;
+    const chars = [...col.replace(/\s+/g, '')];
+    chars.forEach((ch, j) => {
+      messageText += `<text x="${x}" y="${msgStartY + j * charH}" text-anchor="middle" font-size="20" fill="${text}" font-family="'Gowun Batang', 'AppleMyungjo', serif">${escapeXml(ch)}</text>`;
+    });
+  });
 
   // ── 낙관 (하단 중앙) ──
   const sealName =

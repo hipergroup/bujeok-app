@@ -159,6 +159,34 @@ export function BrushStroke({ width = 120, className = '' }: { width?: number; c
   );
 }
 
+/* ── 붓 (미리보기 옆 장식) ─────────────────────────── */
+export function BrushPen({ size = 110, className = '' }: MotifProps) {
+  return (
+    <svg
+      width={size * 0.35}
+      height={size}
+      viewBox="0 0 42 120"
+      fill="none"
+      className={className}
+      aria-hidden
+    >
+      {/* 붓대 */}
+      <rect x="17" y="4" width="8" height="70" rx="4" fill="#7A4A34" />
+      <rect x="17" y="4" width="3.5" height="70" rx="1.75" fill="#93604A" />
+      {/* 붓대 고리 끈 */}
+      <circle cx="21" cy="6" r="2.4" fill="none" stroke="#A72B21" strokeWidth="1.4" />
+      {/* 촉 연결부 */}
+      <rect x="15.5" y="74" width="11" height="7" rx="2" fill="#DAA017" />
+      {/* 붓털 */}
+      <path
+        d="M16 81c0 8 1.5 15 5 24 3.5-9 5-16 5-24h-10z"
+        fill="#2E2E2E"
+      />
+      <path d="M21 96v9" stroke="#A72B21" strokeWidth="2.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 /* ── 모서리 뇌문(回文) 장식 ────────────────────────── */
 export function CornerMotif({
   size = 40,

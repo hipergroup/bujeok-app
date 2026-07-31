@@ -114,8 +114,11 @@ export default function HomePage() {
         animate="show"
         className="mx-auto w-full max-w-md flex-1 px-5 pb-32 pt-2"
       >
-        {/* ── 메인 문구 ── */}
-        <motion.section variants={fadeUp} className="mb-6">
+        {/* ── 메인 문구 (시안: 중앙 정렬) ── */}
+        <motion.section
+          variants={fadeUp}
+          className="mb-6 flex flex-col items-center text-center"
+        >
           {userName && (
             <p className="mb-1.5 text-xs text-[var(--color-galsaek)] opacity-80">
               {userName}님의 하루에 평안이 깃들기를

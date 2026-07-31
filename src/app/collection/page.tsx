@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import BottomTab from '@/components/BottomTab';
-import TalismanCard from '@/components/TalismanCard';
+import { TalismanVisual } from '@/components/TalismanCard';
 import TalismanModal from '@/components/TalismanModal';
 import HanjiBackground from '@/components/hanji/HanjiBackground';
 import TraditionalHeader from '@/components/hanji/TraditionalHeader';
@@ -91,15 +91,15 @@ export default function CollectionPage() {
               <button
                 key={f.id}
                 onClick={() => setFilter(f.id)}
-                className={`rounded-full px-3.5 py-1.5 text-xs transition-colors ${
+                className={`rounded-md px-3 py-1.5 text-xs transition-colors ${
                   active
-                    ? 'bg-[var(--color-juhong)] font-bold text-[#F6EDD9]'
-                    : 'text-[var(--color-galsaek)]'
+                    ? 'font-bold text-[var(--color-juhong)]'
+                    : 'text-[var(--color-galsaek)] opacity-80'
                 }`}
                 style={
                   active
-                    ? undefined
-                    : { border: '1px solid rgba(122,74,52,0.35)' }
+                    ? { border: '1.5px solid var(--color-juhong)' }
+                    : { border: '1px solid transparent' }
                 }
               >
                 {f.label}
@@ -153,13 +153,23 @@ export default function CollectionPage() {
                   }}
                   transition={{ duration: 0.3, ease: 'easeOut' }}
                 >
-                  <TalismanCard
-                    talisman={talisman}
-                    size="small"
+                  {/* 시안: 부적이 곧 카드 — 풀블리드 + 이름·날짜 왼쪽 정렬 */}
+                  <motion.button
+                    whileTap={{ scale: 0.96 }}
                     onClick={() => setSelected(talisman)}
-                  />
-                  <p className="mt-1.5 text-center text-[10px] text-[var(--color-galsaek)] opacity-70">
-                    {formatDate(talisman.savedAt)} 제작
+                    className="block w-full overflow-hidden rounded-lg text-left"
+                    style={{
+                      boxShadow:
+                        '0 1px 2px rgba(122,74,52,0.15), 0 4px 12px rgba(122,74,52,0.12)',
+                    }}
+                  >
+                    <TalismanVisual talisman={talisman} width="100%" />
+                  </motion.button>
+                  <p className="mt-2 font-serif-kr text-[13px] font-bold text-[var(--color-meok)]">
+                    {talisman.name}
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-[var(--color-galsaek)] opacity-70">
+                    {formatDate(talisman.savedAt)}
                   </p>
                 </motion.div>
               ))}

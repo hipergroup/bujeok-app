@@ -16,12 +16,13 @@ function isSaved(t: SavedTalisman | TalismanInfo): t is SavedTalisman {
 }
 
 /** 직접 만든 부적(svg 보유)이면 실제 모습, 아니면 장식 썸네일 */
-function TalismanVisual({
+export function TalismanVisual({
   talisman,
   width,
 }: {
   talisman: SavedTalisman | TalismanInfo;
-  width: number;
+  /** 픽셀 값 또는 '100%' 등 CSS 폭 */
+  width: number | string;
 }) {
   const customSvg = isSaved(talisman) ? talisman.svg : undefined;
   if (customSvg) {
@@ -34,7 +35,11 @@ function TalismanVisual({
     );
   }
   return (
-    <TalismanThumbnail id={talisman.id} category={talisman.category} size={width} />
+    <TalismanThumbnail
+      id={talisman.id}
+      category={talisman.category}
+      size={typeof width === 'number' ? width : 160}
+    />
   );
 }
 

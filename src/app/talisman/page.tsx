@@ -24,7 +24,13 @@ import TraditionalHeader from "@/components/hanji/TraditionalHeader";
 import TraditionalButton from "@/components/hanji/TraditionalButton";
 import EnergySelector from "@/components/hanji/EnergySelector";
 import TalismanCategoryCard from "@/components/hanji/TalismanCategoryCard";
-import { BackIcon, GearIcon, BrushStroke } from "@/components/hanji/motifs";
+import {
+  BackIcon,
+  GearIcon,
+  BrushStroke,
+  BrushPen,
+  FlameMotif,
+} from "@/components/hanji/motifs";
 import {
   generateTalismanSVG,
   BACKGROUND_PRESETS,
@@ -133,47 +139,38 @@ function loadUserContext(): { name: string; animal: string } {
   return { name: "", animal: "" };
 }
 
-/** 3단계 진행 표시 */
+/** 3단계 진행 표시 — 시안의 미니멀 점 슬라이더 (●─○─○) */
 function StepDots({ current }: { current: 1 | 2 | 3 }) {
-  const labels = ["마음 나누기", "부적 꾸미기", "완성"];
   return (
-    <div className="flex items-center justify-center gap-2 pb-3">
-      {labels.map((label, i) => {
-        const n = (i + 1) as 1 | 2 | 3;
-        const active = n === current;
-        const done = n < current;
+    <div className="flex items-center justify-center gap-0 pb-3">
+      {[1, 2, 3].map((n) => {
+        const reached = n <= current;
         return (
-          <div key={label} className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5">
+          <div key={n} className="flex items-center">
+            {n > 1 && (
               <span
-                className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
-                  active
-                    ? "bg-[var(--color-juhong)] text-[#F6EDD9]"
-                    : done
-                      ? "bg-[var(--color-beige)] text-[var(--color-galsaek)]"
-                      : "text-[var(--color-galsaek)] opacity-50"
-                }`}
-                style={
-                  !active && !done
-                    ? { border: "1px solid rgba(122,74,52,0.4)" }
-                    : undefined
-                }
-              >
-                {n}
-              </span>
-              <span
-                className={`text-[11px] ${
-                  active
-                    ? "font-bold text-[var(--color-juhong)]"
-                    : "text-[var(--color-galsaek)] opacity-70"
-                }`}
-              >
-                {label}
-              </span>
-            </div>
-            {i < 2 && (
-              <span className="h-px w-4 bg-[var(--color-galsaek)] opacity-30" />
+                className="h-px w-7"
+                style={{
+                  backgroundColor: reached
+                    ? "var(--color-juhong)"
+                    : "rgba(122,74,52,0.3)",
+                }}
+              />
             )}
+            <span
+              className="h-2.5 w-2.5 rounded-full"
+              style={
+                n === current
+                  ? { backgroundColor: "var(--color-juhong)" }
+                  : reached
+                    ? {
+                        backgroundColor: "rgba(167,43,33,0.4)",
+                      }
+                    : {
+                        border: "1.5px solid rgba(122,74,52,0.4)",
+                      }
+              }
+            />
           </div>
         );
       })}
@@ -288,6 +285,7 @@ function TalismanFlow() {
   /* 1. energy(마음) 선택 → chat */
   const handleEnergySelect = useCallback((energy: Energy) => {
     setSelectedEnergy(energy);
+    setBackground(energy.paper); // 시안: 기운별 색지 기본 적용 (한지/남색/쑥/황금)
     setPhase("chat");
     setResponses({});
     setKeywords([]);
@@ -448,6 +446,7 @@ function TalismanFlow() {
   const handleEnergyChange = useCallback(
     (energy: Energy) => {
       setSelectedEnergy(energy);
+      setBackground(energy.paper);
       if (!supportiveModeRef.current) {
         setRecommended(getTalismanRecommendation(energy.category, keywords));
       }
@@ -722,8 +721,16 @@ function TalismanFlow() {
               {encouragement.length}/24
             </p>
 
-            {/* 부적 미리보기 */}
+            {/* 부적 미리보기 — 시안: 불꽃 배경 + 붓 장식 */}
             <div className="relative mb-2 flex justify-center">
+              <FlameMotif
+                size={90}
+                className="pointer-events-none absolute -left-1 bottom-2 text-[var(--color-juhong)] opacity-[0.14]"
+              />
+              <FlameMotif
+                size={56}
+                className="pointer-events-none absolute right-2 top-4 text-[var(--color-hwang)] opacity-[0.14]"
+              />
               <TalismanPreview
                 type={talismanType}
                 style={talismanStyle}
@@ -737,6 +744,10 @@ function TalismanFlow() {
                 hanja={recommended?.hanja}
                 mantra={recommended?.mantra}
                 size="md"
+              />
+              <BrushPen
+                size={120}
+                className="pointer-events-none absolute -right-1 bottom-0 rotate-[24deg] drop-shadow-sm"
               />
             </div>
             <div className="mb-5 flex justify-center text-[var(--color-meok)] opacity-60">
@@ -754,64 +765,64 @@ function TalismanFlow() {
               />
             </div>
 
-            {/* 화풍 · 바탕 종이 */}
-            <div className="mb-4 grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1.5 block text-xs font-bold text-[var(--color-galsaek)]">
-                  화풍
-                </label>
-                <div className="flex gap-1.5">
-                  {(["traditional", "modern"] as const).map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setTalismanStyle(s)}
-                      className={`flex-1 rounded-lg py-2 text-xs transition-colors ${
-                        talismanStyle === s
-                          ? "bg-[var(--color-juhong)] font-bold text-[#F6EDD9]"
-                          : "text-[var(--color-galsaek)]"
-                      }`}
-                      style={
-                        talismanStyle !== s
-                          ? { border: "1px solid rgba(122,74,52,0.35)" }
-                          : undefined
-                      }
-                    >
-                      {s === "traditional" ? "전통" : "현대"}
-                    </button>
-                  ))}
-                </div>
+            {/* 화풍 */}
+            <div className="mb-4">
+              <label className="mb-1.5 block text-xs font-bold text-[var(--color-galsaek)]">
+                화풍
+              </label>
+              <div className="flex gap-1.5">
+                {(["traditional", "modern"] as const).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setTalismanStyle(s)}
+                    className={`flex-1 rounded-lg py-2 text-xs transition-colors ${
+                      talismanStyle === s
+                        ? "bg-[var(--color-juhong)] font-bold text-[#F6EDD9]"
+                        : "text-[var(--color-galsaek)]"
+                    }`}
+                    style={
+                      talismanStyle !== s
+                        ? { border: "1px solid rgba(122,74,52,0.35)" }
+                        : undefined
+                    }
+                  >
+                    {s === "traditional" ? "전통" : "현대"}
+                  </button>
+                ))}
               </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-bold text-[var(--color-galsaek)]">
-                  바탕 종이
-                </label>
-                <div className="flex gap-1.5">
-                  {BACKGROUND_PRESETS.map((preset) => (
-                    <button
-                      key={preset.id}
-                      onClick={() => setBackground(preset.id)}
-                      title={preset.label}
-                      className="flex flex-1 flex-col items-center gap-1 rounded-lg py-1.5"
+            </div>
+
+            {/* 바탕 종이 — 기운 선택 시 어울리는 색지가 자동 적용, 직접 변경 가능 */}
+            <div className="mb-4">
+              <label className="mb-1.5 block text-xs font-bold text-[var(--color-galsaek)]">
+                바탕 종이
+              </label>
+              <div className="flex gap-1.5">
+                {BACKGROUND_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    onClick={() => setBackground(preset.id)}
+                    title={preset.label}
+                    className="flex flex-1 flex-col items-center gap-1 rounded-lg py-1.5"
+                    style={{
+                      border:
+                        background === preset.id
+                          ? "1.5px solid var(--color-juhong)"
+                          : "1px solid rgba(122,74,52,0.3)",
+                    }}
+                  >
+                    <span
+                      className="h-5 w-5 rounded-full"
                       style={{
-                        border:
-                          background === preset.id
-                            ? "1.5px solid var(--color-juhong)"
-                            : "1px solid rgba(122,74,52,0.3)",
+                        backgroundColor: preset.swatch,
+                        border: "1px solid rgba(122,74,52,0.35)",
                       }}
-                    >
-                      <span
-                        className="h-5 w-5 rounded-full"
-                        style={{
-                          backgroundColor: preset.swatch,
-                          border: "1px solid rgba(122,74,52,0.35)",
-                        }}
-                      />
-                      <span className="text-[9px] text-[var(--color-galsaek)]">
-                        {preset.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                    />
+                    <span className="text-[9px] text-[var(--color-galsaek)]">
+                      {preset.label}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
 

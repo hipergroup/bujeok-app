@@ -27,13 +27,10 @@ export default function TalismanCategoryCard({
         style={{ border: '1px solid rgba(122, 74, 52, 0.18)' }}
       />
       <span
-        className="flex h-12 w-12 items-center justify-center rounded-full"
-        style={{
-          color: energy.color,
-          border: `1.5px solid ${energy.color}55`,
-        }}
+        className="flex h-11 w-11 items-center justify-center"
+        style={{ color: energy.color }}
       >
-        <Motif size={28} />
+        <Motif size={34} />
       </span>
       <span className="font-serif-kr text-[15px] font-bold text-[var(--color-meok)]">
         {energy.title}

@@ -26,11 +26,14 @@ export interface Energy {
   /** 상담·추천에 연결되는 기존 카테고리 */
   category: TalismanCategory;
   motif: MotifKind;
+  /** 기본 바탕 종이 (BackgroundPreset.id) — 시안의 색지 매핑 */
+  paper: string;
 }
 
 export const ENERGIES: Energy[] = [
   {
     id: 'aegun',
+    paper: 'hwangji',
     title: '액운 막기',
     subtitle: '나쁜 기운 차단',
     hanja: '厄除',
@@ -40,6 +43,7 @@ export const ENERGIES: Energy[] = [
   },
   {
     id: 'maeum',
+    paper: 'namsaekji',
     title: '마음 안정',
     subtitle: '불안과 걱정 내려놓기',
     hanja: '平安',
@@ -49,6 +53,7 @@ export const ENERGIES: Energy[] = [
   },
   {
     id: 'sowon',
+    paper: 'hwangji',
     title: '소원 성취',
     subtitle: '바라는 일 이루기',
     hanja: '所願',
@@ -58,6 +63,7 @@ export const ENERGIES: Energy[] = [
   },
   {
     id: 'geongang',
+    paper: 'hwangji',
     title: '건강 기원',
     subtitle: '몸과 마음의 건강',
     hanja: '健康',
@@ -67,6 +73,7 @@ export const ENERGIES: Energy[] = [
   },
   {
     id: 'gajeong',
+    paper: 'ssukji',
     title: '가정 수호',
     subtitle: '가족의 평안과 화합',
     hanja: '家宅平安',
@@ -76,6 +83,7 @@ export const ENERGIES: Energy[] = [
   },
   {
     id: 'hakeop',
+    paper: 'geumji',
     title: '학업·시험',
     subtitle: '집중력과 좋은 결과',
     hanja: '合格',
@@ -86,6 +94,7 @@ export const ENERGIES: Energy[] = [
   // 홈 6칸 그리드 밖 — 기운 선택기·부적함 필터에서만 노출 (기존 재물 기능 보존)
   {
     id: 'jaebok',
+    paper: 'geumji',
     title: '재복 기원',
     subtitle: '재물과 복 불러오기',
     hanja: '財福',
