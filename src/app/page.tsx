@@ -100,7 +100,7 @@ export default function HomePage() {
             <MenuIcon size={22} />
           </button>
         }
-        showSeal
+        wordmark
         right={
           <button onClick={() => alert("알림은 준비 중이에요 🙏")} aria-label="알림">
             <BellIcon size={22} />
