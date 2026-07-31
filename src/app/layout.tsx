@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Gowun_Batang, Song_Myung } from "next/font/google";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import "./globals.css";
 
 // 본문·제목용 명조 (무료 상업용, OFL)
@@ -47,7 +48,10 @@ export default function RootLayout({
       lang="ko"
       className={`h-full antialiased ${serifKr.variable} ${brush.variable}`}
     >
-      <body className="min-h-dvh flex flex-col">{children}</body>
+      <body className="min-h-dvh flex flex-col">
+        {children}
+        <ServiceWorkerRegister />
+      </body>
     </html>
   );
 }

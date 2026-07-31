@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+// 첫 실행 사용자 대부분이 온보딩을 보므로 별도 청크 분리(추가 왕복) 대신 함께 번들
+import OnboardingPage from "./onboarding/page";
 import BottomTab from "@/components/BottomTab";
 import HanjiBackground from "@/components/hanji/HanjiBackground";
 import TraditionalHeader from "@/components/hanji/TraditionalHeader";
@@ -17,8 +18,6 @@ import {
 } from "@/components/hanji/motifs";
 import appIcon from "../../public/brand/app-icon.png";
 import { HOME_ENERGIES } from "@/data/energies";
-
-const OnboardingPage = dynamic(() => import("./onboarding/page"), { ssr: false });
 
 /* ── 오늘의 운세 (기존 기능 유지 — 컴팩트 카드) ────── */
 function getTodayFortune() {
