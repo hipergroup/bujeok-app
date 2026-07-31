@@ -9,8 +9,10 @@ export interface TalismanParams {
   style: 'traditional' | 'modern';
   background?: string; // BackgroundPreset.id
   bgColor?: string; // (레거시) 직접 배경색 지정
+  accent?: string; // 기운 포인트 컬러 (테두리·강조)
   animal?: string; // 띠 동물 이름
   title: string; // 두전(상단 제목)
+  hanja?: string; // 제목 한자 표기
   message: string; // 사용자 메시지
   mantra: string; // 주문(하단)
   userName?: string; // 인장 이름
@@ -39,23 +41,23 @@ export interface BackgroundPreset {
 export const BACKGROUND_PRESETS: BackgroundPreset[] = [
   {
     id: 'hwangji',
-    label: '황지',
-    swatch: '#F5E6B8',
-    trad: { bg: '#F5E6B8', ink: '#B22222', text: '#2B1810' },
+    label: '한지',
+    swatch: '#F2E6CC',
+    trad: { bg: '#F2E6CC', ink: '#A72B21', text: '#2E2E2E' },
     modern: { bg1: '#F5EAD5', bg2: '#F5D5C8', ink: '#AA6B3F', accent: '#D4914F' },
   },
   {
     id: 'hongji',
     label: '홍지',
     swatch: '#B93A32',
-    trad: { bg: '#B93A32', ink: '#F5D76E', text: '#FFF3D6' },
+    trad: { bg: '#B93A32', ink: '#F2E6CC', text: '#FFF3D6' },
     modern: { bg1: '#F5D5D5', bg2: '#F5C8D5', ink: '#A03A3A', accent: '#D46F6F' },
   },
   {
     id: 'baekji',
     label: '백지',
     swatch: '#F7F3EA',
-    trad: { bg: '#F7F3EA', ink: '#B22222', text: '#33302A' },
+    trad: { bg: '#F7F3EA', ink: '#A72B21', text: '#2E2E2E' },
     modern: { bg1: '#EFEFF5', bg2: '#DDE8F5', ink: '#4F5FAA', accent: '#7A8FD4' },
   },
   {
@@ -91,13 +93,29 @@ function escapeXml(str: string): string {
 }
 
 function wrapText(text: string, maxCharsPerLine: number): string[] {
+  // 어절(공백) 단위 우선 줄바꿈 — 단어 중간이 끊기지 않게
   const lines: string[] = [];
   let current = '';
-  for (const char of text) {
-    current += char;
-    if (current.length >= maxCharsPerLine) {
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    if (word.length > maxCharsPerLine) {
+      // 한 어절이 한 줄보다 길면 글자 단위로 분할
+      if (current) {
+        lines.push(current);
+        current = '';
+      }
+      for (let i = 0; i < word.length; i += maxCharsPerLine) {
+        const chunk = word.slice(i, i + maxCharsPerLine);
+        if (chunk.length === maxCharsPerLine) lines.push(chunk);
+        else current = chunk;
+      }
+      continue;
+    }
+    const joined = current ? `${current} ${word}` : word;
+    if (joined.length > maxCharsPerLine) {
       lines.push(current);
-      current = '';
+      current = word;
+    } else {
+      current = joined;
     }
   }
   if (current) lines.push(current);
@@ -327,133 +345,126 @@ function sealStamp(x: number, y: number, name: string, color: string): string {
  * 부적 SVG 마크업 생성
  */
 export function generateTalismanSVG(params: TalismanParams): string {
-  const {
-    style,
-    background,
-    bgColor,
-    animal,
-    title,
-    message,
-    mantra,
-    userName,
-    symbols,
-  } = params;
-
   const W = 360;
   const H = 560;
 
-  const preset = getPreset(background);
+  const preset = getPreset(params.background);
 
-  if (style === 'traditional') {
-    return generateTraditional(W, H, preset, bgColor, animal, title, message, mantra, userName, symbols);
-  } else {
-    return generateModern(W, H, preset, bgColor, animal, title, message, mantra, userName, symbols);
+  if (params.style === 'traditional') {
+    return generateTraditional(W, H, preset, params);
   }
+  return generateModern(
+    W, H, preset,
+    params.bgColor, params.animal, params.title, params.message,
+    params.mantra, params.userName, params.symbols
+  );
 }
 
 function generateTraditional(
   W: number, H: number,
   preset: BackgroundPreset | undefined,
-  bgColor: string | undefined,
-  animal: string | undefined,
-  title: string,
-  message: string,
-  mantra: string,
-  userName: string | undefined,
-  symbols: string[] | undefined
+  params: TalismanParams
 ): string {
-  const bg = preset?.trad.bg || bgColor || TRADITIONAL.bg;
-  const ink = preset?.trad.ink || TRADITIONAL.ink;
-  const black = preset?.trad.text || TRADITIONAL.black;
+  const { bgColor, animal, title, hanja, message, mantra, userName } = params;
 
-  // 패턴 장식 배치
-  let decorations = '';
+  const trad = preset?.trad ?? { bg: '#F2E6CC', ink: '#A72B21', text: '#2E2E2E' };
+  const bg = trad.bg || bgColor || '#F2E6CC';
+  const accent = params.accent || trad.ink; // 기운 포인트: 테두리·문양·강조
+  const text = trad.text; // 기원 문구 (먹)
+  const SEAL_RED = '#A72B21'; // 낙관은 인주색 고정
 
-  // 구름 장식 (좌우 상단)
-  decorations += svgCloud(50, 80, 0.8, ink);
-  decorations += svgCloud(W - 50, 80, 0.8, ink);
+  // ── 모서리 뇌문(回文) — 네 귀퉁이에 미러 배치 ──
+  const meander = `<path d="M0 14V0h14M5 14V5h9" fill="none" stroke="${accent}" stroke-width="1.4" opacity="0.55"/>`;
+  const corners = `
+    <g transform="translate(30,30)">${meander}</g>
+    <g transform="translate(${W - 30},30) scale(-1,1)">${meander}</g>
+    <g transform="translate(30,${H - 30}) scale(1,-1)">${meander}</g>
+    <g transform="translate(${W - 30},${H - 30}) scale(-1,-1)">${meander}</g>
+  `;
 
-  // 심볼에 따른 추가 장식
-  if (symbols?.includes('물결') || symbols?.includes('파도')) {
-    decorations += svgWave(40, H - 120, W - 80, ink);
-  }
-  if (symbols?.includes('연꽃')) {
-    decorations += svgLotus(W / 2, H - 150, 1, ink);
-  }
-  if (symbols?.includes('뇌전') || symbols?.includes('번개')) {
-    decorations += svgLightning(55, 130, 1, ink);
-    decorations += svgLightning(W - 70, 130, 1, ink);
-  }
-  if (symbols?.includes('태극')) {
-    decorations += svgYinYang(W / 2, 132, 16, ink);
-  }
-  if (symbols?.includes('별')) {
-    decorations += svgStar(60, 150, 8, ink);
-    decorations += svgStar(W - 60, 150, 8, ink);
-  }
+  // ── 상단 전통 매듭 ──
+  const knot = `
+    <g transform="translate(${W / 2}, 70)" stroke="${accent}" fill="none">
+      <path d="M0 -22v7" stroke-width="2" stroke-linecap="round"/>
+      <rect x="-10" y="-13" width="20" height="20" rx="2" transform="rotate(45 0 -3)" stroke-width="2"/>
+      <rect x="-5" y="-8" width="10" height="10" rx="1" transform="rotate(45 0 -3)" stroke-width="1.2"/>
+      <path d="M-13 -3c-5 0-5 7 0 7M13 -3c5 0 5 7 0 7" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M-4 11l-2 11M4 11l2 11M0 12v11" stroke-width="1.4" stroke-linecap="round"/>
+    </g>
+  `;
 
-  // 동물 심볼 — 상단 존(제목 아래)에 배치해 문구와 겹치지 않게
+  // ── 동물 심볼 (선택) ──
   let animalSvg = '';
   if (animal && ANIMAL_PATHS[animal]) {
-    animalSvg = `<g transform="translate(${W / 2}, 205)" color="${ink}">${ANIMAL_PATHS[animal]}</g>`;
+    animalSvg = `<g transform="translate(${W / 2}, 208)" color="${accent}" opacity="0.9">${ANIMAL_PATHS[animal]}</g>`;
   }
 
-  // 메시지 텍스트 (세로쓰기를 흉내내기 위해 한 글자씩 세로 배치)
-  const messageLines = wrapText(message, 7);
+  // ── 기원 문구 (가로쓰기, 최대 4줄) ──
+  const msgLines = wrapText(message, 9).slice(0, 4);
+  const msgStartY = animalSvg ? 288 : 268;
   let messageText = '';
-  const colCount = Math.min(messageLines.length, 3);
-  for (let col = 0; col < colCount; col++) {
-    const line = messageLines[col];
-    const xPos = W / 2 + (colCount > 1 ? (colCount / 2 - col - 0.5) * 28 : 0);
-    for (let i = 0; i < line.length; i++) {
-      messageText += `<text x="${xPos}" y="${290 + i * 24}" text-anchor="middle" font-size="16" fill="${black}" font-family="serif">${escapeXml(line[i])}</text>`;
-    }
+  for (let i = 0; i < msgLines.length; i++) {
+    messageText += `<text x="${W / 2}" y="${msgStartY + i * 32}" text-anchor="middle" font-size="18" fill="${text}" font-family="'Gowun Batang', 'AppleMyungjo', serif">${escapeXml(msgLines[i])}</text>`;
   }
 
-  // 인장 — 각획(주문)보다 아래, 테두리 안쪽
-  const seal = userName
-    ? sealStamp(W - 55, H - 48, userName, ink)
-    : '';
+  // ── 낙관 (하단 중앙) ──
+  const sealName =
+    userName && userName.trim().length >= 2 && userName.trim().length <= 3
+      ? userName.trim()
+      : null;
+  const sealText = sealName
+    ? `<text x="0" y="5" text-anchor="middle" font-size="12" font-weight="bold" fill="#F2E6CC" font-family="serif">${escapeXml(sealName)}</text>`
+    : `<text x="0" y="-2" text-anchor="middle" font-size="11" font-weight="bold" fill="#F2E6CC" font-family="serif">수호</text>
+       <text x="0" y="12" text-anchor="middle" font-size="11" font-weight="bold" fill="#F2E6CC" font-family="serif">부</text>`;
+  const seal = `
+    <g transform="translate(${W / 2}, ${H - 54})">
+      <rect x="-19" y="-19" width="38" height="38" rx="4" fill="${SEAL_RED}"/>
+      <rect x="-14.5" y="-14.5" width="29" height="29" rx="3" fill="none" stroke="#F2E6CC" stroke-width="1.2" opacity="0.9"/>
+      ${sealText}
+    </g>
+  `;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
   <defs>
     <filter id="paper-texture">
       <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise"/>
-      <feDiffuseLighting in="noise" lighting-color="${bg}" surfaceScale="1.5" result="lit">
-        <feDistantLight azimuth="45" elevation="55"/>
+      <feDiffuseLighting in="noise" lighting-color="${bg}" surfaceScale="1.2" result="lit">
+        <feDistantLight azimuth="45" elevation="58"/>
       </feDiffuseLighting>
       <feComposite in="SourceGraphic" in2="lit" operator="arithmetic" k1="1" k2="0" k3="0" k4="0"/>
     </filter>
   </defs>
 
-  <!-- 배경 (황지) -->
+  <!-- 한지 배경 -->
   <rect width="${W}" height="${H}" fill="${bg}"/>
-  <rect width="${W}" height="${H}" fill="${bg}" opacity="0.3" filter="url(#paper-texture)"/>
+  <rect width="${W}" height="${H}" fill="${bg}" opacity="0.25" filter="url(#paper-texture)"/>
 
-  <!-- 테두리 -->
-  ${traditionalBorder(W, H, ink)}
+  <!-- 주홍 이중 테두리 -->
+  <rect x="14" y="14" width="${W - 28}" height="${H - 28}" fill="none" stroke="${accent}" stroke-width="2.5"/>
+  <rect x="21" y="21" width="${W - 42}" height="${H - 42}" fill="none" stroke="${accent}" stroke-width="1" opacity="0.8"/>
 
-  <!-- 장식 패턴 -->
-  ${decorations}
+  <!-- 모서리 뇌문 -->
+  ${corners}
 
-  <!-- 두전 (상단 제목) -->
-  <text x="${W / 2}" y="58" text-anchor="middle" font-size="26" font-weight="bold" fill="${ink}" font-family="serif">${escapeXml(title)}</text>
-  <line x1="60" y1="70" x2="${W - 60}" y2="70" stroke="${ink}" stroke-width="1.5" opacity="0.5"/>
+  <!-- 상단 매듭 -->
+  ${knot}
 
-  <!-- 주신 (본문) -->
-  <!-- 동물 심볼 -->
+  <!-- 두전 (제목) -->
+  <text x="${W / 2}" y="134" text-anchor="middle" font-size="24" font-weight="bold" fill="${accent}" font-family="'Gowun Batang', 'AppleMyungjo', serif">${escapeXml(title)}</text>
+  ${hanja ? `<text x="${W / 2}" y="156" text-anchor="middle" font-size="12" fill="${accent}" opacity="0.75" font-family="serif">${escapeXml(hanja)}</text>` : ''}
+  <line x1="${W / 2 - 52}" y1="${hanja ? 170 : 152}" x2="${W / 2 + 52}" y2="${hanja ? 170 : 152}" stroke="${accent}" stroke-width="1" opacity="0.4"/>
+
+  <!-- 수호 동물 -->
   ${animalSvg}
 
-  <!-- 메시지 -->
+  <!-- 기원 문구 -->
   ${messageText}
 
-  <!-- 하단 구분선 -->
-  <line x1="60" y1="${H - 105}" x2="${W - 60}" y2="${H - 105}" stroke="${ink}" stroke-width="1.5" opacity="0.5"/>
+  <!-- 각획 (주문) -->
+  <line x1="90" y1="${H - 112}" x2="${W - 90}" y2="${H - 112}" stroke="${accent}" stroke-width="1" opacity="0.35"/>
+  ${mantra ? `<text x="${W / 2}" y="${H - 92}" text-anchor="middle" font-size="12" fill="${accent}" opacity="0.85" font-family="serif">${escapeXml(mantra)}</text>` : ''}
 
-  <!-- 각획 (하단 주문) -->
-  <text x="${W / 2}" y="${H - 80}" text-anchor="middle" font-size="14" fill="${ink}" font-family="serif" opacity="0.9">${escapeXml(mantra)}</text>
-
-  <!-- 인장 -->
+  <!-- 낙관 -->
   ${seal}
 </svg>`;
 }

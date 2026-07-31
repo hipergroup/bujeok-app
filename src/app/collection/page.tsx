@@ -1,49 +1,39 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import BottomTab from '@/components/BottomTab';
 import TalismanCard from '@/components/TalismanCard';
 import TalismanModal from '@/components/TalismanModal';
-import { SavedTalisman, CATEGORY_COLORS } from '@/lib/types';
-import { TOTAL_TALISMAN_COUNT } from '@/lib/talisman-data';
+import HanjiBackground from '@/components/hanji/HanjiBackground';
+import TraditionalHeader from '@/components/hanji/TraditionalHeader';
+import TraditionalButton from '@/components/hanji/TraditionalButton';
+import { BackIcon, GearIcon } from '@/components/hanji/motifs';
+import { SavedTalisman } from '@/lib/types';
+import { ENERGIES } from '@/data/energies';
 
-// ── Progress ring component ──
-function ProgressRing({ collected, total }: { collected: number; total: number }) {
-  const pct = total > 0 ? collected / total : 0;
-  const r = 36;
-  const circumference = 2 * Math.PI * r;
-  const offset = circumference * (1 - pct);
+/** 필터 칩 — 전체 + 기운(카테고리 중복 제거) */
+const FILTERS: { id: string; label: string; category: string | null }[] = [
+  { id: 'all', label: '전체', category: null },
+  ...ENERGIES.filter(
+    (e, i, arr) => arr.findIndex((x) => x.category === e.category) === i
+  ).map((e) => ({ id: e.id, label: e.title, category: e.category as string })),
+];
 
-  return (
-    <div className="relative flex items-center justify-center">
-      <svg width="88" height="88" className="-rotate-90">
-        <circle cx="44" cy="44" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
-        <motion.circle
-          cx="44"
-          cy="44"
-          r={r}
-          fill="none"
-          stroke="#e8c36a"
-          strokeWidth="6"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 1.2, ease: 'easeOut' }}
-        />
-      </svg>
-      <span className="absolute text-lg font-bold text-amber-200">
-        {collected}
-      </span>
-    </div>
-  );
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(
+    d.getDate()
+  ).padStart(2, '0')}`;
 }
 
 export default function CollectionPage() {
+  const router = useRouter();
   const [collection, setCollection] = useState<SavedTalisman[]>([]);
   const [selected, setSelected] = useState<SavedTalisman | null>(null);
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     try {
@@ -64,97 +54,113 @@ export default function CollectionPage() {
     setSelected(null);
   };
 
-  const isEmpty = collection.length === 0;
+  const activeCategory = FILTERS.find((f) => f.id === filter)?.category ?? null;
+  const filtered = activeCategory
+    ? collection.filter((t) => t.category === activeCategory)
+    : collection;
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[#0D0B12] text-white">
-      {/* Header */}
-      <header className="px-5 pb-4 pt-[max(1rem,env(safe-area-inset-top))]">
-        <h1 className="text-2xl font-bold text-amber-100">나의 부적함</h1>
-      </header>
+    <HanjiBackground>
+      <TraditionalHeader
+        left={
+          <button onClick={() => router.push('/')} aria-label="뒤로가기">
+            <BackIcon size={20} />
+          </button>
+        }
+        title="내 부적함"
+        right={
+          <button
+            onClick={() => alert('설정은 준비 중이에요 🙏')}
+            aria-label="설정"
+          >
+            <GearIcon size={20} />
+          </button>
+        }
+      />
 
-      {/* Stats bar */}
-      <div className="flex items-center gap-5 px-5 pb-5">
-        <ProgressRing collected={collection.length} total={TOTAL_TALISMAN_COUNT} />
-        <div>
-          <p className="text-base font-semibold text-amber-200">
-            {collection.length}개의 부적을 모았어요
-          </p>
-          <p className="mt-0.5 text-xs text-zinc-500">
-            전체 {TOTAL_TALISMAN_COUNT}종 중 {collection.length}종 수집
-          </p>
-          {/* Category breakdown */}
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {(Object.entries(CATEGORY_COLORS) as [string, string][]).map(([cat, clr]) => {
-              const count = collection.filter((t) => t.category === cat).length;
-              if (count === 0) return null;
-              return (
-                <span
-                  key={cat}
-                  className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                  style={{ backgroundColor: `${clr}20`, color: clr }}
-                >
-                  <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: clr }} />
-                  {cat} {count}
-                </span>
-              );
-            })}
-          </div>
+      <div className="mx-auto w-full max-w-md flex-1 px-5 pb-32">
+        <p className="mb-4 text-center text-xs text-[var(--color-galsaek)]">
+          당신이 만든 부적들을 보관해 보세요.
+        </p>
+
+        {/* 필터 */}
+        <div className="energy-scroll mb-4">
+          {FILTERS.map((f) => {
+            const active = filter === f.id;
+            return (
+              <button
+                key={f.id}
+                onClick={() => setFilter(f.id)}
+                className={`rounded-full px-3.5 py-1.5 text-xs transition-colors ${
+                  active
+                    ? 'bg-[var(--color-juhong)] font-bold text-[#F6EDD9]'
+                    : 'text-[var(--color-galsaek)]'
+                }`}
+                style={
+                  active
+                    ? undefined
+                    : { border: '1px solid rgba(122,74,52,0.35)' }
+                }
+              >
+                {f.label}
+              </button>
+            );
+          })}
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="flex-1 px-4 pb-24">
         <AnimatePresence mode="wait">
-          {isEmpty ? (
+          {filtered.length === 0 ? (
             /* ── Empty State ── */
             <motion.div
               key="empty"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="flex flex-1 flex-col items-center justify-center pt-20 text-center"
+              className="flex flex-col items-center justify-center pt-16 text-center"
             >
-              <div className="text-6xl">📜</div>
-              <p className="mt-4 text-lg font-medium text-zinc-300">
-                아직 부적이 없어요
+              <p className="font-serif-kr text-base font-bold text-[var(--color-meok)]">
+                {filter === 'all'
+                  ? '아직 부적이 없어요'
+                  : '이 종류의 부적이 아직 없어요'}
               </p>
-              <p className="mt-1 text-sm text-zinc-500">
-                첫 부적을 받으러 가볼까요?
+              <p className="mt-1 text-xs text-[var(--color-galsaek)]">
+                마음을 담아 첫 부적을 만들어 볼까요?
               </p>
-              <Link
-                href="/talisman"
-                className="mt-6 inline-flex items-center gap-2 rounded-full bg-amber-700/80 px-6 py-3 text-sm font-semibold text-amber-100 shadow-lg shadow-amber-900/30 transition hover:bg-amber-700"
-              >
-                부적 받기 →
-              </Link>
+              <div className="mt-6 w-full max-w-[220px]">
+                <TraditionalButton onClick={() => router.push('/talisman')}>
+                  부적 만들러 가기
+                </TraditionalButton>
+              </div>
             </motion.div>
           ) : (
             /* ── Grid ── */
             <motion.div
-              key="grid"
+              key={`grid-${filter}`}
               className="grid grid-cols-2 gap-3"
               initial="hidden"
               animate="visible"
               variants={{
                 hidden: {},
-                visible: { transition: { staggerChildren: 0.07 } },
+                visible: { transition: { staggerChildren: 0.06 } },
               }}
             >
-              {collection.map((talisman) => (
+              {filtered.map((talisman) => (
                 <motion.div
                   key={talisman.id}
                   variants={{
-                    hidden: { opacity: 0, y: 24, scale: 0.95 },
+                    hidden: { opacity: 0, y: 20, scale: 0.96 },
                     visible: { opacity: 1, y: 0, scale: 1 },
                   }}
-                  transition={{ duration: 0.35, ease: 'easeOut' }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
                 >
                   <TalismanCard
                     talisman={talisman}
                     size="small"
                     onClick={() => setSelected(talisman)}
                   />
+                  <p className="mt-1.5 text-center text-[10px] text-[var(--color-galsaek)] opacity-70">
+                    {formatDate(talisman.savedAt)} 제작
+                  </p>
                 </motion.div>
               ))}
             </motion.div>
@@ -172,6 +178,6 @@ export default function CollectionPage() {
       )}
 
       <BottomTab />
-    </div>
+    </HanjiBackground>
   );
 }

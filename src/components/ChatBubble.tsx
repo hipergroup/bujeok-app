@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { SealLogo } from "./hanji/motifs";
 
 /** Chat option displayed as a pill button */
 export type DialogueOption = {
@@ -29,7 +30,7 @@ function TypingIndicator() {
       {[0, 1, 2].map((i) => (
         <motion.span
           key={i}
-          className="block w-2 h-2 rounded-full bg-white/50"
+          className="block h-2 w-2 rounded-full bg-[var(--color-galsaek)] opacity-50"
           animate={{ y: [0, -6, 0] }}
           transition={{
             duration: 0.6,
@@ -80,11 +81,10 @@ function InlineFreeText({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={() => setOpen(true)}
-            className="px-3.5 py-1.5 text-xs rounded-full
-              bg-transparent border border-dashed border-white/[0.16]
-              text-white/55 hover:text-white/85
-              hover:bg-white/[0.06] hover:border-white/[0.28]
-              active:scale-95 transition-all duration-200 cursor-pointer"
+            className="cursor-pointer rounded-full px-3.5 py-1.5 text-xs
+              text-[var(--color-galsaek)] transition-all duration-200
+              hover:text-[var(--color-juhong)] active:scale-95"
+            style={{ border: "1px dashed rgba(122, 74, 52, 0.45)" }}
           >
             ✏️ 직접 입력할게요
           </motion.button>
@@ -96,7 +96,7 @@ function InlineFreeText({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="flex gap-2 w-full"
+            className="flex w-full gap-2"
           >
             <input
               ref={inputRef}
@@ -105,20 +105,20 @@ function InlineFreeText({
               onChange={(e) => setValue(e.target.value)}
               placeholder={placeholder}
               maxLength={200}
-              className="flex-1 min-w-0 px-3.5 py-2 rounded-full text-xs
-                bg-white/[0.06] border border-white/[0.12]
-                text-white placeholder-white/30
-                focus:outline-none focus:border-white/25
-                transition-colors"
+              className="min-w-0 flex-1 rounded-full px-3.5 py-2 text-xs
+                text-[var(--color-meok)] placeholder-[var(--color-galsaek)]/50
+                focus:outline-none"
+              style={{
+                border: "1px solid rgba(122, 74, 52, 0.4)",
+                backgroundColor: "rgba(246, 237, 217, 0.85)",
+              }}
             />
             <button
               type="submit"
               disabled={!value.trim()}
-              className="px-3.5 py-2 rounded-full text-xs cursor-pointer
-                bg-white/[0.1] text-white/75
-                hover:bg-white/[0.16] hover:text-white
-                disabled:opacity-30 disabled:cursor-not-allowed
-                transition-all"
+              className="cursor-pointer rounded-full px-3.5 py-2 text-xs text-[#F6EDD9]
+                transition-all disabled:cursor-not-allowed disabled:opacity-40"
+              style={{ backgroundColor: "var(--color-juhong)" }}
             >
               전송
             </button>
@@ -128,8 +128,8 @@ function InlineFreeText({
                 setOpen(false);
                 setValue("");
               }}
-              className="px-2.5 py-2 rounded-full text-xs text-white/40
-                hover:text-white/70 transition-colors cursor-pointer"
+              className="cursor-pointer rounded-full px-2.5 py-2 text-xs
+                text-[var(--color-galsaek)] opacity-60 transition-colors hover:opacity-100"
             >
               취소
             </button>
@@ -161,24 +161,24 @@ export default function ChatBubble({
       className={`flex w-full ${isBot ? "justify-start" : "justify-end"}`}
     >
       <div
-        className={`flex gap-2 max-w-[85%] ${
+        className={`flex max-w-[85%] gap-2 ${
           isBot ? "flex-row" : "flex-row-reverse"
         }`}
       >
-        {/* Avatar */}
+        {/* Avatar — 낙관 */}
         {isBot && (
-          <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-sm mt-1">
-            🔮
+          <div className="mt-1 flex-shrink-0">
+            <SealLogo size={30} />
           </div>
         )}
 
-        <div className="flex flex-col gap-2 min-w-0">
+        <div className="flex min-w-0 flex-col gap-2">
           {/* Bubble */}
           <div
-            className={`rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line ${
+            className={`whitespace-pre-line rounded-xl px-4 py-3 text-sm leading-relaxed ${
               isBot
-                ? "bg-white/[0.07] backdrop-blur-md border border-white/[0.08] text-white/90 rounded-tl-md"
-                : "bg-gradient-to-br from-amber-500/20 to-amber-600/10 backdrop-blur-md border border-amber-400/15 text-amber-50/90 rounded-tr-md"
+                ? "hanji-card rounded-tl-sm text-[var(--color-meok)]"
+                : "rounded-tr-sm bg-[var(--color-juhong)] text-[#F6EDD9] shadow-[0_1px_4px_rgba(167,43,33,0.3)]"
             }`}
           >
             {isTyping ? <TypingIndicator /> : message}
@@ -196,13 +196,13 @@ export default function ChatBubble({
                 <button
                   key={option.value}
                   onClick={() => onSelect?.(option)}
-                  className="px-3.5 py-1.5 text-xs rounded-full
-                    bg-white/[0.06] backdrop-blur-sm
-                    border border-white/[0.1]
-                    text-white/80 hover:text-white
-                    hover:bg-white/[0.12] hover:border-white/[0.2]
-                    active:scale-95
-                    transition-all duration-200 cursor-pointer"
+                  className="cursor-pointer rounded-full px-3.5 py-1.5 text-xs
+                    text-[var(--color-galsaek)] transition-all duration-200
+                    hover:text-[var(--color-juhong)] active:scale-95"
+                  style={{
+                    border: "1px solid rgba(122, 74, 52, 0.4)",
+                    backgroundColor: "rgba(246, 237, 217, 0.7)",
+                  }}
                 >
                   {option.label}
                 </button>

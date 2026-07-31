@@ -1,98 +1,62 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import BottomTab from "@/components/BottomTab";
-import FortuneCard from "@/components/FortuneCard";
+import HanjiBackground from "@/components/hanji/HanjiBackground";
+import TraditionalHeader from "@/components/hanji/TraditionalHeader";
+import TalismanCategoryCard from "@/components/hanji/TalismanCategoryCard";
+import {
+  MenuIcon,
+  BellIcon,
+  SealLogo,
+  BrushStroke,
+  KnotMotif,
+} from "@/components/hanji/motifs";
+import { HOME_ENERGIES } from "@/data/energies";
 
 const OnboardingPage = dynamic(() => import("./onboarding/page"), { ssr: false });
 
-/* ── Animal Emoji Map ──────────────────── */
-const ANIMAL_EMOJI: Record<string, string> = {
-  쥐: "🐭",
-  소: "🐮",
-  호랑이: "🐯",
-  토끼: "🐰",
-  용: "🐲",
-  뱀: "🐍",
-  말: "🐴",
-  양: "🐑",
-  원숭이: "🐵",
-  닭: "🐔",
-  개: "🐶",
-  돼지: "🐷",
-};
-
-/* ── Fortune Category Data ─────────────── */
-const FORTUNE_CATEGORIES = [
-  { key: "wealth", label: "재물운", emoji: "💰", color: "from-yellow-900/30 to-amber-900/20" },
-  { key: "love", label: "애정운", emoji: "💕", color: "from-pink-900/30 to-rose-900/20" },
-  { key: "health", label: "건강운", emoji: "💪", color: "from-green-900/30 to-emerald-900/20" },
-  { key: "study", label: "학업운", emoji: "📚", color: "from-blue-900/30 to-indigo-900/20" },
-];
-
-/* ── Mock Fortune Data ─────────────────── */
+/* ── 오늘의 운세 (기존 기능 유지 — 컴팩트 카드) ────── */
 function getTodayFortune() {
   const seed = new Date().toDateString();
   const hash = [...seed].reduce((a, c) => a + c.charCodeAt(0), 0);
   const score = (hash % 5) + 1;
 
   const overalls = [
-    "오늘은 새로운 시작에 좋은 날입니다. 마음 속 깊이 품었던 계획을 실행에 옮겨보세요.",
-    "평온한 에너지가 감싸는 하루입니다. 감사하는 마음으로 주변을 돌아보세요.",
-    "활발한 기운이 넘치는 날입니다. 적극적으로 행동하면 좋은 결과가 따릅니다.",
-    "차분하게 내면을 돌아보기 좋은 시간입니다. 명상이나 산책을 추천합니다.",
-    "행운의 기운이 가득합니다! 중요한 결정을 내리기에 좋은 날이에요.",
+    "오늘은 새로운 시작에 좋은 날입니다. 마음 속 계획을 실행에 옮겨보세요.",
+    "평온한 기운이 감싸는 하루입니다. 감사하는 마음으로 주변을 돌아보세요.",
+    "활발한 기운이 넘치는 날입니다. 적극적으로 움직이면 좋은 결과가 따릅니다.",
+    "차분히 내면을 돌아보기 좋은 날입니다. 산책이나 명상을 권합니다.",
+    "행운의 기운이 가득한 날입니다. 중요한 결정을 내리기에 좋습니다.",
   ];
-
-  const mantras = [
-    "나는 매 순간 더 나은 나로 성장하고 있다",
-    "우주의 풍요로운 에너지가 나에게로 흐른다",
-    "나의 마음은 평화롭고 세상은 아름답다",
-    "모든 일이 나에게 최선의 방향으로 흘러간다",
-    "나는 사랑받기에 충분한 존재이다",
-  ];
-
-  const colors = ["금색", "붉은색", "파란색", "초록색", "보라색", "흰색"];
-  const directions = ["동쪽", "서쪽", "남쪽", "북쪽", "동남쪽", "북서쪽"];
+  const colors = ["금색", "붉은색", "쪽빛", "쑥색", "보라색", "흰색"];
 
   return {
     score,
     overall: overalls[hash % overalls.length],
     luckyColor: colors[hash % colors.length],
-    luckyDirection: directions[(hash + 1) % directions.length],
-    luckyNumber: ((hash * 7) % 99) + 1,
-    mantra: mantras[hash % mantras.length],
-    categories: {
-      wealth: (hash % 5) + 1,
-      love: ((hash + 2) % 5) + 1,
-      health: ((hash + 3) % 5) + 1,
-      study: ((hash + 1) % 5) + 1,
-    },
   };
 }
 
-/* ── Stagger Children Variant ──────────── */
-const stagger = {
-  hidden: {},
-  show: {
-    transition: { staggerChildren: 0.1, delayChildren: 0.2 },
-  },
+const fadeUp = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45 } },
 };
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+const stagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07, delayChildren: 0.1 } },
 };
 
 /* ── Component ─────────────────────────── */
 export default function HomePage() {
+  const router = useRouter();
   const [ready, setReady] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [userName, setUserName] = useState("");
-  const [animal, setAnimal] = useState("");
 
   useEffect(() => {
     const onboarded = localStorage.getItem("onboarding_completed");
@@ -102,16 +66,11 @@ export default function HomePage() {
       return;
     }
 
-    const profile = localStorage.getItem("user_profile");
-    if (profile) {
-      try {
-        const p = JSON.parse(profile);
-        setUserName(p.name || "수호자");
-        setAnimal(p.animal || "");
-      } catch {
-        setUserName("수호자");
-      }
-    } else {
+    try {
+      const profile = localStorage.getItem("user_profile");
+      if (profile) setUserName(JSON.parse(profile).name || "수호자");
+      else setUserName("수호자");
+    } catch {
       setUserName("수호자");
     }
     setReady(true);
@@ -119,15 +78,11 @@ export default function HomePage() {
 
   if (!ready) {
     return (
-      <div className="flex flex-1 items-center justify-center min-h-dvh" style={{background:"#0a0a1a"}}>
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="text-4xl"
-        >
-          ☯
-        </motion.div>
-      </div>
+      <HanjiBackground>
+        <div className="flex flex-1 items-center justify-center">
+          <SealLogo size={44} />
+        </div>
+      </HanjiBackground>
     );
   }
 
@@ -136,162 +91,117 @@ export default function HomePage() {
   }
 
   const fortune = getTodayFortune();
-  const animalEmoji = ANIMAL_EMOJI[animal] || "✨";
 
   return (
-    <div className="flex flex-col min-h-dvh">
+    <HanjiBackground decorated>
+      <TraditionalHeader
+        left={
+          <button onClick={() => alert("메뉴는 준비 중이에요 🙏")} aria-label="메뉴">
+            <MenuIcon size={22} />
+          </button>
+        }
+        showSeal
+        right={
+          <button onClick={() => alert("알림은 준비 중이에요 🙏")} aria-label="알림">
+            <BellIcon size={22} />
+          </button>
+        }
+      />
+
       <motion.main
         variants={stagger}
         initial="hidden"
         animate="show"
-        className="flex-1 max-w-md mx-auto w-full px-4 pt-6 pb-28"
+        className="mx-auto w-full max-w-md flex-1 px-5 pb-32 pt-2"
       >
-        {/* ── Greeting ──────────────────────── */}
+        {/* ── 메인 문구 ── */}
         <motion.section variants={fadeUp} className="mb-6">
-          <p className="text-sm text-[var(--color-text-muted)] mb-1">
-            {new Date().toLocaleDateString("ko-KR", {
-              month: "long",
-              day: "numeric",
-              weekday: "long",
-            })}
-          </p>
-          <h1 className="text-2xl font-bold text-glow">
-            {animalEmoji} {userName}님, 안녕하세요!
+          {userName && (
+            <p className="mb-1.5 text-xs text-[var(--color-galsaek)] opacity-80">
+              {userName}님의 하루에 평안이 깃들기를
+            </p>
+          )}
+          <h1 className="font-brush text-[28px] leading-snug text-[var(--color-meok)]">
+            오늘,
+            <br />
+            어떤 마음을
+            <br />
+            지키고 싶으신가요?
           </h1>
-          <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-            오늘 하루도 좋은 기운과 함께하세요
+          <div className="mt-2 text-[var(--color-juhong)]">
+            <BrushStroke width={110} />
+          </div>
+          <p className="mt-2 font-serif-kr text-sm text-[var(--color-galsaek)]">
+            마음의 방향을 선택해 보세요.
           </p>
         </motion.section>
 
-        {/* ── Fortune Card ──────────────────── */}
+        {/* ── 마음 카테고리 2열 ── */}
         <motion.section variants={fadeUp} className="mb-6">
-          <FortuneCard
-            score={fortune.score}
-            overall={fortune.overall}
-            luckyColor={fortune.luckyColor}
-            luckyDirection={fortune.luckyDirection}
-            luckyNumber={fortune.luckyNumber}
-            mantra={fortune.mantra}
-          />
-        </motion.section>
-
-        {/* ── Fortune Categories ────────────── */}
-        <motion.section variants={fadeUp} className="mb-6">
-          <h2 className="text-base font-semibold text-[var(--color-text-secondary)] mb-3">
-            카테고리별 운세
-          </h2>
-          <div className="fortune-scroll">
-            {FORTUNE_CATEGORIES.map((cat) => {
-              const catScore =
-                fortune.categories[cat.key as keyof typeof fortune.categories];
-              return (
-                <motion.div
-                  key={cat.key}
-                  whileTap={{ scale: 0.96 }}
-                  className={`card-glass min-w-[140px] p-4 bg-gradient-to-br ${cat.color}`}
-                >
-                  <span className="text-2xl block mb-2">{cat.emoji}</span>
-                  <p className="text-sm font-semibold text-[var(--color-text-primary)] mb-1">
-                    {cat.label}
-                  </p>
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: 5 }, (_, i) => (
-                      <span
-                        key={i}
-                        className={`text-xs ${
-                          i < catScore
-                            ? "text-[var(--color-gold)]"
-                            : "text-[var(--color-text-muted)]"
-                        }`}
-                      >
-                        ★
-                      </span>
-                    ))}
-                  </div>
-                </motion.div>
-              );
-            })}
+          <div className="grid grid-cols-2 gap-3">
+            {HOME_ENERGIES.map((energy) => (
+              <TalismanCategoryCard
+                key={energy.id}
+                energy={energy}
+                onClick={() => router.push(`/talisman?energy=${energy.id}`)}
+              />
+            ))}
           </div>
         </motion.section>
 
-        {/* ── Lucky Elements ────────────────── */}
+        {/* ── 나만의 부적 만들기 CTA ── */}
         <motion.section variants={fadeUp} className="mb-6">
-          <h2 className="text-base font-semibold text-[var(--color-text-secondary)] mb-3">
-            오늘의 행운 요소
-          </h2>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="card-glass p-3 text-center">
-              <p className="text-xl mb-1">🎨</p>
-              <p className="text-[10px] text-[var(--color-text-muted)]">
-                행운의 색
-              </p>
-              <p className="text-sm font-semibold text-[var(--color-gold)]">
-                {fortune.luckyColor}
-              </p>
-            </div>
-            <div className="card-glass p-3 text-center">
-              <p className="text-xl mb-1">🧭</p>
-              <p className="text-[10px] text-[var(--color-text-muted)]">
-                행운의 방위
-              </p>
-              <p className="text-sm font-semibold text-[var(--color-gold)]">
-                {fortune.luckyDirection}
-              </p>
-            </div>
-            <div className="card-glass p-3 text-center">
-              <p className="text-xl mb-1">🔢</p>
-              <p className="text-[10px] text-[var(--color-text-muted)]">
-                행운의 숫자
-              </p>
-              <p className="text-sm font-semibold text-[var(--color-gold)]">
-                {fortune.luckyNumber}
-              </p>
-            </div>
-          </div>
-        </motion.section>
-
-        {/* ── Daily Mantra ──────────────────── */}
-        <motion.section variants={fadeUp} className="mb-8">
-          <div className="relative card-glass p-5 bg-gradient-to-br from-[rgba(212,168,83,0.06)] to-[rgba(178,34,34,0.04)] text-center overflow-hidden">
-            {/* Decorative corners */}
-            <span className="absolute top-2 left-3 text-[var(--color-gold)] opacity-20 text-2xl">
-              ✦
-            </span>
-            <span className="absolute bottom-2 right-3 text-[var(--color-gold)] opacity-20 text-2xl">
-              ✦
-            </span>
-            <span className="absolute top-2 right-3 text-[var(--color-red-ink)] opacity-15 text-lg">
-              ◆
-            </span>
-            <span className="absolute bottom-2 left-3 text-[var(--color-red-ink)] opacity-15 text-lg">
-              ◆
-            </span>
-
-            <p className="text-xs text-[var(--color-text-muted)] mb-2">
-              ✧ 오늘의 한 줄 주문 ✧
-            </p>
-            <p className="text-lg font-semibold text-[var(--color-gold)] text-glow leading-relaxed">
-              &ldquo;{fortune.mantra}&rdquo;
-            </p>
-          </div>
-        </motion.section>
-
-        {/* ── CTA Button ───────────────────── */}
-        <motion.section variants={fadeUp} className="mb-4">
-          <Link href="/talisman" className="block">
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              className="btn-gold text-center text-lg"
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => router.push("/talisman")}
+            className="hanji-card relative flex w-full items-center gap-4 rounded-xl px-5 py-5 text-left"
+            style={{ borderColor: "rgba(167, 43, 33, 0.5)" }}
+          >
+            <span
+              className="pointer-events-none absolute inset-[4px] rounded-lg"
+              style={{ border: "1px solid rgba(167, 43, 33, 0.25)" }}
+            />
+            <span
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[var(--color-juhong)]"
+              style={{ border: "1.5px solid rgba(167,43,33,0.4)" }}
             >
-              부적 받으러 가기 ✨
-            </motion.div>
-          </Link>
+              <KnotMotif size={30} />
+            </span>
+            <span className="flex-1">
+              <span className="block font-serif-kr text-lg font-bold text-[var(--color-juhong)]">
+                나만의 부적 만들기
+              </span>
+              <span className="mt-0.5 block text-xs text-[var(--color-galsaek)]">
+                마음을 담아 부적을 직접 만들어 보세요.
+              </span>
+            </span>
+            <span className="text-[var(--color-juhong)]">→</span>
+          </motion.button>
+        </motion.section>
+
+        {/* ── 오늘의 운세 (컴팩트) ── */}
+        <motion.section variants={fadeUp}>
+          <div className="hanji-card rounded-xl px-5 py-4">
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="font-serif-kr text-sm font-bold text-[var(--color-meok)]">
+                오늘의 운세
+              </span>
+              <span className="text-xs tracking-widest text-[var(--color-hwang)]">
+                {"●".repeat(fortune.score)}
+                <span className="opacity-25">{"●".repeat(5 - fortune.score)}</span>
+              </span>
+            </div>
+            <p className="text-[13px] leading-relaxed text-[var(--color-galsaek)]">
+              {fortune.overall}
+            </p>
+            <p className="mt-2 text-[11px] text-[var(--color-galsaek)] opacity-70">
+              오늘의 행운색 · {fortune.luckyColor}
+            </p>
+          </div>
         </motion.section>
       </motion.main>
 
-      {/* ── Bottom Tab ─────────────────────── */}
       <BottomTab />
-    </div>
+    </HanjiBackground>
   );
 }

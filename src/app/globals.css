@@ -5,6 +5,16 @@
    ======================================== */
 
 @theme inline {
+  /* ── 수호부 한지 팔레트 (라이트 전통 테마) ── */
+  --color-juhong: #A72B21;      /* 주홍·인주 */
+  --color-hwang: #DAA017;       /* 겨자·황 */
+  --color-namsaek: #1F3E63;     /* 짙은 남 */
+  --color-ssuk: #6B7D63;        /* 쑥·세이지 */
+  --color-meok: #2E2E2E;        /* 먹 */
+  --color-hanji: #F2E6CC;       /* 한지 배경 */
+  --color-galsaek: #7A4A34;     /* 짙은 갈색 선 */
+  --color-beige: #DCC9A5;       /* 보조 베이지 */
+
   --color-gold: #D4A853;
   --color-gold-light: #E8C97A;
   --color-gold-dark: #B8902F;
@@ -165,6 +175,49 @@ button {
     transform: scale(1.15);
     opacity: 1;
   }
+}
+
+/* ========================================
+   수호부 – 한지 전통 테마 유틸리티
+   ======================================== */
+
+/* 한지 질감: 은은한 섬유 노이즈 + 가장자리 바램. 가독성 해치지 않게 저대비 */
+.hanji-surface {
+  background-color: var(--color-hanji);
+  background-image:
+    radial-gradient(ellipse at 20% 10%, rgba(122, 74, 52, 0.05), transparent 55%),
+    radial-gradient(ellipse at 85% 90%, rgba(122, 74, 52, 0.06), transparent 50%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
+
+/* 한지 카드: 종이 한 장 느낌의 얇은 그림자 */
+.hanji-card {
+  background-color: #F6EDD9;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  border: 1px solid rgba(122, 74, 52, 0.35);
+  box-shadow:
+    0 1px 2px rgba(122, 74, 52, 0.12),
+    0 3px 10px rgba(122, 74, 52, 0.08);
+}
+
+.font-serif-kr {
+  font-family: var(--font-serif-kr), "Nanum Myeongjo", "AppleMyungjo", serif;
+}
+
+.font-brush {
+  font-family: var(--font-brush), var(--font-serif-kr), serif;
+}
+
+/* 가로 스크롤 (기운 선택 등) */
+.energy-scroll {
+  display: flex;
+  gap: 0.625rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.25rem 0.125rem 0.5rem;
+}
+.energy-scroll > * {
+  flex-shrink: 0;
 }
 
 /* ── Fortune category scrollbar ────────── */

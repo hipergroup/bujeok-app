@@ -1,7 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { SavedTalisman, TalismanInfo, CATEGORY_COLORS } from '@/lib/types';
+import { SavedTalisman, TalismanInfo } from '@/lib/types';
+import { getEnergyByCategory } from '@/data/energies';
 import TalismanThumbnail from './TalismanThumbnail';
 
 interface TalismanCardProps {
@@ -38,7 +39,7 @@ function TalismanVisual({
 }
 
 export default function TalismanCard({ talisman, onClick, size = 'small' }: TalismanCardProps) {
-  const color = CATEGORY_COLORS[talisman.category];
+  const color = getEnergyByCategory(talisman.category).color;
   const saved = isSaved(talisman);
   const dateStr = saved
     ? new Date(talisman.savedAt).toLocaleDateString('ko-KR', {
@@ -53,18 +54,12 @@ export default function TalismanCard({ talisman, onClick, size = 'small' }: Tali
       <motion.button
         onClick={onClick}
         whileTap={{ scale: 0.97 }}
-        className="relative flex w-full flex-col items-center gap-4 rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-transparent p-6 text-left backdrop-blur-sm"
+        className="hanji-card relative flex w-full flex-col items-center gap-4 rounded-xl p-6 text-left"
       >
-        {/* Shimmer */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
-          <motion.div
-            className="absolute -inset-full bg-gradient-to-r from-transparent via-white/[0.04] to-transparent"
-            animate={{ x: ['-100%', '200%'] }}
-            transition={{ duration: 4, repeat: Infinity, repeatDelay: 3, ease: 'linear' }}
-            style={{ width: '50%' }}
-          />
-        </div>
-
+        <span
+          className="pointer-events-none absolute inset-[4px] rounded-lg"
+          style={{ border: '1px solid rgba(122, 74, 52, 0.15)' }}
+        />
         <TalismanVisual talisman={talisman} width={160} />
 
         <div className="flex w-full flex-col items-center gap-1">
@@ -73,14 +68,18 @@ export default function TalismanCard({ talisman, onClick, size = 'small' }: Tali
               className="inline-block h-2.5 w-2.5 rounded-full"
               style={{ backgroundColor: color }}
             />
-            <h3 className="text-lg font-bold text-amber-100">{talisman.name}</h3>
+            <h3 className="font-serif-kr text-lg font-bold text-[var(--color-meok)]">
+              {talisman.name}
+            </h3>
           </div>
-          <p className="text-sm text-zinc-400">{talisman.hanja}</p>
-          <p className="mt-1 line-clamp-2 text-center text-sm leading-relaxed text-zinc-500">
+          <p className="text-sm text-[var(--color-galsaek)]">{talisman.hanja}</p>
+          <p className="mt-1 line-clamp-2 text-center text-sm leading-relaxed text-[var(--color-galsaek)] opacity-80">
             {talisman.description}
           </p>
           {dateStr && (
-            <p className="mt-2 text-xs text-zinc-600">{dateStr} 수령</p>
+            <p className="mt-2 text-xs text-[var(--color-galsaek)] opacity-60">
+              {dateStr} 수령
+            </p>
           )}
         </div>
       </motion.button>
@@ -91,20 +90,14 @@ export default function TalismanCard({ talisman, onClick, size = 'small' }: Tali
   return (
     <motion.button
       onClick={onClick}
-      whileTap={{ scale: 0.95 }}
-      className="group relative flex flex-col items-center gap-2 rounded-xl border border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-transparent p-3 text-center backdrop-blur-sm"
+      whileTap={{ scale: 0.96 }}
+      className="hanji-card relative flex w-full flex-col items-center gap-2 rounded-xl p-3 text-center"
     >
-      {/* Shimmer */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl">
-        <motion.div
-          className="absolute -inset-full bg-gradient-to-r from-transparent via-white/[0.03] to-transparent"
-          animate={{ x: ['-100%', '200%'] }}
-          transition={{ duration: 5, repeat: Infinity, repeatDelay: 4, ease: 'linear' }}
-          style={{ width: '50%' }}
-        />
-      </div>
-
-      <TalismanVisual talisman={talisman} width={80} />
+      <span
+        className="pointer-events-none absolute inset-[3px] rounded-lg"
+        style={{ border: '1px solid rgba(122, 74, 52, 0.15)' }}
+      />
+      <TalismanVisual talisman={talisman} width={92} />
 
       <div className="flex flex-col items-center gap-0.5">
         <div className="flex items-center gap-1.5">
@@ -112,11 +105,10 @@ export default function TalismanCard({ talisman, onClick, size = 'small' }: Tali
             className="inline-block h-2 w-2 rounded-full"
             style={{ backgroundColor: color }}
           />
-          <h4 className="text-sm font-semibold text-amber-100">{talisman.name}</h4>
+          <h4 className="font-serif-kr text-sm font-bold text-[var(--color-meok)]">
+            {talisman.name}
+          </h4>
         </div>
-        {dateStr && (
-          <p className="text-[10px] text-zinc-500">{dateStr}</p>
-        )}
       </div>
     </motion.button>
   );

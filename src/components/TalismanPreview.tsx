@@ -11,10 +11,12 @@ type TalismanPreviewProps = {
   userName?: string;
   background?: string; // BackgroundPreset.id
   bgColor?: string;
+  accent?: string; // 기운 포인트 컬러
   animal?: string;
   symbols?: string[];
   size?: "sm" | "md" | "lg";
   title?: string;
+  hanja?: string;
   mantra?: string;
 };
 
@@ -38,10 +40,12 @@ export default function TalismanPreview({
   userName,
   background,
   bgColor,
+  accent,
   animal,
   symbols,
   size = "md",
   title = "",
+  hanja,
   mantra = "",
 }: TalismanPreviewProps) {
   const svgString = useMemo(
@@ -53,12 +57,14 @@ export default function TalismanPreview({
         userName,
         background,
         bgColor,
+        accent,
         animal,
         symbols,
         title: title || "부적",
+        hanja,
         mantra: mantra || "",
       }),
-    [type, style, message, userName, background, bgColor, animal, symbols, title, mantra]
+    [type, style, message, userName, background, bgColor, accent, animal, symbols, title, hanja, mantra]
   );
 
   const colors = getTalismanColors(type);

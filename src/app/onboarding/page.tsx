@@ -1232,9 +1232,14 @@ export default function OnboardingPage() {
     setStep((s) => Math.min(s + 1, totalSteps - 1));
   }, []);
 
-  // window.location.href = '/'는 GitHub Pages(basePath) 밖으로 나가 404가 난다 — 라우터 사용
+  // window.location.href = '/'는 GitHub Pages(basePath) 밖으로 나가 404가 난다.
+  // 홈(/)에 임베드된 경우엔 같은 경로라 replace가 무반응이므로 reload로 홈을 다시 그린다.
   const handleComplete = useCallback(() => {
-    router.replace('/');
+    if (window.location.pathname.includes('/onboarding')) {
+      router.replace('/');
+    } else {
+      window.location.reload();
+    }
   }, [router]);
 
   return (

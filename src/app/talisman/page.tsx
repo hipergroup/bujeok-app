@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   DIALOGUE_FLOWS,
@@ -9,28 +10,34 @@ import {
 } from "@/data/dialogues";
 import {
   TalismanCategory,
+  TALISMANS,
   getTalismanRecommendation,
   type TalismanType,
 } from "@/data/talismans";
 import { JIJI, getAnimal } from "@/data/saju";
+import { ENERGIES, getEnergyById, type Energy } from "@/data/energies";
 import ChatBubble, { type DialogueOption } from "@/components/ChatBubble";
 import TalismanPreview from "@/components/TalismanPreview";
+import CrisisSupport from "@/components/CrisisSupport";
+import HanjiBackground from "@/components/hanji/HanjiBackground";
+import TraditionalHeader from "@/components/hanji/TraditionalHeader";
+import TraditionalButton from "@/components/hanji/TraditionalButton";
+import EnergySelector from "@/components/hanji/EnergySelector";
+import TalismanCategoryCard from "@/components/hanji/TalismanCategoryCard";
+import { BackIcon, GearIcon, BrushStroke } from "@/components/hanji/motifs";
 import {
   generateTalismanSVG,
   BACKGROUND_PRESETS,
 } from "@/lib/talisman-generator";
+import { detectCrisis, SAFETY_DISCLAIMER } from "@/lib/crisis-detection";
 import {
   composeShareImage,
   shareOrDownload,
   type ShareFormat,
 } from "@/lib/share-card";
 import type { SavedTalisman } from "@/lib/types";
-import CrisisSupport from "@/components/CrisisSupport";
-import { detectCrisis, SAFETY_DISCLAIMER } from "@/lib/crisis-detection";
 
 /* ───────── types ───────── */
-
-type CategoryId = string;
 
 type ChatMessage = {
   id: string;
@@ -41,71 +48,38 @@ type ChatMessage = {
 
 type Phase = "category" | "chat" | "customize" | "reveal";
 
-/* ───────── derived constants from DIALOGUE_FLOWS ───────── */
-
-const CATEGORY_META: Record<
-  string,
-  { icon: string; color: string; subtitle: string }
-> = {
-  수호: { icon: "🛡️", color: "#FFD700", subtitle: "액막이·보호" },
-  재물: { icon: "💰", color: "#DAA520", subtitle: "재물·사업운" },
-  건강: { icon: "🍀", color: "#228B22", subtitle: "건강·치유" },
-  가정: { icon: "🏠", color: "#FF69B4", subtitle: "가정·인연" },
-  학업: { icon: "📚", color: "#4169E1", subtitle: "학업·시험" },
-  기타: { icon: "🌈", color: "#9370DB", subtitle: "소원·행운" },
-};
-
-const CATEGORIES = DIALOGUE_FLOWS.map((flow) => {
-  const meta = CATEGORY_META[flow.category] ?? {
-    icon: "✨",
-    color: "#FFD700",
-    subtitle: flow.description,
-  };
-  return {
-    id: flow.category as string,
-    title: flow.label,
-    icon: meta.icon,
-    color: meta.color,
-    subtitle: meta.subtitle,
-  };
-});
+/* ───────── constants ───────── */
 
 const ENCOURAGEMENT_MESSAGES: Record<string, string[]> = {
   [TalismanCategory.Protection]: [
-    "당신을 지켜줄게요 🛡️",
-    "나쁜 기운은 물러가라!",
-    "안전하고 평화로운 하루",
-    "모든 액운이 사라져요",
+    "나쁜 기운은 물러가고 평안만 깃들기를",
+    "안전하고 평화로운 하루가 되기를",
+    "모든 액운이 사라지기를 기원합니다",
   ],
   [TalismanCategory.Wealth]: [
-    "부자 되세요 💰",
-    "재물이 넘쳐나길!",
-    "돈이 들어옵니다",
-    "풍요로운 하루하루",
+    "재물과 복이 가득 들어오기를",
+    "풍요로운 하루하루가 되기를",
+    "하는 일마다 결실을 맺기를",
   ],
   [TalismanCategory.Health]: [
-    "건강이 최고예요 🍀",
-    "오늘도 건강하게!",
-    "몸도 마음도 편안하게",
-    "쾌유를 빕니다",
+    "몸도 마음도 편안하기를 기원합니다",
+    "오늘도 건강하게, 내일도 무탈하게",
+    "가족의 건강과 무사함을 기원합니다",
   ],
   [TalismanCategory.Family]: [
-    "가화만사성 🏠",
-    "사랑이 넘치는 가정",
-    "좋은 인연이 찾아와요",
-    "행복한 우리 가족",
+    "가족의 평안과 화합을 기원합니다",
+    "사랑이 넘치는 가정이 되기를",
+    "좋은 인연이 찾아오기를",
   ],
   [TalismanCategory.Study]: [
-    "합격 기원! 📚",
-    "집중! 또 집중!",
-    "꿈을 향해 달려요",
-    "반드시 합격합니다",
+    "노력한 만큼 좋은 결과가 있기를",
+    "흔들림 없는 집중력이 함께하기를",
+    "바라는 시험에 반드시 합격하기를",
   ],
   [TalismanCategory.Other]: [
-    "소원이 이루어져요 ✨",
-    "행운이 가득하길!",
-    "좋은 일만 가득",
-    "모든 소원 성취",
+    "간절한 소원이 이루어지기를",
+    "행운이 가득한 날들이 되기를",
+    "좋은 일만 가득하기를 기원합니다",
   ],
 };
 
@@ -118,15 +92,12 @@ const SUPPORTIVE_TALISMAN = {
   description:
     "불안과 스트레스를 가라앉혀 마음의 평화를 주는 부적입니다.\n오늘 하루, 조금 더 편안해지시길 바라요.",
   messages: [
-    "오늘도 잘 버텼어요 🌿",
-    "천천히 숨 쉬어요",
-    "당신은 소중해요",
-    "마음이 편안해지길",
-    "괜찮아요, 천천히",
+    "오늘도 잘 버텼어요, 수고했어요",
+    "천천히 숨 쉬어도 괜찮아요",
+    "당신은 소중한 사람입니다",
+    "마음이 편안해지기를 기원합니다",
   ],
 };
-
-/* ───────── constants ───────── */
 
 /** 12지 수호 동물 선택지 (없음 포함) */
 const ANIMAL_OPTIONS: { label: string; emoji: string; value: string }[] = [
@@ -162,25 +133,63 @@ function loadUserContext(): { name: string; animal: string } {
   return { name: "", animal: "" };
 }
 
-function generateParticles(count: number) {
-  return Array.from({ length: count }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    size: Math.random() * 4 + 2,
-    delay: Math.random() * 2,
-    duration: Math.random() * 2 + 2,
-  }));
+/** 3단계 진행 표시 */
+function StepDots({ current }: { current: 1 | 2 | 3 }) {
+  const labels = ["마음 나누기", "부적 꾸미기", "완성"];
+  return (
+    <div className="flex items-center justify-center gap-2 pb-3">
+      {labels.map((label, i) => {
+        const n = (i + 1) as 1 | 2 | 3;
+        const active = n === current;
+        const done = n < current;
+        return (
+          <div key={label} className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <span
+                className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                  active
+                    ? "bg-[var(--color-juhong)] text-[#F6EDD9]"
+                    : done
+                      ? "bg-[var(--color-beige)] text-[var(--color-galsaek)]"
+                      : "text-[var(--color-galsaek)] opacity-50"
+                }`}
+                style={
+                  !active && !done
+                    ? { border: "1px solid rgba(122,74,52,0.4)" }
+                    : undefined
+                }
+              >
+                {n}
+              </span>
+              <span
+                className={`text-[11px] ${
+                  active
+                    ? "font-bold text-[var(--color-juhong)]"
+                    : "text-[var(--color-galsaek)] opacity-70"
+                }`}
+              >
+                {label}
+              </span>
+            </div>
+            {i < 2 && (
+              <span className="h-px w-4 bg-[var(--color-galsaek)] opacity-30" />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 /* ───────── component ───────── */
 
-export default function TalismanPage() {
+function TalismanFlow() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   /* shared state */
   const [phase, setPhase] = useState<Phase>("category");
-  const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(
-    null
-  );
+  const [selectedEnergy, setSelectedEnergy] = useState<Energy | null>(null);
 
   /* chat state */
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -189,6 +198,7 @@ export default function TalismanPage() {
   const [userInput, setUserInput] = useState("");
   const [chatDone, setChatDone] = useState(false);
   const [responses, setResponses] = useState<Record<string, string>>({});
+  const [keywords, setKeywords] = useState<string[]>([]);
   const [recommended, setRecommended] = useState<TalismanType | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -213,7 +223,6 @@ export default function TalismanPage() {
   const [userCtx, setUserCtx] = useState({ name: "", animal: "" });
 
   /* reveal state */
-  const [particles] = useState(() => generateParticles(40));
   const [saved, setSaved] = useState(false);
   const [shareStatus, setShareStatus] = useState<ShareFormat | null>(null);
 
@@ -225,9 +234,11 @@ export default function TalismanPage() {
   }, []);
 
   /* derived */
+  const selectedCategory = selectedEnergy?.category ?? null;
   const dialogue: DialogueFlow | null = selectedCategory
     ? DIALOGUE_FLOWS.find((f) => f.category === selectedCategory) ?? null
     : null;
+  const accent = selectedEnergy?.color ?? "#A72B21";
   const talismanName = supportiveMode
     ? SUPPORTIVE_TALISMAN.name
     : recommended
@@ -237,7 +248,7 @@ export default function TalismanPage() {
         : "";
   const talismanType = supportiveMode
     ? TalismanCategory.Health
-    : dialogue?.category ?? "기타";
+    : selectedCategory ?? "기타";
   const talismanDescription = supportiveMode
     ? SUPPORTIVE_TALISMAN.description
     : recommended?.description ?? dialogue?.description ?? "";
@@ -247,8 +258,10 @@ export default function TalismanPage() {
     type: recommended?.id ?? talismanType,
     style: talismanStyle,
     background,
+    accent,
     animal: animalChoice || undefined,
     title: talismanName,
+    hanja: recommended?.hanja,
     message: encouragement,
     mantra: recommended?.mantra ?? "",
     userName: userCtx.name || undefined,
@@ -272,37 +285,42 @@ export default function TalismanPage() {
 
   /* ──────── phase handlers ──────── */
 
-  /* 1. category → chat */
-  const handleCategorySelect = useCallback(
-    (catId: CategoryId) => {
-      setSelectedCategory(catId);
-      setPhase("chat");
-      setResponses({});
-      setRecommended(null);
-      const flow = DIALOGUE_FLOWS.find((f) => f.category === catId);
-      if (!flow) return;
-      const firstStep = flow.steps[0];
+  /* 1. energy(마음) 선택 → chat */
+  const handleEnergySelect = useCallback((energy: Energy) => {
+    setSelectedEnergy(energy);
+    setPhase("chat");
+    setResponses({});
+    setKeywords([]);
+    setRecommended(null);
+    const flow = DIALOGUE_FLOWS.find((f) => f.category === energy.category);
+    if (!flow) return;
+    const firstStep = flow.steps[0];
 
-      // show typing then first bot message
-      setIsTyping(true);
-      setTimeout(() => {
-        setIsTyping(false);
-        const opts: DialogueOption[] | undefined = firstStep.options?.map(
-          (o) => ({ label: o, value: o })
-        );
-        setMessages([
-          {
-            id: `bot-0`,
-            text: firstStep.question,
-            isBot: true,
-            options: opts,
-          },
-        ]);
-        setCurrentStep(0);
-      }, 1200);
-    },
-    []
-  );
+    setIsTyping(true);
+    setTimeout(() => {
+      setIsTyping(false);
+      const opts: DialogueOption[] | undefined = firstStep.options?.map(
+        (o) => ({ label: o, value: o })
+      );
+      setMessages([
+        { id: `bot-0`, text: firstStep.question, isBot: true, options: opts },
+      ]);
+      setCurrentStep(0);
+    }, 1200);
+  }, []);
+
+  /* 홈에서 ?energy= 파라미터로 진입하면 해당 마음으로 바로 상담 시작 */
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (autoStarted.current) return;
+    const id = searchParams.get("energy");
+    if (!id) return;
+    const energy = getEnergyById(id);
+    if (energy) {
+      autoStarted.current = true;
+      handleEnergySelect(energy);
+    }
+  }, [searchParams, handleEnergySelect]);
 
   /* 2. chat option / free-text */
   const advanceChat = useCallback(
@@ -316,23 +334,22 @@ export default function TalismanPage() {
       const newResponses = { ...responses, [step.id]: userText };
       setResponses(newResponses);
 
-      // add user message
       const userMsg: ChatMessage = {
         id: `user-${nextIdx}`,
         text: userText,
         isBot: false,
       };
-
       setMessages((prev) => [...prev, userMsg]);
 
       // step.next === null means this is the last step
       if (step.next === null) {
         // 대화 응답 → 키워드 → 43종 중 맞춤 부적 추천
-        const keywords = extractKeywords(dialogue, newResponses);
-        const rec = getTalismanRecommendation(
-          dialogue.category as TalismanCategory,
-          keywords
-        );
+        const kws = extractKeywords(dialogue, newResponses);
+        setKeywords(kws);
+        const rec = supportiveModeRef.current
+          ? TALISMANS.find((t) => t.name === SUPPORTIVE_TALISMAN.name) ??
+            getTalismanRecommendation(TalismanCategory.Health, kws)
+          : getTalismanRecommendation(dialogue.category, kws);
         setRecommended(rec);
 
         setIsTyping(true);
@@ -342,7 +359,7 @@ export default function TalismanPage() {
             id: "result",
             text: supportiveModeRef.current
               ? `당신의 마음을 가만히 담아봤어요 🌿\n\n「${SUPPORTIVE_TALISMAN.name}」\n\n${SUPPORTIVE_TALISMAN.description}`
-              : `당신에게 어울리는 부적을 찾았어요! ✨\n\n「${rec.name} (${rec.hanja})」\n\n${rec.description}`,
+              : `당신에게 어울리는 부적을 찾았어요 ✨\n\n「${rec.name} (${rec.hanja})」\n\n${rec.description}`,
             isBot: true,
           };
           setMessages((prev) => [...prev, resultMsg]);
@@ -351,7 +368,6 @@ export default function TalismanPage() {
         return;
       }
 
-      // next step
       const nextStep = dialogue.steps[nextIdx];
       if (!nextStep) return;
 
@@ -361,13 +377,15 @@ export default function TalismanPage() {
         const opts: DialogueOption[] | undefined = nextStep.options?.map(
           (o) => ({ label: o, value: o })
         );
-        const botMsg: ChatMessage = {
-          id: `bot-${nextIdx}`,
-          text: nextStep.question,
-          isBot: true,
-          options: opts,
-        };
-        setMessages((prev) => [...prev, botMsg]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `bot-${nextIdx}`,
+            text: nextStep.question,
+            isBot: true,
+            options: opts,
+          },
+        ]);
         setCurrentStep(nextIdx);
       }, 1200);
     },
@@ -426,6 +444,35 @@ export default function TalismanPage() {
     [userInput, submitUserText]
   );
 
+  /* customize 단계에서 기운을 바꾸면 색·추천을 다시 계산 */
+  const handleEnergyChange = useCallback(
+    (energy: Energy) => {
+      setSelectedEnergy(energy);
+      if (!supportiveModeRef.current) {
+        setRecommended(getTalismanRecommendation(energy.category, keywords));
+      }
+    },
+    [keywords]
+  );
+
+  /* 상담 초기화 후 카테고리로 */
+  const resetToCategory = useCallback(() => {
+    setPhase("category");
+    setMessages([]);
+    setCurrentStep(0);
+    setChatDone(false);
+    setIsTyping(false);
+    setResponses({});
+    setKeywords([]);
+    setRecommended(null);
+    setCrisisLevel(null);
+    pendingTextRef.current = null;
+    setSupportiveMode(false);
+    supportiveModeRef.current = false;
+    setEncouragement("");
+    setSaved(false);
+  }, []);
+
   /* 3. save to 부적함 (bujeok-collection) */
   const handleSave = useCallback(() => {
     if (!recommended) return;
@@ -457,10 +504,10 @@ export default function TalismanPage() {
       localStorage.setItem("bujeok-collection", JSON.stringify(existing));
       setSaved(true);
     } catch {
-      // storage full 등 — 저장 실패 시 조용히 무시하지 않고 표시 유지
+      // storage full 등
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recommended, encouragement, talismanStyle, background, animalChoice, userCtx]);
+  }, [recommended, encouragement, talismanStyle, background, animalChoice, userCtx, accent]);
 
   /* 4. 공유 — 원본/스토리(9:16)/정사각(1:1) */
   const handleShare = useCallback(
@@ -473,8 +520,8 @@ export default function TalismanPage() {
         });
         const result = await shareOrDownload(
           blob,
-          `수호부적_${talismanName}`,
-          `✨ 나만의 부적 「${talismanName}」을 만들었어요 🔮`
+          `수호부_${talismanName}`,
+          `✨ 나만의 부적 「${talismanName}」을 만들었어요 🙏`
         );
         if (result !== "cancelled") {
           setShareStatus(format);
@@ -485,119 +532,93 @@ export default function TalismanPage() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [talismanName, recommended, talismanStyle, background, animalChoice, encouragement, userCtx]
+    [talismanName, recommended, talismanStyle, background, animalChoice, encouragement, userCtx, accent]
   );
+
+  const stepNum: 1 | 2 | 3 =
+    phase === "customize" ? 2 : phase === "reveal" ? 3 : 1;
 
   /* ══════════════════ RENDER ══════════════════ */
 
   return (
-    <div className="min-h-dvh bg-[#0a0a0a] text-white flex flex-col">
-      {/* ─── Phase 1: Category ─── */}
+    <HanjiBackground>
+      <TraditionalHeader
+        left={
+          <button
+            onClick={() => {
+              if (phase === "category") router.push("/");
+              else if (phase === "chat") resetToCategory();
+              else if (phase === "customize") setPhase("chat");
+              else setPhase("customize");
+            }}
+            aria-label="뒤로가기"
+          >
+            <BackIcon size={20} />
+          </button>
+        }
+        title="나만의 부적 만들기"
+        right={
+          <button
+            onClick={() => alert("설정은 준비 중이에요 🙏")}
+            aria-label="설정"
+          >
+            <GearIcon size={20} />
+          </button>
+        }
+      />
+      <StepDots current={stepNum} />
+
       <AnimatePresence mode="wait">
+        {/* ─── Phase 1: 마음 선택 ─── */}
         {phase === "category" && (
           <motion.div
             key="category"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.4 }}
-            className="flex-1 flex flex-col items-center justify-center px-5 py-12"
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.35 }}
+            className="mx-auto w-full max-w-md flex-1 px-5 pb-32"
           >
-            <motion.h1
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-              className="text-2xl font-semibold text-center mb-2"
-            >
+            <h2 className="font-brush mb-1 text-center text-[22px] text-[var(--color-meok)]">
               어떤 마음을 담아볼까요?
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="text-sm text-white/40 mb-10"
-            >
-              만들고 싶은 부적의 종류를 골라주세요
-            </motion.p>
-
-            <div className="grid grid-cols-2 gap-3 w-full max-w-md">
-              {CATEGORIES.map((cat, i) => (
-                <motion.button
-                  key={cat.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 * i + 0.3 }}
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => handleCategorySelect(cat.id)}
-                  className="relative flex flex-col items-center gap-2 p-5 rounded-2xl cursor-pointer
-                    bg-white/[0.04] backdrop-blur-md
-                    border border-white/[0.06]
-                    hover:bg-white/[0.08] hover:border-white/[0.12]
-                    transition-colors duration-200 group"
-                >
-                  {/* subtle color accent */}
-                  <div
-                    className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    style={{
-                      background: `radial-gradient(ellipse at center, ${cat.color}10, transparent 70%)`,
-                    }}
-                  />
-                  <span className="text-3xl relative z-10">{cat.icon}</span>
-                  <span className="text-base font-medium relative z-10">
-                    {cat.title}
-                  </span>
-                  <span className="text-xs text-white/40 relative z-10">
-                    {cat.subtitle}
-                  </span>
-                </motion.button>
+            </h2>
+            <p className="mb-6 text-center text-xs text-[var(--color-galsaek)]">
+              마음의 방향을 고르면 짧은 대화 후 부적을 만들어 드려요.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {ENERGIES.map((energy) => (
+                <TalismanCategoryCard
+                  key={energy.id}
+                  energy={energy}
+                  onClick={() => handleEnergySelect(energy)}
+                />
               ))}
             </div>
           </motion.div>
         )}
 
-        {/* ─── Phase 2: Chat ─── */}
+        {/* ─── Phase 2: 상담 대화 ─── */}
         {phase === "chat" && (
           <motion.div
             key="chat"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.4 }}
-            className="flex-1 flex flex-col max-w-lg mx-auto w-full"
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.35 }}
+            className="mx-auto flex w-full max-w-lg flex-1 flex-col"
           >
-            {/* header */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]">
-              <button
-                onClick={() => {
-                  setPhase("category");
-                  setMessages([]);
-                  setCurrentStep(0);
-                  setChatDone(false);
-                  setIsTyping(false);
-                  setCrisisLevel(null);
-                  pendingTextRef.current = null;
-                  setSupportiveMode(false);
-                  supportiveModeRef.current = false;
-                  setEncouragement("");
-                }}
-                className="text-white/40 hover:text-white/70 transition-colors text-sm cursor-pointer"
-              >
-                ← 돌아가기
-              </button>
-              <div className="flex-1 text-center text-sm font-medium text-white/60">
-                {dialogue?.category} 부적 상담
-              </div>
-              <div className="w-16" />
+            <div
+              className="px-4 pb-2 text-center text-xs text-[var(--color-galsaek)]"
+              style={{ borderBottom: "1px solid rgba(122,74,52,0.2)" }}
+            >
+              {selectedEnergy?.title} · 마음 나누기
             </div>
 
             {/* messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+            <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
               {messages.map((msg, idx) => {
                 const isLastBot =
-                  msg.isBot &&
-                  !chatDone &&
-                  idx === messages.length - 1;
+                  msg.isBot && !chatDone && idx === messages.length - 1;
                 return (
                   <ChatBubble
                     key={msg.id}
@@ -615,12 +636,8 @@ export default function TalismanPage() {
                 );
               })}
 
-              {/* typing indicator */}
-              {isTyping && (
-                <ChatBubble message="" isBot isTyping />
-              )}
+              {isTyping && <ChatBubble message="" isBot isTyping />}
 
-              {/* "부적 만들기" button */}
               {chatDone && (
                 <motion.div
                   initial={{ opacity: 0, y: 12 }}
@@ -628,16 +645,11 @@ export default function TalismanPage() {
                   transition={{ delay: 0.5 }}
                   className="flex justify-center pt-4"
                 >
-                  <button
-                    onClick={() => setPhase("customize")}
-                    className="px-8 py-3 rounded-full text-sm font-medium cursor-pointer
-                      bg-gradient-to-r from-amber-500/80 to-amber-600/80
-                      text-white shadow-lg shadow-amber-500/20
-                      hover:from-amber-500 hover:to-amber-600
-                      active:scale-95 transition-all duration-200"
-                  >
-                    부적 만들기 ✨
-                  </button>
+                  <div className="w-full max-w-[240px]">
+                    <TraditionalButton onClick={() => setPhase("customize")}>
+                      부적 만들기
+                    </TraditionalButton>
+                  </div>
                 </motion.div>
               )}
 
@@ -648,7 +660,8 @@ export default function TalismanPage() {
             {!chatDone && !isTyping && messages.length > 0 && (
               <form
                 onSubmit={handleFreeTextSubmit}
-                className="px-4 pb-4 pt-2 border-t border-white/[0.06]"
+                className="px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2"
+                style={{ borderTop: "1px solid rgba(122,74,52,0.2)" }}
               >
                 <div className="flex gap-2">
                   <input
@@ -656,20 +669,17 @@ export default function TalismanPage() {
                     value={userInput}
                     onChange={(e) => setUserInput(e.target.value)}
                     placeholder="직접 입력해도 좋아요..."
-                    className="flex-1 px-4 py-2.5 rounded-full text-sm
-                      bg-white/[0.06] border border-white/[0.08]
-                      text-white placeholder-white/30
-                      focus:outline-none focus:border-white/20
-                      transition-colors"
+                    className="min-w-0 flex-1 rounded-full px-4 py-2.5 text-sm text-[var(--color-meok)] placeholder-[var(--color-galsaek)]/50 focus:outline-none"
+                    style={{
+                      border: "1px solid rgba(122,74,52,0.4)",
+                      backgroundColor: "rgba(246,237,217,0.8)",
+                    }}
                   />
                   <button
                     type="submit"
                     disabled={!userInput.trim()}
-                    className="px-4 py-2.5 rounded-full text-sm cursor-pointer
-                      bg-white/[0.08] text-white/70
-                      hover:bg-white/[0.14] hover:text-white
-                      disabled:opacity-30 disabled:cursor-not-allowed
-                      transition-all"
+                    className="rounded-full px-4 py-2.5 text-sm text-[#F6EDD9] transition-all disabled:opacity-40"
+                    style={{ backgroundColor: "var(--color-juhong)" }}
                   >
                     전송
                   </button>
@@ -679,333 +689,306 @@ export default function TalismanPage() {
           </motion.div>
         )}
 
-        {/* ─── Phase 3: Customize ─── */}
+        {/* ─── Phase 3: 부적 꾸미기 ─── */}
         {phase === "customize" && (
           <motion.div
             key="customize"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.4 }}
-            className="flex-1 flex flex-col items-center px-5 py-8 max-w-lg mx-auto w-full"
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.35 }}
+            className="mx-auto w-full max-w-md flex-1 px-5 pb-16"
           >
-            <motion.h2
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-xl font-semibold mb-1"
-            >
-              부적 꾸미기
-            </motion.h2>
-            <p className="text-xs text-white/40 mb-6">
-              스타일과 문구를 선택해보세요
+            <p className="mb-4 text-center font-serif-kr text-sm leading-relaxed text-[var(--color-galsaek)]">
+              지금, 마음을 한 줄로 적어보세요.
+              <br />
+              당신의 마음이 부적이 됩니다.
             </p>
 
-            {/* preview */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className="mb-8"
-            >
+            {/* 기원 문구 입력 — 미리보기에 즉시 반영 */}
+            <input
+              type="text"
+              value={encouragement}
+              onChange={(e) => setEncouragement(e.target.value)}
+              maxLength={24}
+              placeholder="가족의 건강과 무사함을 기원합니다"
+              className="mb-1 w-full rounded-lg px-4 py-3 text-center font-serif-kr text-sm text-[var(--color-meok)] placeholder-[var(--color-galsaek)]/40 focus:outline-none"
+              style={{
+                border: "1px solid rgba(122,74,52,0.4)",
+                backgroundColor: "rgba(246,237,217,0.8)",
+              }}
+            />
+            <p className="mb-4 text-right text-[10px] text-[var(--color-galsaek)] opacity-60">
+              {encouragement.length}/24
+            </p>
+
+            {/* 부적 미리보기 */}
+            <div className="relative mb-2 flex justify-center">
               <TalismanPreview
                 type={talismanType}
                 style={talismanStyle}
                 message={encouragement}
                 background={background}
+                accent={accent}
                 animal={animalChoice || undefined}
                 symbols={recommended?.symbols}
                 userName={userCtx.name || undefined}
                 title={talismanName}
+                hanja={recommended?.hanja}
                 mantra={recommended?.mantra}
                 size="md"
               />
-            </motion.div>
+            </div>
+            <div className="mb-5 flex justify-center text-[var(--color-meok)] opacity-60">
+              <BrushStroke width={100} />
+            </div>
 
-            {/* style toggle */}
-            <div className="w-full space-y-5">
+            {/* 기운 선택 (가로 스크롤) */}
+            <div className="mb-4">
+              <label className="mb-1.5 block text-xs font-bold text-[var(--color-galsaek)]">
+                기운 선택
+              </label>
+              <EnergySelector
+                selectedId={selectedEnergy?.id ?? ""}
+                onSelect={handleEnergyChange}
+              />
+            </div>
+
+            {/* 화풍 · 바탕 종이 */}
+            <div className="mb-4 grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-white/50 mb-2 block">
-                  스타일
+                <label className="mb-1.5 block text-xs font-bold text-[var(--color-galsaek)]">
+                  화풍
                 </label>
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
                   {(["traditional", "modern"] as const).map((s) => (
                     <button
                       key={s}
                       onClick={() => setTalismanStyle(s)}
-                      className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
+                      className={`flex-1 rounded-lg py-2 text-xs transition-colors ${
                         talismanStyle === s
-                          ? "bg-white/[0.12] border border-white/[0.2] text-white"
-                          : "bg-white/[0.04] border border-white/[0.06] text-white/50 hover:bg-white/[0.08]"
+                          ? "bg-[var(--color-juhong)] font-bold text-[#F6EDD9]"
+                          : "text-[var(--color-galsaek)]"
                       }`}
+                      style={
+                        talismanStyle !== s
+                          ? { border: "1px solid rgba(122,74,52,0.35)" }
+                          : undefined
+                      }
                     >
                       {s === "traditional" ? "전통" : "현대"}
                     </button>
                   ))}
                 </div>
               </div>
-
-              {/* 배경 (종이) */}
               <div>
-                <label className="text-xs text-white/50 mb-2 block">
-                  배경
+                <label className="mb-1.5 block text-xs font-bold text-[var(--color-galsaek)]">
+                  바탕 종이
                 </label>
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
                   {BACKGROUND_PRESETS.map((preset) => (
                     <button
                       key={preset.id}
                       onClick={() => setBackground(preset.id)}
-                      className={`flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-xl text-xs transition-all duration-200 cursor-pointer ${
-                        background === preset.id
-                          ? "bg-white/[0.12] border border-white/[0.25] text-white"
-                          : "bg-white/[0.04] border border-white/[0.06] text-white/50 hover:bg-white/[0.08]"
-                      }`}
+                      title={preset.label}
+                      className="flex flex-1 flex-col items-center gap-1 rounded-lg py-1.5"
+                      style={{
+                        border:
+                          background === preset.id
+                            ? "1.5px solid var(--color-juhong)"
+                            : "1px solid rgba(122,74,52,0.3)",
+                      }}
                     >
                       <span
-                        className="h-6 w-6 rounded-full border border-white/20"
-                        style={{ backgroundColor: preset.swatch }}
+                        className="h-5 w-5 rounded-full"
+                        style={{
+                          backgroundColor: preset.swatch,
+                          border: "1px solid rgba(122,74,52,0.35)",
+                        }}
                       />
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 수호 동물 */}
-              <div>
-                <label className="text-xs text-white/50 mb-2 block">
-                  수호 동물
-                  {userCtx.animal && (
-                    <span className="ml-1.5 text-white/30">
-                      (내 띠: {userCtx.animal})
-                    </span>
-                  )}
-                </label>
-                <div className="grid grid-cols-7 gap-1.5">
-                  {ANIMAL_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value || "none"}
-                      onClick={() => setAnimalChoice(opt.value)}
-                      title={opt.label}
-                      className={`flex flex-col items-center gap-0.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer ${
-                        animalChoice === opt.value
-                          ? "bg-white/[0.14] border border-white/[0.25]"
-                          : "bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08]"
-                      }`}
-                    >
-                      <span className="text-base leading-none">{opt.emoji}</span>
-                      <span
-                        className={`text-[9px] ${
-                          animalChoice === opt.value
-                            ? "text-white"
-                            : "text-white/40"
-                        }`}
-                      >
-                        {opt.label}
+                      <span className="text-[9px] text-[var(--color-galsaek)]">
+                        {preset.label}
                       </span>
                     </button>
                   ))}
                 </div>
               </div>
+            </div>
 
-              {/* encouragement message */}
-              <div>
-                <label className="text-xs text-white/50 mb-2 block">
-                  응원 문구
-                </label>
-                <input
-                  type="text"
-                  value={encouragement}
-                  onChange={(e) => setEncouragement(e.target.value)}
-                  maxLength={20}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm text-center
-                    bg-white/[0.06] border border-white/[0.08]
-                    text-white placeholder-white/30
-                    focus:outline-none focus:border-white/20
-                    transition-colors"
-                />
-                <p className="text-[10px] text-white/30 text-right mt-1">
-                  {encouragement.length}/20
-                </p>
+            {/* 수호 동물 */}
+            <div className="mb-6">
+              <label className="mb-1.5 block text-xs font-bold text-[var(--color-galsaek)]">
+                수호 동물
+                {userCtx.animal && (
+                  <span className="ml-1.5 font-normal opacity-70">
+                    (내 띠: {userCtx.animal})
+                  </span>
+                )}
+              </label>
+              <div className="grid grid-cols-7 gap-1.5">
+                {ANIMAL_OPTIONS.map((opt) => {
+                  const active = animalChoice === opt.value;
+                  return (
+                    <button
+                      key={opt.value || "none"}
+                      onClick={() => setAnimalChoice(opt.value)}
+                      title={opt.label}
+                      className={`flex flex-col items-center gap-0.5 rounded-lg py-1.5 transition-colors ${
+                        active ? "bg-[rgba(167,43,33,0.12)]" : ""
+                      }`}
+                      style={{
+                        border: active
+                          ? "1.5px solid var(--color-juhong)"
+                          : "1px solid rgba(122,74,52,0.25)",
+                      }}
+                    >
+                      <span className="text-base leading-none">{opt.emoji}</span>
+                      <span
+                        className={`text-[9px] ${
+                          active
+                            ? "font-bold text-[var(--color-juhong)]"
+                            : "text-[var(--color-galsaek)]"
+                        }`}
+                      >
+                        {opt.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* CTA */}
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setPhase("reveal")}
-              className="mt-8 w-full py-3.5 rounded-full text-sm font-semibold cursor-pointer
-                bg-gradient-to-r from-amber-500 to-amber-600
-                text-white shadow-lg shadow-amber-500/25
-                hover:shadow-amber-500/40 transition-shadow duration-300"
-            >
-              부적 완성하기 ✨
-            </motion.button>
+            <TraditionalButton onClick={() => setPhase("reveal")}>
+              부적 완성하기
+            </TraditionalButton>
           </motion.div>
         )}
 
-        {/* ─── Phase 4: Reveal ─── */}
+        {/* ─── Phase 4: 완성 ─── */}
         {phase === "reveal" && (
           <motion.div
             key="reveal"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            className="flex-1 flex flex-col items-center justify-center px-5 py-8 relative overflow-hidden"
+            transition={{ duration: 0.5 }}
+            className="mx-auto flex w-full max-w-md flex-1 flex-col items-center px-5 pb-16"
           >
-            {/* golden particles */}
-            {particles.map((p) => (
-              <motion.div
-                key={p.id}
-                className="absolute rounded-full pointer-events-none"
-                style={{
-                  width: p.size,
-                  height: p.size,
-                  left: `${p.x}%`,
-                  top: `${p.y}%`,
-                  background:
-                    "radial-gradient(circle, #ffd700, #ff8c00)",
-                }}
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{
-                  opacity: [0, 0.8, 0],
-                  scale: [0, 1, 0.5],
-                  y: [0, -40, -80],
-                }}
-                transition={{
-                  duration: p.duration,
-                  delay: p.delay,
-                  repeat: Infinity,
-                  ease: "easeOut",
-                }}
-              />
-            ))}
-
-            {/* glow backdrop */}
             <motion.div
-              className="absolute inset-0"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3, duration: 1 }}
-              style={{
-                background:
-                  "radial-gradient(ellipse at center, rgba(255,215,0,0.06) 0%, transparent 60%)",
-              }}
-            />
-
-            {/* talisman */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.7, y: 20 }}
+              initial={{ opacity: 0, scale: 0.85, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{
-                delay: 0.4,
-                duration: 0.8,
-                type: "spring",
-                damping: 15,
-              }}
-              className="relative z-10 mb-6"
+              transition={{ delay: 0.2, duration: 0.6, type: "spring", damping: 18 }}
+              className="mb-5"
             >
               <TalismanPreview
                 type={talismanType}
                 style={talismanStyle}
                 message={encouragement}
                 background={background}
+                accent={accent}
                 animal={animalChoice || undefined}
                 symbols={recommended?.symbols}
                 userName={userCtx.name || undefined}
                 title={talismanName}
+                hanja={recommended?.hanja}
                 mantra={recommended?.mantra}
                 size="lg"
               />
             </motion.div>
 
-            {/* name + description */}
             <motion.div
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="text-center relative z-10 mb-8"
+              transition={{ delay: 0.6 }}
+              className="mb-6 text-center"
             >
-              <h2 className="text-xl font-semibold text-amber-200/90 mb-2">
+              <h2 className="font-serif-kr text-xl font-bold text-[var(--color-meok)]">
                 「{talismanName}」
-                {!supportiveMode && recommended && (
-                  <span className="ml-1.5 text-sm font-normal text-amber-200/50">
+                {recommended && (
+                  <span className="ml-1.5 text-sm font-normal text-[var(--color-galsaek)]">
                     {recommended.hanja}
                   </span>
                 )}
               </h2>
-              <p className="text-sm text-white/50 max-w-xs leading-relaxed whitespace-pre-line">
+              <p className="mx-auto mt-2 max-w-xs whitespace-pre-line text-sm leading-relaxed text-[var(--color-galsaek)]">
                 {talismanDescription}
               </p>
             </motion.div>
 
-            {/* action buttons */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.1 }}
-              className="flex flex-col gap-3 w-full max-w-xs relative z-10"
+              transition={{ delay: 0.9 }}
+              className="flex w-full max-w-xs flex-col gap-3"
             >
-              <button
-                onClick={handleSave}
-                disabled={saved}
-                className={`w-full py-3 rounded-full text-sm font-medium cursor-pointer transition-all duration-200 ${
-                  saved
-                    ? "bg-green-500/20 border border-green-400/30 text-green-300"
-                    : "bg-gradient-to-r from-amber-500/80 to-amber-600/80 text-white shadow-lg shadow-amber-500/20 hover:from-amber-500 hover:to-amber-600 active:scale-95"
-                }`}
-              >
-                {saved ? "✓ 부적함에 담았어요" : "부적함에 담기"}
-              </button>
+              {saved ? (
+                <div
+                  className="w-full rounded-lg py-3.5 text-center font-serif-kr text-base font-bold text-[var(--color-ssuk)]"
+                  style={{ border: "1px solid rgba(107,125,99,0.5)" }}
+                >
+                  ✓ 부적함에 담았습니다
+                </div>
+              ) : (
+                <TraditionalButton onClick={handleSave}>
+                  부적함에 담기
+                </TraditionalButton>
+              )}
+
               <div className="flex gap-2">
                 {(
                   [
-                    { format: "original", label: "이미지 저장", icon: "💾" },
-                    { format: "story", label: "스토리 카드", icon: "📱" },
-                    { format: "square", label: "정사각 카드", icon: "🖼️" },
+                    { format: "original", label: "이미지 저장" },
+                    { format: "story", label: "스토리 카드" },
+                    { format: "square", label: "정사각 카드" },
                   ] as const
                 ).map((btn) => (
                   <button
                     key={btn.format}
                     onClick={() => handleShare(btn.format)}
-                    className={`flex-1 py-2.5 rounded-full text-xs font-medium cursor-pointer
-                      border active:scale-95 transition-all duration-200 ${
+                    className={`flex-1 rounded-full py-2.5 text-xs font-medium transition-all active:scale-95 ${
+                      shareStatus === btn.format
+                        ? "font-bold text-[var(--color-ssuk)]"
+                        : "text-[var(--color-galsaek)]"
+                    }`}
+                    style={{
+                      border:
                         shareStatus === btn.format
-                          ? "bg-green-500/20 border-green-400/30 text-green-300"
-                          : "bg-white/[0.06] border-white/[0.08] text-white/70 hover:bg-white/[0.12] hover:text-white"
-                      }`}
+                          ? "1px solid rgba(107,125,99,0.6)"
+                          : "1px solid rgba(122,74,52,0.4)",
+                      backgroundColor: "rgba(246,237,217,0.7)",
+                    }}
                   >
-                    {shareStatus === btn.format ? "✓ 완료" : `${btn.icon} ${btn.label}`}
+                    {shareStatus === btn.format ? "✓ 완료" : btn.label}
                   </button>
                 ))}
               </div>
-              <p className="text-center text-[10px] text-white/25">
-                스토리 카드 9:16 · 정사각 카드 1:1 — 인스타·카톡 공유에 딱 맞아요
+              <p className="text-center text-[10px] text-[var(--color-galsaek)] opacity-60">
+                스토리 9:16 · 정사각 1:1 — 인스타·카톡 공유에 맞는 크기예요
               </p>
+
+              <button
+                onClick={resetToCategory}
+                className="mt-1 text-center text-xs text-[var(--color-galsaek)] underline underline-offset-2 opacity-70"
+              >
+                새 부적 만들기
+              </button>
             </motion.div>
 
-            {/* ── 안전 고지 ── */}
+            {/* 안전 고지 */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1.6, duration: 0.6 }}
-              className="relative z-10 mt-8 w-full max-w-xs"
+              transition={{ delay: 1.4, duration: 0.6 }}
+              className="mt-8 w-full max-w-xs"
             >
-              <p className="text-[10px] leading-[1.7] text-white/25 text-center whitespace-pre-line">
+              <p className="whitespace-pre-line text-center text-[10px] leading-[1.7] text-[var(--color-galsaek)] opacity-60">
                 {SAFETY_DISCLAIMER}
               </p>
-              <div className="mt-2.5 flex items-center justify-center gap-2 text-[10px] text-white/25">
-                <a
-                  href="tel:109"
-                  className="underline underline-offset-2 hover:text-white/50 transition-colors"
-                >
+              <div className="mt-2 flex items-center justify-center gap-2 text-[10px] text-[var(--color-galsaek)] opacity-70">
+                <a href="tel:109" className="underline underline-offset-2">
                   자살예방상담 109
                 </a>
-                <span className="text-white/15">·</span>
-                <a
-                  href="tel:15770199"
-                  className="underline underline-offset-2 hover:text-white/50 transition-colors"
-                >
+                <span className="opacity-50">·</span>
+                <a href="tel:15770199" className="underline underline-offset-2">
                   정신건강상담 1577-0199
                 </a>
               </div>
@@ -1022,6 +1005,14 @@ export default function TalismanPage() {
           onContinue={resumeAfterCrisis}
         />
       )}
-    </div>
+    </HanjiBackground>
+  );
+}
+
+export default function TalismanPage() {
+  return (
+    <Suspense fallback={null}>
+      <TalismanFlow />
+    </Suspense>
   );
 }
