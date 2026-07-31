@@ -9,11 +9,30 @@ import { TalismanCategory } from './talismans';
 export interface ConsultStep {
   id: string;
   question: string;
+  /** 보기(버튼)로 제시할 선택지 */
   options?: string[];
+  /**
+   * 자유 입력 "전용" 단계 여부.
+   *
+   * ⚠️ 참고: options 가 있는 단계에서도 UI 는 항상 "✏️ 직접 입력할게요"를
+   * 함께 제공합니다. 보기 중에 자신의 마음에 맞는 것이 없을 수 있기 때문입니다.
+   * 즉 freeText 는 "자유 입력만 가능한 단계"를 뜻합니다.
+   */
   freeText?: boolean;
+  /** 직접 입력 시 보여줄 안내 문구 */
+  freeTextPlaceholder?: string;
   next: string | null; // 다음 단계 id (null이면 종료)
   /** 이 단계에서 수집될 키워드 (옵션 선택 시 매핑) */
   keywordMap?: Record<string, string[]>;
+}
+
+/**
+ * 해당 단계에서 자유 입력을 허용하는지.
+ * 모든 단계에서 사용자는 자신의 말로 답할 수 있습니다.
+ */
+export function allowsFreeText(step: ConsultStep): boolean {
+  // options 유무와 관계없이 항상 허용한다.
+  return step.freeText !== false;
 }
 
 /** 대화 흐름 */

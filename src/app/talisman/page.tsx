@@ -9,7 +9,9 @@ import {
 import { TalismanCategory } from "@/data/talismans";
 import ChatBubble, { type DialogueOption } from "@/components/ChatBubble";
 import TalismanPreview from "@/components/TalismanPreview";
+import CrisisSupport from "@/components/CrisisSupport";
 import { generateTalismanSVG } from "@/lib/talisman-generator";
+import { detectCrisis, SAFETY_DISCLAIMER } from "@/lib/crisis-detection";
 
 /* ───────── types ───────── */
 
@@ -92,6 +94,23 @@ const ENCOURAGEMENT_MESSAGES: Record<string, string[]> = {
   ],
 };
 
+/**
+ * 마음이 무거운 분께 드리는 부적.
+ * 위기 신호가 감지되었을 때 카테고리와 무관하게 이 부적으로 안내합니다.
+ */
+const SUPPORTIVE_TALISMAN = {
+  name: "정신안정부",
+  description:
+    "불안과 스트레스를 가라앉혀 마음의 평화를 주는 부적입니다.\n오늘 하루, 조금 더 편안해지시길 바라요.",
+  messages: [
+    "오늘도 잘 버텼어요 🌿",
+    "천천히 숨 쉬어요",
+    "당신은 소중해요",
+    "마음이 편안해지길",
+    "괜찮아요, 천천히",
+  ],
+};
+
 /* ───────── constants ───────── */
 
 const BG_COLOR_OPTIONS = [
@@ -131,6 +150,18 @@ export default function TalismanPage() {
   const [chatDone, setChatDone] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  /* crisis-support state
+     ⚠️ 사용자가 입력한 문장은 로그·저장·전송하지 않습니다.
+        모달이 열려 있는 동안에만 ref 에 잠시 보관했다가 대화에 반영합니다. */
+  const [crisisLevel, setCrisisLevel] = useState<"concern" | "high" | null>(
+    null
+  );
+  const pendingTextRef = useRef<string | null>(null);
+  /** 위기 신호가 감지되면 위로 중심의 부적으로 안내 */
+  const [supportiveMode, setSupportiveMode] = useState(false);
+  /** setTimeout 콜백 안에서 최신 값을 읽기 위한 미러 */
+  const supportiveModeRef = useRef(false);
+
   /* customization state */
   const [talismanStyle, setTalismanStyle] =
     useState<"traditional" | "modern">("traditional");
@@ -145,8 +176,17 @@ export default function TalismanPage() {
   const dialogue: DialogueFlow | null = selectedCategory
     ? DIALOGUE_FLOWS.find((f) => f.category === selectedCategory) ?? null
     : null;
-  const talismanName = dialogue ? `${dialogue.label} 부적` : "";
-  const talismanType = dialogue?.category ?? "기타";
+  const talismanName = supportiveMode
+    ? SUPPORTIVE_TALISMAN.name
+    : dialogue
+    ? `${dialogue.label} 부적`
+    : "";
+  const talismanType = supportiveMode
+    ? TalismanCategory.Health
+    : dialogue?.category ?? "기타";
+  const talismanDescription = supportiveMode
+    ? SUPPORTIVE_TALISMAN.description
+    : dialogue?.description ?? "";
 
   /* ── auto-scroll chat ── */
   useEffect(() => {
@@ -156,10 +196,12 @@ export default function TalismanPage() {
   /* ── initialize encouragement when entering customise ── */
   useEffect(() => {
     if (phase === "customize" && selectedCategory && !encouragement) {
-      const pool = ENCOURAGEMENT_MESSAGES[selectedCategory];
+      const pool = supportiveMode
+        ? SUPPORTIVE_TALISMAN.messages
+        : ENCOURAGEMENT_MESSAGES[selectedCategory];
       setEncouragement(pool[Math.floor(Math.random() * pool.length)]);
     }
-  }, [phase, selectedCategory, encouragement]);
+  }, [phase, selectedCategory, encouragement, supportiveMode]);
 
   /* ──────── phase handlers ──────── */
 
@@ -218,7 +260,9 @@ export default function TalismanPage() {
           setIsTyping(false);
           const resultMsg: ChatMessage = {
             id: "result",
-            text: `당신에게 어울리는 부적을 찾았어요! ✨\n\n「${dialogue.label} 부적」\n\n${dialogue.description}`,
+            text: supportiveModeRef.current
+              ? `당신의 마음을 가만히 담아봤어요 🌿\n\n「${SUPPORTIVE_TALISMAN.name}」\n\n${SUPPORTIVE_TALISMAN.description}`
+              : `당신에게 어울리는 부적을 찾았어요! ✨\n\n「${dialogue.label} 부적」\n\n${dialogue.description}`,
             isBot: true,
           };
           setMessages((prev) => [...prev, resultMsg]);
@@ -255,15 +299,51 @@ export default function TalismanPage() {
     [advanceChat]
   );
 
+  /**
+   * 사용자가 직접 입력한 문장 처리.
+   * 대화를 진행하기 "전에" 위기 신호를 먼저 살펴봅니다.
+   *
+   * ⚠️ 입력 원문은 절대 로깅·저장·전송하지 않습니다.
+   *    감지 결과(level)만 사용하고, 원문은 대화 말풍선에 넣기 위해
+   *    ref 에 잠시 보관합니다.
+   */
+  const submitUserText = useCallback(
+    (raw: string) => {
+      const text = raw.trim();
+      if (!text) return;
+
+      const { level } = detectCrisis(text);
+
+      if (level !== "none") {
+        setSupportiveMode(true);
+        supportiveModeRef.current = true;
+        pendingTextRef.current = text;
+        setCrisisLevel(level);
+        return; // 안내를 먼저 보여드리고, 이어서 대화를 계속합니다.
+      }
+
+      advanceChat(text);
+    },
+    [advanceChat]
+  );
+
+  /** 안내를 닫으면(어떤 버튼이든) 사용자의 답변을 잃지 않고 그대로 이어갑니다. */
+  const resumeAfterCrisis = useCallback(() => {
+    const pending = pendingTextRef.current;
+    pendingTextRef.current = null;
+    setCrisisLevel(null);
+    if (pending) advanceChat(pending);
+  }, [advanceChat]);
+
   const handleFreeTextSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
       const text = userInput.trim();
       if (!text) return;
       setUserInput("");
-      advanceChat(text);
+      submitUserText(text);
     },
-    [userInput, advanceChat]
+    [userInput, submitUserText]
   );
 
   /* 3. save to localStorage */
@@ -406,6 +486,11 @@ export default function TalismanPage() {
                   setCurrentStep(0);
                   setChatDone(false);
                   setIsTyping(false);
+                  setCrisisLevel(null);
+                  pendingTextRef.current = null;
+                  setSupportiveMode(false);
+                  supportiveModeRef.current = false;
+                  setEncouragement("");
                 }}
                 className="text-white/40 hover:text-white/70 transition-colors text-sm cursor-pointer"
               >
@@ -431,6 +516,12 @@ export default function TalismanPage() {
                     isBot={msg.isBot}
                     options={isLastBot ? msg.options : undefined}
                     onSelect={handleOptionSelect}
+                    /* 보기 중에 마음에 드는 게 없어도 직접 이야기할 수 있게 */
+                    allowFreeText={
+                      isLastBot && !!msg.options && msg.options.length > 0
+                    }
+                    onFreeTextSubmit={submitUserText}
+                    freeTextPlaceholder="편하게 적어주세요..."
                   />
                 );
               })}
@@ -698,8 +789,8 @@ export default function TalismanPage() {
               <h2 className="text-xl font-semibold text-amber-200/90 mb-2">
                 「{talismanName}」
               </h2>
-              <p className="text-sm text-white/50 max-w-xs leading-relaxed">
-                {dialogue?.description}
+              <p className="text-sm text-white/50 max-w-xs leading-relaxed whitespace-pre-line">
+                {talismanDescription}
               </p>
             </motion.div>
 
@@ -742,9 +833,45 @@ export default function TalismanPage() {
                 </button>
               </div>
             </motion.div>
+
+            {/* ── 안전 고지 ── */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.6, duration: 0.6 }}
+              className="relative z-10 mt-8 w-full max-w-xs"
+            >
+              <p className="text-[10px] leading-[1.7] text-white/25 text-center whitespace-pre-line">
+                {SAFETY_DISCLAIMER}
+              </p>
+              <div className="mt-2.5 flex items-center justify-center gap-2 text-[10px] text-white/25">
+                <a
+                  href="tel:109"
+                  className="underline underline-offset-2 hover:text-white/50 transition-colors"
+                >
+                  자살예방상담 109
+                </a>
+                <span className="text-white/15">·</span>
+                <a
+                  href="tel:15770199"
+                  className="underline underline-offset-2 hover:text-white/50 transition-colors"
+                >
+                  정신건강상담 1577-0199
+                </a>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ─── 위기 신호 감지 시 전문 도움 안내 ─── */}
+      {crisisLevel && (
+        <CrisisSupport
+          level={crisisLevel}
+          onClose={resumeAfterCrisis}
+          onContinue={resumeAfterCrisis}
+        />
+      )}
     </div>
   );
 }
