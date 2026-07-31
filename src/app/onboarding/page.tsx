@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // 만세력(24절기) 기반 정확한 사주 모듈
@@ -1213,6 +1214,7 @@ const slideVariants = {
 };
 
 export default function OnboardingPage() {
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const [birthInfo, setBirthInfo] = useState<BirthInfo>({
@@ -1230,9 +1232,10 @@ export default function OnboardingPage() {
     setStep((s) => Math.min(s + 1, totalSteps - 1));
   }, []);
 
+  // window.location.href = '/'는 GitHub Pages(basePath) 밖으로 나가 404가 난다 — 라우터 사용
   const handleComplete = useCallback(() => {
-    window.location.href = '/';
-  }, []);
+    router.replace('/');
+  }, [router]);
 
   return (
     <div

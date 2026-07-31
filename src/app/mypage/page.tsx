@@ -168,7 +168,7 @@ export default function MyPage() {
               </p>
             </div>
             <Link
-              href="/saju"
+              href="/onboarding"
               className="rounded-lg border border-amber-800/30 px-3 py-1.5 text-xs text-amber-400 transition hover:bg-amber-900/20"
             >
               사주 다시보기
@@ -225,10 +225,18 @@ export default function MyPage() {
           transition={{ duration: 0.4, delay: 0.3 }}
           className="rounded-2xl border border-white/[0.06] bg-white/[0.02] py-1"
         >
-          <SettingsRow icon="📝" label="사주 정보 수정" href="/saju/edit" />
-          <SettingsRow icon="🔔" label="알림 설정" href="/settings/notifications" />
+          <SettingsRow icon="📝" label="사주 정보 수정" href="/onboarding" />
+          <SettingsRow
+            icon="🔔"
+            label="알림 설정"
+            onClick={() => alert('알림 설정은 준비 중이에요 🙏')}
+          />
           <SettingsRow icon="🗑️" label="데이터 초기화" danger onClick={handleDataReset} />
-          <SettingsRow icon="ℹ️" label="서비스 안내" href="/about" />
+          <SettingsRow
+            icon="ℹ️"
+            label="서비스 안내"
+            onClick={() => alert('수호부적 v0.1.0\n맞춤형 디지털 부적 앱입니다 🔮')}
+          />
         </motion.div>
 
         {/* App version */}

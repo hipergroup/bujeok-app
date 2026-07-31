@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import BottomTab from '@/components/BottomTab';
 import TalismanCard from '@/components/TalismanCard';
@@ -121,12 +122,12 @@ export default function CollectionPage() {
               <p className="mt-1 text-sm text-zinc-500">
                 첫 부적을 받으러 가볼까요?
               </p>
-              <a
+              <Link
                 href="/talisman"
                 className="mt-6 inline-flex items-center gap-2 rounded-full bg-amber-700/80 px-6 py-3 text-sm font-semibold text-amber-100 shadow-lg shadow-amber-900/30 transition hover:bg-amber-700"
               >
                 부적 받기 →
-              </a>
+              </Link>
             </motion.div>
           ) : (
             /* ── Grid ── */

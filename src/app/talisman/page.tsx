@@ -126,7 +126,10 @@ function loadUserContext(): { name: string; animal: string } {
       const year = parsed?.birth?.year;
       return {
         name: parsed?.name || "",
-        animal: typeof year === "number" ? getAnimal(year).name : "",
+        // 온보딩이 저장한 띠(입춘 보정 반영)를 우선 사용, 없으면 연도로 계산
+        animal:
+          parsed?.animal ||
+          (typeof year === "number" ? getAnimal(year).name : ""),
       };
     }
     const profile = localStorage.getItem("user_profile");
