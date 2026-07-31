@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import BottomTab from '@/components/BottomTab';
 import { TOTAL_TALISMAN_COUNT } from '@/lib/talisman-data';
+import { CRISIS_HOTLINES, SAFETY_DISCLAIMER, telHref } from '@/lib/crisis-detection';
 
 // ── Mini chart for fortune history ──
 function FortuneChart({ scores }: { scores: number[] }) {
@@ -110,7 +111,79 @@ function SettingsRow({
   );
 }
 
+// ── 서비스 안내 (안전 고지 + 상담 전화) ──
+function ServiceInfoSheet({ onClose }: { onClose: () => void }) {
+  return (
+    <motion.div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="service-info-title"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.35 }}
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#132433]/75 backdrop-blur-md sm:items-center"
+    >
+      <motion.div
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 16 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-[#e6ded3] bg-[#fbf8f4] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 sm:rounded-3xl"
+      >
+        <h2 id="service-info-title" className="text-center text-[17px] font-semibold text-[#2b3d4e]">
+          서비스 안내
+        </h2>
+
+        <p className="mt-4 whitespace-pre-line text-center text-[13px] leading-[1.9] text-[#5a6b7a]">
+          {SAFETY_DISCLAIMER}
+        </p>
+
+        <div className="mt-6">
+          <p className="mb-2.5 text-center text-[12px] font-medium text-[#7b93a8]">
+            24시간 상담 전화
+          </p>
+          <div className="flex flex-col gap-2.5">
+            {CRISIS_HOTLINES.map((h) => (
+              <a
+                key={h.number}
+                href={telHref(h.number)}
+                className="flex items-center gap-3 rounded-2xl border border-[#c9dcec] bg-[#eef4fa] px-4 py-3.5 text-[#22384d] shadow-sm transition-all duration-200 hover:bg-[#e2edf7] active:scale-[0.98]"
+              >
+                <span className="text-xl leading-none" aria-hidden="true">
+                  📞
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col items-start">
+                  <span className="text-[13px] leading-tight text-[#4d677f]">{h.name}</span>
+                  <span className="mt-0.5 text-[11px] leading-tight text-[#7b93a8]">{h.desc}</span>
+                </span>
+                <span className="text-lg font-semibold tabular-nums tracking-tight">{h.number}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <p className="mt-5 text-center text-[11.5px] leading-[1.8] text-[#8d8275]">
+          혼자 감당하기 어려운 순간에는 언제든 전화해 주세요.
+          <br />
+          이야기를 들어줄 사람이 24시간 기다리고 있어요.
+        </p>
+
+        <button
+          onClick={onClose}
+          className="mt-6 w-full rounded-full border border-[#dcd5cb] py-3 text-[13.5px] font-medium text-[#6f7f8d] transition-all duration-200 hover:bg-[#f2ede6] active:scale-[0.98]"
+        >
+          닫기
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function MyPage() {
+  const [showServiceInfo, setShowServiceInfo] = useState(false);
   const [collectedCount, setCollectedCount] = useState(0);
   const [streakDays, setStreakDays] = useState(3);
 
@@ -235,13 +308,22 @@ export default function MyPage() {
           <SettingsRow
             icon="ℹ️"
             label="서비스 안내"
-            onClick={() => alert('수호부적 v0.1.0\n맞춤형 디지털 부적 앱입니다 🔮')}
+            onClick={() => setShowServiceInfo(true)}
           />
         </motion.div>
+
+        {/* Safety disclaimer */}
+        <p className="whitespace-pre-line text-center text-[10px] leading-[1.7] text-zinc-600">
+          {SAFETY_DISCLAIMER}
+        </p>
 
         {/* App version */}
         <p className="text-center text-[10px] text-zinc-700">부적앱 v0.1.0</p>
       </div>
+
+      <AnimatePresence>
+        {showServiceInfo && <ServiceInfoSheet onClose={() => setShowServiceInfo(false)} />}
+      </AnimatePresence>
 
       <BottomTab />
     </div>
