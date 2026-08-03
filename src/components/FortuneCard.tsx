@@ -43,21 +43,21 @@ export default function FortuneCard({
       </div>
 
       {/* ── Star Rating ─────────────────────── */}
-      <div className="flex items-center gap-1 mb-3">
+      <div className="flex items-center gap-1.5 mb-3">
         {stars.map((filled, i) => (
           <motion.span
             key={i}
             initial={{ scale: 0, rotate: -90 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ delay: 0.1 * i + 0.3, type: "spring", stiffness: 300 }}
-            className={`text-xl ${
-              filled ? "text-[var(--color-gold)]" : "text-[var(--color-text-muted)]"
+            className={`text-2xl leading-none ${
+              filled ? "text-[var(--color-gold)]" : "text-[var(--color-text-muted)] opacity-30"
             }`}
             style={
               filled
                 ? {
                     animation: `twinkle 2s ease-in-out ${i * 0.4}s infinite`,
-                    filter: "drop-shadow(0 0 4px rgba(212,168,83,0.5))",
+                    filter: "drop-shadow(0 0 6px rgba(212,168,83,0.5))",
                   }
                 : {}
             }

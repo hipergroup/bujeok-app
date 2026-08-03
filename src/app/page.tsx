@@ -33,43 +33,53 @@ const FORTUNE_CATEGORIES = [
   { key: "study", label: "학업운", emoji: "📚", color: "from-blue-900/30 to-indigo-900/20" },
 ];
 
-/* ── Mock Fortune Data ─────────────────── */
-function getTodayFortune() {
+/* ── 오늘의 운세 (사주 기반) ─────────────── */
+import { getSaju, getOheng } from "@/data/saju";
+import { getDailyFortune } from "@/data/fortune";
+
+const OHENG_LABEL: Record<string, string> = {
+  목: "목(木)", 화: "화(火)", 토: "토(土)", 금: "금(金)", 수: "수(水)",
+};
+
+function getTodayFortune(birthData?: { year: number; month: number; day: number; hour: number }) {
+  if (birthData) {
+    const saju = getSaju(birthData.year, birthData.month, birthData.day, birthData.hour);
+    const fortune = getDailyFortune(saju, new Date());
+    const oheng = getOheng(saju);
+    const weakEl = (Object.entries(oheng) as [string, number][]).sort((a, b) => a[1] - b[1])[0][0];
+    return {
+      score: fortune.score,
+      overall: fortune.overall,
+      luckyColor: fortune.luckyColor,
+      luckyDirection: fortune.luckyDirection,
+      luckyNumber: fortune.luckyNumber,
+      mantra: fortune.dailyMantra,
+      colorReason: `부족한 ${OHENG_LABEL[weakEl]} 기운을 채워주는 색`,
+      categories: {
+        wealth: fortune.money,
+        love: fortune.love,
+        health: fortune.health,
+        study: fortune.study,
+      },
+    };
+  }
+
+  // 사주 데이터 없을 때 fallback
   const seed = new Date().toDateString();
   const hash = [...seed].reduce((a, c) => a + c.charCodeAt(0), 0);
-  const score = (hash % 5) + 1;
-
-  const overalls = [
-    "오늘은 새로운 시작에 좋은 날입니다. 마음 속 깊이 품었던 계획을 실행에 옮겨보세요.",
-    "평온한 에너지가 감싸는 하루입니다. 감사하는 마음으로 주변을 돌아보세요.",
-    "활발한 기운이 넘치는 날입니다. 적극적으로 행동하면 좋은 결과가 따릅니다.",
-    "차분하게 내면을 돌아보기 좋은 시간입니다. 명상이나 산책을 추천합니다.",
-    "행운의 기운이 가득합니다! 중요한 결정을 내리기에 좋은 날이에요.",
-  ];
-
-  const mantras = [
-    "나는 매 순간 더 나은 나로 성장하고 있다",
-    "우주의 풍요로운 에너지가 나에게로 흐른다",
-    "나의 마음은 평화롭고 세상은 아름답다",
-    "모든 일이 나에게 최선의 방향으로 흘러간다",
-    "나는 사랑받기에 충분한 존재이다",
-  ];
-
-  const colors = ["금색", "붉은색", "파란색", "초록색", "보라색", "흰색"];
-  const directions = ["동쪽", "서쪽", "남쪽", "북쪽", "동남쪽", "북서쪽"];
-
   return {
-    score,
-    overall: overalls[hash % overalls.length],
-    luckyColor: colors[hash % colors.length],
-    luckyDirection: directions[(hash + 1) % directions.length],
+    score: (hash % 5) + 1,
+    overall: "온보딩을 완료하면 사주 기반 맞춤 운세를 볼 수 있어요.",
+    luckyColor: "금색",
+    luckyDirection: "동쪽",
     luckyNumber: ((hash * 7) % 99) + 1,
-    mantra: mantras[hash % mantras.length],
+    mantra: "모든 일이 나에게 최선의 방향으로 흘러간다",
+    colorReason: undefined as string | undefined,
     categories: {
-      wealth: (hash % 5) + 1,
-      love: ((hash + 2) % 5) + 1,
-      health: ((hash + 3) % 5) + 1,
-      study: ((hash + 1) % 5) + 1,
+      wealth: "온보딩을 완료해 보세요",
+      love: "온보딩을 완료해 보세요",
+      health: "온보딩을 완료해 보세요",
+      study: "온보딩을 완료해 보세요",
     },
   };
 }
@@ -93,6 +103,7 @@ export default function HomePage() {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [userName, setUserName] = useState("");
   const [animal, setAnimal] = useState("");
+  const [birthData, setBirthData] = useState<{ year: number; month: number; day: number; hour: number } | undefined>();
 
   useEffect(() => {
     const onboarded = localStorage.getItem("onboarding_completed");
@@ -102,16 +113,31 @@ export default function HomePage() {
       return;
     }
 
-    const profile = localStorage.getItem("user_profile");
-    if (profile) {
-      try {
-        const p = JSON.parse(profile);
-        setUserName(p.name || "수호자");
-        setAnimal(p.animal || "");
-      } catch {
-        setUserName("수호자");
+    try {
+      const userData = localStorage.getItem("bujeok-user");
+      if (userData) {
+        const u = JSON.parse(userData);
+        setUserName(u.name || "수호자");
+        setAnimal(u.animal || "");
+        if (u.birth) {
+          setBirthData({
+            year: u.birth.year,
+            month: u.birth.month,
+            day: u.birth.day,
+            hour: u.birth.hour ?? 12,
+          });
+        }
+      } else {
+        const profile = localStorage.getItem("user_profile");
+        if (profile) {
+          const p = JSON.parse(profile);
+          setUserName(p.name || "수호자");
+          setAnimal(p.animal || "");
+        } else {
+          setUserName("수호자");
+        }
       }
-    } else {
+    } catch {
       setUserName("수호자");
     }
     setReady(true);
@@ -135,7 +161,7 @@ export default function HomePage() {
     return <OnboardingPage />;
   }
 
-  const fortune = getTodayFortune();
+  const fortune = getTodayFortune(birthData);
   const animalEmoji = ANIMAL_EMOJI[animal] || "✨";
 
   return (
@@ -182,32 +208,21 @@ export default function HomePage() {
           </h2>
           <div className="fortune-scroll">
             {FORTUNE_CATEGORIES.map((cat) => {
-              const catScore =
+              const catText =
                 fortune.categories[cat.key as keyof typeof fortune.categories];
               return (
                 <motion.div
                   key={cat.key}
                   whileTap={{ scale: 0.96 }}
-                  className={`card-glass min-w-[140px] p-4 bg-gradient-to-br ${cat.color}`}
+                  className={`card-glass min-w-[160px] max-w-[200px] p-4 bg-gradient-to-br ${cat.color}`}
                 >
                   <span className="text-2xl block mb-2">{cat.emoji}</span>
                   <p className="text-sm font-semibold text-[var(--color-text-primary)] mb-1">
                     {cat.label}
                   </p>
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: 5 }, (_, i) => (
-                      <span
-                        key={i}
-                        className={`text-xs ${
-                          i < catScore
-                            ? "text-[var(--color-gold)]"
-                            : "text-[var(--color-text-muted)]"
-                        }`}
-                      >
-                        ★
-                      </span>
-                    ))}
-                  </div>
+                  <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed line-clamp-3">
+                    {catText}
+                  </p>
                 </motion.div>
               );
             })}
@@ -228,6 +243,11 @@ export default function HomePage() {
               <p className="text-sm font-semibold text-[var(--color-gold)]">
                 {fortune.luckyColor}
               </p>
+              {fortune.colorReason && (
+                <p className="text-[9px] text-[var(--color-text-muted)] mt-1 leading-tight">
+                  {fortune.colorReason}
+                </p>
+              )}
             </div>
             <div className="card-glass p-3 text-center">
               <p className="text-xl mb-1">🧭</p>
