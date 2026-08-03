@@ -41,6 +41,7 @@ import {
   shareOrDownload,
   type ShareFormat,
 } from "@/lib/share-card";
+import { pushTalismanToWidget } from "@/lib/widget-bridge";
 import type { SavedTalisman } from "@/lib/types";
 
 /* ───────── types ───────── */
@@ -486,6 +487,14 @@ function TalismanFlow() {
       note: encouragement || undefined,
       svg: generateTalismanSVG(talismanParams),
     };
+
+    // 네이티브 앱이면 홈 화면 위젯에도 반영 (웹에선 no-op)
+    void pushTalismanToWidget(talisman.svg!, {
+      name: talisman.name,
+      hanja: talisman.hanja,
+      note: talisman.note,
+      savedAt: talisman.savedAt,
+    });
 
     try {
       const existing: SavedTalisman[] = JSON.parse(

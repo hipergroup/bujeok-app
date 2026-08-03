@@ -1,0 +1,61 @@
+# xcodegen 프로젝트 정의 — `xcodegen generate` 로 Bujeok.xcodeproj 재생성
+name: Bujeok
+options:
+  deploymentTarget:
+    iOS: "17.0"
+settings:
+  base:
+    DEVELOPMENT_TEAM: G6592L5687
+    SWIFT_VERSION: "5.0"
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  Bujeok:
+    type: application
+    platform: iOS
+    sources:
+      - Bujeok
+    scheme:
+      testTargets: []
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.juno.bujeok
+        MARKETING_VERSION: "1.1"
+        CURRENT_PROJECT_VERSION: "2"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: 수호부
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+    entitlements:
+      path: Bujeok/Bujeok.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.juno.bujeok
+    dependencies:
+      - target: BujeokWidget
+        embed: true
+
+  BujeokWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - BujeokWidget
+    info:
+      path: BujeokWidget/Info.plist
+      properties:
+        CFBundleDisplayName: 수호부 위젯
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.juno.bujeok.widget
+        MARKETING_VERSION: "1.1"
+        CURRENT_PROJECT_VERSION: "2"
+        SKIP_INSTALL: YES
+    entitlements:
+      path: BujeokWidget/BujeokWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.juno.bujeok

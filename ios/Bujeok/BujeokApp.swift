@@ -1,5 +1,9 @@
 import SwiftUI
 import WebKit
+import WidgetKit
+
+/// 위젯과 공유하는 App Group
+private let appGroupID = "group.com.juno.bujeok"
 
 /// 배포된 웹앱을 여는 네이티브 껍데기.
 /// 웹(main 푸시 → GitHub Pages)만 갱신되면 앱 재설치 없이 내용이 바뀐다.
@@ -55,6 +59,8 @@ struct WebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
+        // 웹 → 네이티브 위젯 브리지: 부적 저장 시 PNG·메타를 App Group에 기록
+        config.userContentController.add(context.coordinator, name: "widgetBridge")
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
         web.uiDelegate = context.coordinator
@@ -70,9 +76,37 @@ struct WebView: UIViewRepresentable {
 
     func updateUIView(_ uiView: WKWebView, context: Context) {}
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
         let parent: WebView
         init(_ parent: WebView) { self.parent = parent }
+
+        /// 웹이 보낸 부적(PNG base64 + 메타)을 위젯 공유 저장소에 기록
+        func userContentController(
+            _ userContentController: WKUserContentController,
+            didReceive message: WKScriptMessage
+        ) {
+            guard message.name == "widgetBridge",
+                  let body = message.body as? [String: Any],
+                  let pngBase64 = body["png"] as? String,
+                  let data = Data(base64Encoded: pngBase64),
+                  let container = FileManager.default.containerURL(
+                    forSecurityApplicationGroupIdentifier: appGroupID
+                  )
+            else { return }
+
+            let meta: [String: Any] = [
+                "name": body["name"] as? String ?? "부적",
+                "hanja": body["hanja"] as? String ?? "",
+                "note": body["note"] as? String ?? "",
+                "savedAt": body["savedAt"] as? String
+                    ?? ISO8601DateFormatter().string(from: Date()),
+            ]
+            try? data.write(to: container.appendingPathComponent("widget-talisman.png"))
+            if let metaData = try? JSONSerialization.data(withJSONObject: meta) {
+                try? metaData.write(to: container.appendingPathComponent("widget-meta.json"))
+            }
+            WidgetCenter.shared.reloadAllTimelines()
+        }
 
         // tel:(위기 지원 전화)·mailto: 등 웹뷰가 못 여는 스킴은 시스템으로 넘긴다
         func webView(

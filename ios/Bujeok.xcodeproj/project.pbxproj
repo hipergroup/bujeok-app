@@ -6,254 +6,445 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		4F24F018EF7E4BE0A6D9D0FB /* BujeokWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19E1BD87CC34E524DC0A5F8D /* BujeokWidget.swift */; };
+		AFA91E3A815F82EEBECF8CED /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C871BF3C69E318361C05CFAD /* Assets.xcassets */; };
+		BFFD0E5C5698282CE28B5C78 /* BujeokWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = EF6ECBB14B3DC5D76E213562 /* BujeokWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		C38A19B57804CBAA9BAF42FA /* BujeokApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14B1E22BE7FAF4178A6188C2 /* BujeokApp.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		0A0DC5E5DFAF3C6701E9140C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 84A19A0D7548CAF3C1667C03 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D8ABACF01576F89DDA7793FE;
+			remoteInfo = BujeokWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		0CA796F643D1E52B283001ED /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				BFFD0E5C5698282CE28B5C78 /* BujeokWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
-		B1000001BJK000000000AA01 /* Bujeok.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bujeok.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		14B1E22BE7FAF4178A6188C2 /* BujeokApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BujeokApp.swift; sourceTree = "<group>"; };
+		19E1BD87CC34E524DC0A5F8D /* BujeokWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BujeokWidget.swift; sourceTree = "<group>"; };
+		8C620D4FBAF9D5C2B48F62B2 /* Bujeok.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Bujeok.entitlements; sourceTree = "<group>"; };
+		9C5BB5F8F50F2C90D6817AF4 /* BujeokWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BujeokWidget.entitlements; sourceTree = "<group>"; };
+		C793E05726D6F52D9A3C7EF8 /* Bujeok.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Bujeok.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C871BF3C69E318361C05CFAD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		EF6ECBB14B3DC5D76E213562 /* BujeokWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = BujeokWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		F5EAA63ED739F0A85D26D209 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		B1000002BJK000000000AA01 /* Bujeok */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
+/* Begin PBXGroup section */
+		498E55541890E5F5CE512786 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C793E05726D6F52D9A3C7EF8 /* Bujeok.app */,
+				EF6ECBB14B3DC5D76E213562 /* BujeokWidget.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		754A39D7CF6DD74D2F7F30BC /* Bujeok */ = {
+			isa = PBXGroup;
+			children = (
+				C871BF3C69E318361C05CFAD /* Assets.xcassets */,
+				8C620D4FBAF9D5C2B48F62B2 /* Bujeok.entitlements */,
+				14B1E22BE7FAF4178A6188C2 /* BujeokApp.swift */,
+			);
 			path = Bujeok;
 			sourceTree = "<group>";
 		};
-/* End PBXFileSystemSynchronizedRootGroup section */
-
-/* Begin PBXFrameworksBuildPhase section */
-		B1000003BJK000000000AA01 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXFrameworksBuildPhase section */
-
-/* Begin PBXGroup section */
-		B1000004BJK000000000AA01 = {
+		C0AA2229A424992EED365303 /* BujeokWidget */ = {
 			isa = PBXGroup;
 			children = (
-				B1000002BJK000000000AA01 /* Bujeok */,
-				B1000005BJK000000000AA01 /* Products */,
+				9C5BB5F8F50F2C90D6817AF4 /* BujeokWidget.entitlements */,
+				19E1BD87CC34E524DC0A5F8D /* BujeokWidget.swift */,
+				F5EAA63ED739F0A85D26D209 /* Info.plist */,
 			);
+			path = BujeokWidget;
 			sourceTree = "<group>";
 		};
-		B1000005BJK000000000AA01 /* Products */ = {
+		E11F8DAF8EA7708A5AF68C19 = {
 			isa = PBXGroup;
 			children = (
-				B1000001BJK000000000AA01 /* Bujeok.app */,
+				754A39D7CF6DD74D2F7F30BC /* Bujeok */,
+				C0AA2229A424992EED365303 /* BujeokWidget */,
+				498E55541890E5F5CE512786 /* Products */,
 			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		B1000006BJK000000000AA01 /* Bujeok */ = {
+		062D5F80626BCD4CA1C523AF /* Bujeok */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = B1000007BJK000000000AA01 /* Build configuration list for PBXNativeTarget "Bujeok" */;
+			buildConfigurationList = F0626C643183A5D435014846 /* Build configuration list for PBXNativeTarget "Bujeok" */;
 			buildPhases = (
-				B1000008BJK000000000AA01 /* Sources */,
-				B1000003BJK000000000AA01 /* Frameworks */,
-				B1000009BJK000000000AA01 /* Resources */,
+				BE659D76CAFDED601FD4AACD /* Sources */,
+				C7AFB9085866C30A29998F7A /* Resources */,
+				0CA796F643D1E52B283001ED /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				B1000002BJK000000000AA01 /* Bujeok */,
+				BC15339D5C5BA8E930E9C4B3 /* PBXTargetDependency */,
 			);
 			name = Bujeok;
 			packageProductDependencies = (
 			);
 			productName = Bujeok;
-			productReference = B1000001BJK000000000AA01 /* Bujeok.app */;
+			productReference = C793E05726D6F52D9A3C7EF8 /* Bujeok.app */;
 			productType = "com.apple.product-type.application";
+		};
+		D8ABACF01576F89DDA7793FE /* BujeokWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A266EAD4419BD53807CB3096 /* Build configuration list for PBXNativeTarget "BujeokWidget" */;
+			buildPhases = (
+				4B2DECFA63A28F37BA4B97FD /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BujeokWidget;
+			packageProductDependencies = (
+			);
+			productName = BujeokWidget;
+			productReference = EF6ECBB14B3DC5D76E213562 /* BujeokWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		B100000ABJK000000000AA01 /* Project object */ = {
+		84A19A0D7548CAF3C1667C03 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1620;
-				LastUpgradeCheck = 1620;
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
 				TargetAttributes = {
-					B1000006BJK000000000AA01 = {
-						CreatedOnToolsVersion = 16.2;
+					062D5F80626BCD4CA1C523AF = {
+						DevelopmentTeam = G6592L5687;
+						ProvisioningStyle = Automatic;
+					};
+					D8ABACF01576F89DDA7793FE = {
+						DevelopmentTeam = G6592L5687;
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
-			buildConfigurationList = B100000BBJK000000000AA01 /* Build configuration list for PBXProject "Bujeok" */;
-			compatibilityVersion = "Xcode 15.0";
+			buildConfigurationList = 86559E46C3B585E45D31B4C8 /* Build configuration list for PBXProject "Bujeok" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
-				en,
 				Base,
+				en,
 			);
-			mainGroup = B1000004BJK000000000AA01;
+			mainGroup = E11F8DAF8EA7708A5AF68C19;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = B1000005BJK000000000AA01 /* Products */;
+			productRefGroup = 498E55541890E5F5CE512786 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				B1000006BJK000000000AA01 /* Bujeok */,
+				062D5F80626BCD4CA1C523AF /* Bujeok */,
+				D8ABACF01576F89DDA7793FE /* BujeokWidget */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		B1000009BJK000000000AA01 /* Resources */ = {
+		C7AFB9085866C30A29998F7A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AFA91E3A815F82EEBECF8CED /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		B1000008BJK000000000AA01 /* Sources */ = {
+		4B2DECFA63A28F37BA4B97FD /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4F24F018EF7E4BE0A6D9D0FB /* BujeokWidget.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BE659D76CAFDED601FD4AACD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C38A19B57804CBAA9BAF42FA /* BujeokApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		BC15339D5C5BA8E930E9C4B3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D8ABACF01576F89DDA7793FE /* BujeokWidget */;
+			targetProxy = 0A0DC5E5DFAF3C6701E9140C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
-		B100000CBJK000000000AA01 /* Debug */ = {
+		1E63377E2B72CC30D89B38B7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = BujeokWidget/BujeokWidget.entitlements;
+				CURRENT_PROJECT_VERSION = 2;
+				INFOPLIST_FILE = BujeokWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.juno.bujeok.widget;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		6CD5EA8FB018A04A131A74B1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = BujeokWidget/BujeokWidget.entitlements;
+				CURRENT_PROJECT_VERSION = 2;
+				INFOPLIST_FILE = BujeokWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.juno.bujeok.widget;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A47B5FAB7C100A74F19C04A2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Bujeok/Bujeok.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 2;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "수호부";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.juno.bujeok;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		AEB771C3371388DCE36FF4C9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = G6592L5687;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		B674F8D3862E1DD773C179B1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Bujeok/Bujeok.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 2;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "수호부";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.juno.bujeok;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DF05B010CDE185DC897FF6F9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = G6592L5687;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
 					"$(inherited)",
+					"DEBUG=1",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
-		};
-		B100000DBJK000000000AA01 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_NO_COMMON_BLOCKS = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
-				SDKROOT = iphoneos;
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
-		B100000EBJK000000000AA01 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = G6592L5687;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "수호부";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.juno.bujeok;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Debug;
-		};
-		B100000FBJK000000000AA01 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = G6592L5687;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "수호부";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.juno.bujeok;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		B1000007BJK000000000AA01 /* Build configuration list for PBXNativeTarget "Bujeok" */ = {
+		86559E46C3B585E45D31B4C8 /* Build configuration list for PBXProject "Bujeok" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B100000EBJK000000000AA01 /* Debug */,
-				B100000FBJK000000000AA01 /* Release */,
+				DF05B010CDE185DC897FF6F9 /* Debug */,
+				AEB771C3371388DCE36FF4C9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
-		B100000BBJK000000000AA01 /* Build configuration list for PBXProject "Bujeok" */ = {
+		A266EAD4419BD53807CB3096 /* Build configuration list for PBXNativeTarget "BujeokWidget" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B100000CBJK000000000AA01 /* Debug */,
-				B100000DBJK000000000AA01 /* Release */,
+				1E63377E2B72CC30D89B38B7 /* Debug */,
+				6CD5EA8FB018A04A131A74B1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
+		};
+		F0626C643183A5D435014846 /* Build configuration list for PBXNativeTarget "Bujeok" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B674F8D3862E1DD773C179B1 /* Debug */,
+				A47B5FAB7C100A74F19C04A2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = B100000ABJK000000000AA01 /* Project object */;
+	rootObject = 84A19A0D7548CAF3C1667C03 /* Project object */;
 }
