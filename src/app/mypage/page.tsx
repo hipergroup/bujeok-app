@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import BottomTab from '@/components/BottomTab';
-import { TOTAL_TALISMAN_COUNT } from '@/lib/talisman-data';
+import { TOTAL_TALISMAN_COUNT } from '@/data/talismans';
 import { CRISIS_HOTLINES, SAFETY_DISCLAIMER, telHref } from '@/lib/crisis-detection';
 
 // ── Mini chart for fortune history ──

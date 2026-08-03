@@ -2,10 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-// 첫 실행 사용자 대부분이 온보딩을 보므로 별도 청크 분리(추가 왕복) 대신 함께 번들
-import OnboardingPage from "./onboarding/page";
 import BottomTab from "@/components/BottomTab";
 import HanjiBackground from "@/components/hanji/HanjiBackground";
 import TraditionalHeader from "@/components/hanji/TraditionalHeader";
@@ -13,18 +10,48 @@ import TalismanCategoryCard from "@/components/hanji/TalismanCategoryCard";
 import {
   MenuIcon,
   BellIcon,
+  SealLogo,
   BrushStroke,
   KnotMotif,
 } from "@/components/hanji/motifs";
-import appIcon from "../../public/brand/app-icon.png";
 import { HOME_ENERGIES } from "@/data/energies";
+import { getSaju, getOheng } from "@/data/saju";
+import { getDailyFortune } from "@/data/fortune";
+// 첫 실행 사용자 대부분이 온보딩을 보므로 별도 청크 분리(추가 왕복) 대신 함께 번들
+import OnboardingPage from "./onboarding/page";
 
-/* ── 오늘의 운세 (기존 기능 유지 — 컴팩트 카드) ────── */
-function getTodayFortune() {
+/* ── 오늘의 운세 — 사주 기반(온보딩 완료 시), 없으면 날짜 시드 ── */
+
+const OHENG_LABEL: Record<string, string> = {
+  목: "목(木)", 화: "화(火)", 토: "토(土)", 금: "금(金)", 수: "수(水)",
+};
+
+interface BirthData {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+}
+
+function getTodayFortune(birthData?: BirthData) {
+  if (birthData) {
+    const saju = getSaju(birthData.year, birthData.month, birthData.day, birthData.hour);
+    const fortune = getDailyFortune(saju, new Date());
+    const oheng = getOheng(saju);
+    const weakEl = (Object.entries(oheng) as [string, number][]).sort(
+      (a, b) => a[1] - b[1]
+    )[0][0];
+    return {
+      score: fortune.score,
+      overall: fortune.overall,
+      luckyColor: fortune.luckyColor,
+      colorReason: `부족한 ${OHENG_LABEL[weakEl]} 기운을 채워주는 색`,
+    };
+  }
+
+  // 사주 정보가 없을 때의 날짜 시드 운세
   const seed = new Date().toDateString();
   const hash = [...seed].reduce((a, c) => a + c.charCodeAt(0), 0);
-  const score = (hash % 5) + 1;
-
   const overalls = [
     "오늘은 새로운 시작에 좋은 날입니다. 마음 속 계획을 실행에 옮겨보세요.",
     "평온한 기운이 감싸는 하루입니다. 감사하는 마음으로 주변을 돌아보세요.",
@@ -33,11 +60,11 @@ function getTodayFortune() {
     "행운의 기운이 가득한 날입니다. 중요한 결정을 내리기에 좋습니다.",
   ];
   const colors = ["금색", "붉은색", "쪽빛", "쑥색", "보라색", "흰색"];
-
   return {
-    score,
+    score: (hash % 5) + 1,
     overall: overalls[hash % overalls.length],
     luckyColor: colors[hash % colors.length],
+    colorReason: null as string | null,
   };
 }
 
@@ -57,6 +84,7 @@ export default function HomePage() {
   const [ready, setReady] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [userName, setUserName] = useState("");
+  const [birthData, setBirthData] = useState<BirthData | undefined>();
 
   useEffect(() => {
     const onboarded = localStorage.getItem("onboarding_completed");
@@ -67,9 +95,35 @@ export default function HomePage() {
     }
 
     try {
-      const profile = localStorage.getItem("user_profile");
-      if (profile) setUserName(JSON.parse(profile).name || "수호자");
-      else setUserName("수호자");
+      const userData = localStorage.getItem("bujeok-user");
+      if (userData) {
+        const u = JSON.parse(userData);
+        setUserName(u.name || "수호자");
+        if (u.birth) {
+          setBirthData({
+            year: u.birth.year,
+            month: u.birth.month,
+            day: u.birth.day,
+            hour: u.birth.hour ?? 12,
+          });
+        }
+      } else {
+        const profile = localStorage.getItem("user_profile");
+        if (profile) {
+          const p = JSON.parse(profile);
+          setUserName(p.name || "수호자");
+          if (p.birthYear) {
+            setBirthData({
+              year: p.birthYear,
+              month: p.birthMonth ?? 1,
+              day: p.birthDay ?? 1,
+              hour: p.birthHour ?? 12,
+            });
+          }
+        } else {
+          setUserName("수호자");
+        }
+      }
     } catch {
       setUserName("수호자");
     }
@@ -80,7 +134,7 @@ export default function HomePage() {
     return (
       <HanjiBackground>
         <div className="flex flex-1 items-center justify-center">
-          <Image src={appIcon} alt="수호부" priority className="w-24" />
+          <SealLogo size={44} />
         </div>
       </HanjiBackground>
     );
@@ -90,7 +144,7 @@ export default function HomePage() {
     return <OnboardingPage />;
   }
 
-  const fortune = getTodayFortune();
+  const fortune = getTodayFortune(birthData);
 
   return (
     <HanjiBackground decorated>
@@ -182,12 +236,17 @@ export default function HomePage() {
           </motion.button>
         </motion.section>
 
-        {/* ── 오늘의 운세 (컴팩트) ── */}
+        {/* ── 오늘의 운세 (사주 기반) ── */}
         <motion.section variants={fadeUp}>
           <div className="hanji-card rounded-xl px-5 py-4">
             <div className="mb-1.5 flex items-center justify-between">
               <span className="font-serif-kr text-sm font-bold text-[var(--color-meok)]">
                 오늘의 운세
+                {birthData && (
+                  <span className="ml-1.5 text-[10px] font-normal text-[var(--color-galsaek)] opacity-70">
+                    사주 기반
+                  </span>
+                )}
               </span>
               <span className="text-xs tracking-widest text-[var(--color-hwang)]">
                 {"●".repeat(fortune.score)}
@@ -199,6 +258,7 @@ export default function HomePage() {
             </p>
             <p className="mt-2 text-[11px] text-[var(--color-galsaek)] opacity-70">
               오늘의 행운색 · {fortune.luckyColor}
+              {fortune.colorReason && ` — ${fortune.colorReason}`}
             </p>
           </div>
         </motion.section>

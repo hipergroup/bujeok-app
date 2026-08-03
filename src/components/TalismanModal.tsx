@@ -19,6 +19,19 @@ function isSaved(t: SavedTalisman | TalismanInfo): t is SavedTalisman {
   return 'savedAt' in t;
 }
 
+function BulletList({ items }: { items: string[] }) {
+  return (
+    <ul className="flex flex-col gap-1.5">
+      {items.map((item, i) => (
+        <li key={i} className="flex gap-2 text-sm leading-relaxed text-[var(--color-galsaek)]">
+          <span className="mt-0.5 text-[var(--color-juhong)] opacity-70">·</span>
+          <span className="flex-1">{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Section({
   title,
   children,
@@ -53,7 +66,7 @@ function Section({
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <p className="pb-4 text-sm leading-relaxed text-[var(--color-galsaek)]">{children}</p>
+            <div className="pb-4">{children}</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -94,7 +107,6 @@ export default function TalismanModal({
         // user cancelled
       }
     } else {
-      // fallback: copy to clipboard
       await navigator.clipboard.writeText(
         `${talisman.name} (${talisman.hanja})\n${talisman.description}`
       );
@@ -104,7 +116,6 @@ export default function TalismanModal({
   };
 
   const handleDownload = () => {
-    // grab the SVG element from the modal and download it
     const svgEl = document.querySelector('#talisman-modal-svg svg') as SVGSVGElement | null;
     if (!svgEl) return;
     const serializer = new XMLSerializer();
@@ -127,6 +138,11 @@ export default function TalismanModal({
     setConfirmDelete(false);
   };
 
+  const actionBtnStyle: React.CSSProperties = {
+    border: '1px solid rgba(122,74,52,0.4)',
+    backgroundColor: 'rgba(246,237,217,0.7)',
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -134,7 +150,7 @@ export default function TalismanModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       >
         <motion.div
@@ -188,12 +204,16 @@ export default function TalismanModal({
                 className="inline-block h-3 w-3 rounded-full"
                 style={{ backgroundColor: color }}
               />
-              <h2 className="font-serif-kr text-xl font-bold text-[var(--color-meok)]">{talisman.name}</h2>
+              <h2 className="font-serif-kr text-xl font-bold text-[var(--color-meok)]">
+                {talisman.name}
+              </h2>
             </div>
             <p className="mt-1 text-sm text-[var(--color-galsaek)]">{talisman.hanja}</p>
 
             {dateStr && (
-              <p className="mt-2 text-xs text-[var(--color-galsaek)] opacity-70">{dateStr} 수령</p>
+              <p className="mt-2 text-xs text-[var(--color-galsaek)] opacity-70">
+                {dateStr} 수령
+              </p>
             )}
 
             {/* Description */}
@@ -217,11 +237,43 @@ export default function TalismanModal({
             {/* Expandable sections */}
             <div className="mt-6 w-full">
               <Section title="이 부적의 의미" defaultOpen>
-                {talisman.description}
+                <BulletList items={talisman.meaning} />
               </Section>
-              <Section title="사용 상황">{talisman.whenToUse}</Section>
-              <Section title="문양 설명">{talisman.symbolsExplained}</Section>
-              <Section title="사용법">{talisman.howToUse}</Section>
+              <Section title="사용 상황">
+                <BulletList items={talisman.situations} />
+              </Section>
+              <Section title="문양 설명">
+                <div className="flex flex-col gap-2 text-sm leading-relaxed text-[var(--color-galsaek)]">
+                  <p>
+                    중앙 글자&nbsp;
+                    <span className="font-serif-kr font-bold text-[var(--color-juhong)]">
+                      {talisman.design.centerText}
+                    </span>
+                  </p>
+                  {talisman.design.patterns.length > 0 && (
+                    <p>장식 문양 — {talisman.design.patterns.join(', ')}</p>
+                  )}
+                  {talisman.design.symbols.length > 0 && (
+                    <p>상징 요소 — {talisman.design.symbols.join(', ')}</p>
+                  )}
+                </div>
+              </Section>
+              <Section title="사용법">
+                <div className="flex flex-col gap-2">
+                  <BulletList items={talisman.usage} />
+                  <p className="text-sm leading-relaxed text-[var(--color-galsaek)]">
+                    보관 — {talisman.placement}
+                  </p>
+                  <p className="text-sm leading-relaxed text-[var(--color-galsaek)]">
+                    교체 — {talisman.replacement}
+                  </p>
+                </div>
+              </Section>
+              <Section title="주문(眞言)">
+                <p className="font-serif-kr text-sm leading-relaxed text-[var(--color-juhong)]">
+                  {talisman.mantra}
+                </p>
+              </Section>
             </div>
 
             {/* Action buttons */}
@@ -233,20 +285,14 @@ export default function TalismanModal({
                   <button
                     onClick={handleShare}
                     className="flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium text-[var(--color-galsaek)] transition active:scale-95"
-                    style={{
-                      border: '1px solid rgba(122,74,52,0.4)',
-                      backgroundColor: 'rgba(246,237,217,0.7)',
-                    }}
+                    style={actionBtnStyle}
                   >
                     <span>📤</span> 공유
                   </button>
                   <button
                     onClick={handleDownload}
                     className="flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium text-[var(--color-galsaek)] transition active:scale-95"
-                    style={{
-                      border: '1px solid rgba(122,74,52,0.4)',
-                      backgroundColor: 'rgba(246,237,217,0.7)',
-                    }}
+                    style={actionBtnStyle}
                   >
                     <span>⬇️</span> 다운로드
                   </button>
@@ -254,8 +300,8 @@ export default function TalismanModal({
                     onClick={handleDelete}
                     className={`flex flex-1 items-center justify-center gap-2 rounded-xl border py-3 text-sm font-medium transition ${
                       confirmDelete
-                        ? 'border-red-500/60 bg-red-900/40 text-red-300'
-                        : 'border-red-900/30 bg-red-900/10 text-red-400 hover:bg-red-900/20'
+                        ? 'border-red-500/60 bg-red-900/30 text-red-100'
+                        : 'border-red-900/30 bg-red-900/5 text-red-800'
                     }`}
                   >
                     <span>🗑️</span> {confirmDelete ? '정말 삭제?' : '삭제'}

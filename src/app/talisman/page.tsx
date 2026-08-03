@@ -262,7 +262,9 @@ function TalismanFlow() {
     message: encouragement,
     mantra: recommended?.mantra ?? "",
     userName: userCtx.name || undefined,
-    symbols: recommended?.symbols,
+    symbols: recommended
+      ? [...recommended.design.patterns, ...recommended.design.symbols]
+      : undefined,
   };
 
   /* ── auto-scroll chat ── */
@@ -476,20 +478,10 @@ function TalismanFlow() {
   const handleSave = useCallback(() => {
     if (!recommended) return;
 
+    // 추천 부적의 43종 상세 정보를 그대로 물려받고, 나만의 요소만 덧붙인다
     const talisman: SavedTalisman = {
+      ...recommended,
       id: `custom-${Date.now()}`,
-      name: recommended.name,
-      hanja: recommended.hanja,
-      category: recommended.category,
-      description: recommended.description,
-      whenToUse: encouragement
-        ? `「${encouragement}」의 마음을 담아 직접 만든 부적입니다.`
-        : "직접 만든 나만의 맞춤 부적입니다.",
-      symbolsExplained: recommended.symbols.length
-        ? `${recommended.symbols.join(" · ")} 문양이 담겨 있습니다.`
-        : "나만의 문양이 담겨 있습니다.",
-      howToUse: recommended.usage,
-      svgKey: recommended.id,
       savedAt: new Date().toISOString(),
       note: encouragement || undefined,
       svg: generateTalismanSVG(talismanParams),
@@ -738,7 +730,11 @@ function TalismanFlow() {
                 background={background}
                 accent={accent}
                 animal={animalChoice || undefined}
-                symbols={recommended?.symbols}
+                symbols={
+                  recommended
+                    ? [...recommended.design.patterns, ...recommended.design.symbols]
+                    : undefined
+                }
                 userName={userCtx.name || undefined}
                 title={talismanName}
                 hanja={recommended?.hanja}
@@ -897,7 +893,11 @@ function TalismanFlow() {
                 background={background}
                 accent={accent}
                 animal={animalChoice || undefined}
-                symbols={recommended?.symbols}
+                symbols={
+                  recommended
+                    ? [...recommended.design.patterns, ...recommended.design.symbols]
+                    : undefined
+                }
                 userName={userCtx.name || undefined}
                 title={talismanName}
                 hanja={recommended?.hanja}
