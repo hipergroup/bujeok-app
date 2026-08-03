@@ -6,51 +6,22 @@ import BottomTab from '@/components/BottomTab';
 import TalismanCard from '@/components/TalismanCard';
 import TalismanModal from '@/components/TalismanModal';
 import { SavedTalisman, CATEGORY_COLORS } from '@/lib/types';
-import { TOTAL_TALISMAN_COUNT } from '@/lib/talisman-data';
+import { TOTAL_TALISMAN_COUNT, getTalismanById } from '@/data/talismans';
 
 // ── Demo seed data (in production this would come from localStorage / backend) ──
-const DEMO_COLLECTION: SavedTalisman[] = [
-  {
-    id: 'byeoksa', name: '벽사부', hanja: '辟邪符', category: '수호',
-    description: '사악한 기운을 물리치고 나쁜 것들을 쫓아내는 부적입니다.',
-    whenToUse: '불길한 일이 연이어 일어나거나, 집안에 나쁜 기운이 느껴질 때 사용합니다.',
-    symbolsExplained: '호랑이 문양과 팔괘가 결합되어 강력한 벽사의 힘을 나타냅니다.',
-    howToUse: '대문이나 현관 위에 붙여두면 나쁜 기운이 들어오는 것을 막아줍니다.',
-    svgKey: 'byeoksa', savedAt: '2025-01-15T09:30:00Z',
-  },
-  {
-    id: 'chobok', name: '초복부', hanja: '招福符', category: '재물',
-    description: '복을 불러오고 행운이 가득하게 해주는 부적입니다.',
-    whenToUse: '새해가 시작되거나, 새로운 출발을 할 때 사용합니다.',
-    symbolsExplained: '박쥐 문양(福)과 구름 문양이 하늘의 복을 의미합니다.',
-    howToUse: '거실이나 자주 머무는 공간에 붙여둡니다.',
-    svgKey: 'chobok', savedAt: '2025-02-03T14:00:00Z',
-  },
-  {
-    id: 'hapgyeok', name: '합격부', hanja: '合格符', category: '학업',
-    description: '시험에 합격하고 좋은 결과를 얻도록 돕는 부적입니다.',
-    whenToUse: '수능, 자격증, 면접 등 중요한 시험을 앞두고 있을 때 사용합니다.',
-    symbolsExplained: '문(門)을 여는 열쇠 문양이 합격의 문이 열리는 것을 상징합니다.',
-    howToUse: '시험장에 가져가거나 수험표와 함께 둡니다.',
-    svgKey: 'hapgyeok', savedAt: '2025-03-20T10:15:00Z',
-  },
-  {
-    id: 'gajeong', name: '가정화목부', hanja: '家庭和睦符', category: '가정',
-    description: '가족 간의 화합과 평화를 가져다주는 부적입니다.',
-    whenToUse: '가족 간 갈등이 있거나 화목한 가정을 원할 때 사용합니다.',
-    symbolsExplained: '원형 문양 안에 가족을 상징하는 네 방위가 조화를 이룹니다.',
-    howToUse: '가족이 모이는 거실이나 식탁 근처에 붙입니다.',
-    svgKey: 'gajeong', savedAt: '2025-04-01T08:00:00Z',
-  },
-  {
-    id: 'mubyeong', name: '무병장수부', hanja: '無病長壽符', category: '건강',
-    description: '병 없이 오래 건강하게 살도록 돕는 부적입니다.',
-    whenToUse: '어르신께 드리거나, 건강이 염려될 때 사용합니다.',
-    symbolsExplained: '십장생 문양이 영원한 생명과 건강을 상징합니다.',
-    howToUse: '침실이나 거실에 붙여두고 매일 아침 한 번씩 바라봅니다.',
-    svgKey: 'mubyeong', savedAt: '2025-04-10T11:20:00Z',
-  },
+// 전통 부적 카탈로그(src/data/talismans.ts)에서 실제 부적을 가져와 수령 일자만 덧붙인다.
+const DEMO_SEEDS: Array<{ id: string; savedAt: string }> = [
+  { id: 'protect-01', savedAt: '2025-01-15T09:30:00Z' }, // 벽사부
+  { id: 'wealth-01', savedAt: '2025-02-03T14:00:00Z' }, // 초복부
+  { id: 'study-02', savedAt: '2025-03-20T10:15:00Z' }, // 합격부
+  { id: 'family-02', savedAt: '2025-04-01T08:00:00Z' }, // 화목부
+  { id: 'health-03', savedAt: '2025-04-10T11:20:00Z' }, // 수명장수부
 ];
+
+const DEMO_COLLECTION: SavedTalisman[] = DEMO_SEEDS.flatMap(({ id, savedAt }) => {
+  const talisman = getTalismanById(id);
+  return talisman ? [{ ...talisman, savedAt }] : [];
+});
 
 // ── Progress ring component ──
 function ProgressRing({ collected, total }: { collected: number; total: number }) {

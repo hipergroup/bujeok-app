@@ -18,6 +18,20 @@ function isSaved(t: SavedTalisman | TalismanInfo): t is SavedTalisman {
   return 'savedAt' in t;
 }
 
+/** 문자열 배열을 점 목록으로 표시 */
+function BulletList({ items }: { items: string[] }) {
+  return (
+    <ul className="flex flex-col gap-1.5">
+      {items.map((item, i) => (
+        <li key={i} className="flex gap-2">
+          <span className="mt-[0.35rem] inline-block h-1 w-1 shrink-0 rounded-full bg-amber-600/70" />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Section({
   title,
   children,
@@ -52,7 +66,7 @@ function Section({
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <p className="pb-4 text-sm leading-relaxed text-zinc-400">{children}</p>
+            <div className="pb-4 text-sm leading-relaxed text-zinc-400">{children}</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -193,11 +207,56 @@ export default function TalismanModal({
             {/* Expandable sections */}
             <div className="mt-6 w-full">
               <Section title="이 부적의 의미" defaultOpen>
-                {talisman.description}
+                <BulletList items={talisman.meaning} />
               </Section>
-              <Section title="사용 상황">{talisman.whenToUse}</Section>
-              <Section title="문양 설명">{talisman.symbolsExplained}</Section>
-              <Section title="사용법">{talisman.howToUse}</Section>
+              <Section title="사용 상황">
+                <BulletList items={talisman.situations} />
+              </Section>
+              <Section title="문양 설명">
+                <div className="flex flex-col gap-2">
+                  <p>
+                    <span className="text-amber-200/70">중앙 글자</span>{' '}
+                    <span className="font-semibold text-amber-100">
+                      {talisman.design.centerText}
+                    </span>
+                  </p>
+                  {talisman.design.patterns.length > 0 && (
+                    <p>
+                      <span className="text-amber-200/70">문양</span>{' '}
+                      {talisman.design.patterns.join(', ')}
+                    </p>
+                  )}
+                  {talisman.design.symbols.length > 0 && (
+                    <p>
+                      <span className="text-amber-200/70">상징</span>{' '}
+                      {talisman.design.symbols.join(', ')}
+                    </p>
+                  )}
+                  <p>
+                    <span className="text-amber-200/70">먹·종이</span>{' '}
+                    {talisman.design.inkColor} / {talisman.design.paperColor}
+                  </p>
+                  <p className="text-zinc-500">{talisman.design.notes}</p>
+                </div>
+              </Section>
+              <Section title="사용법">
+                <div className="flex flex-col gap-3">
+                  <BulletList items={talisman.usage} />
+                  <p>
+                    <span className="text-amber-200/70">부착 위치</span>{' '}
+                    {talisman.placement}
+                  </p>
+                  <p>
+                    <span className="text-amber-200/70">교체 주기</span>{' '}
+                    {talisman.replacement}
+                  </p>
+                </div>
+              </Section>
+              <Section title="주문(眞言)">
+                <p className="text-center font-medium tracking-wide text-amber-200/90">
+                  {talisman.mantra}
+                </p>
+              </Section>
             </div>
 
             {/* Action buttons */}

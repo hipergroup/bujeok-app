@@ -11,7 +11,7 @@ import {
   CATEGORY_COLORS,
   CATEGORY_LIST,
 } from '@/lib/types';
-import { TALISMAN_ENCYCLOPEDIA, TOTAL_TALISMAN_COUNT } from '@/lib/talisman-data';
+import { TALISMANS, TOTAL_TALISMAN_COUNT } from '@/data/talismans';
 
 export default function EncyclopediaPage() {
   const [activeTab, setActiveTab] = useState<TalismanCategory | '전체'>('전체');
@@ -30,14 +30,16 @@ export default function EncyclopediaPage() {
       }
     } catch {
       // fallback demo
-      setCollectedIds(new Set(['byeoksa', 'chobok', 'hapgyeok', 'gajeong', 'mubyeong']));
+      setCollectedIds(
+        new Set(['protect-01', 'wealth-01', 'study-02', 'family-02', 'health-03'])
+      );
     }
   }, []);
 
   const collectedCount = collectedIds.size;
 
   const filtered = useMemo(() => {
-    let list = TALISMAN_ENCYCLOPEDIA;
+    let list: TalismanInfo[] = TALISMANS;
     if (activeTab !== '전체') {
       list = list.filter((t) => t.category === activeTab);
     }

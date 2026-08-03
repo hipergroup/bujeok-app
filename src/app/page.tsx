@@ -267,10 +267,16 @@ export default function HomePage() {
               ◆
             </span>
 
-            <p className="text-xs text-[var(--color-text-muted)] mb-2">
+            <p className="text-xs text-[var(--color-gold)] opacity-70 mb-2 tracking-wide">
               ✧ 오늘의 한 줄 주문 ✧
             </p>
-            <p className="text-lg font-semibold text-[var(--color-gold)] text-glow leading-relaxed">
+            <p
+              className="text-xl font-bold leading-relaxed"
+              style={{
+                color: "#F5D896",
+                textShadow: "0 1px 3px rgba(0,0,0,0.7)",
+              }}
+            >
               &ldquo;{fortune.mantra}&rdquo;
             </p>
           </div>
