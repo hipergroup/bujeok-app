@@ -508,6 +508,7 @@ export default function MyPage() {
         >
           <SettingsRow icon="🔮" label="내 사주 풀이" href="/saju" />
           <SettingsRow icon="📖" label="부적 도감" href="/encyclopedia" />
+          <SettingsRow icon="📚" label="사주 용어 사전" href="/glossary" />
           <SettingsRow icon="📝" label="사주 정보 수정" href="/onboarding" />
           <SettingsRow
             icon="🔔"

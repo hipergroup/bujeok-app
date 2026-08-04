@@ -411,15 +411,15 @@ export interface SinganganResult {
 /** 등급별 한 줄 설명 */
 const SINGANG_SUMMARY: Record<SinganganResult['level'], string> = {
   극신강:
-    '내 기운(일간)이 아주 넉넉한 편으로 봅니다. 힘이 남는 만큼 밖으로 꺼내 쓸 통로가 있으면 훨씬 편해져요.',
+    '내 기운이 아주 넉넉한 편으로 봅니다. 힘이 남는 만큼 밖으로 꺼내 쓸 통로가 있으면 훨씬 편해져요.',
   신강:
-    '내 기운(일간)이 든든한 편으로 봅니다. 스스로 밀고 나가는 힘이 좋아서, 그 힘을 쓸 자리를 만들면 좋아요.',
+    '내 기운이 든든한 편으로 봅니다. 스스로 밀고 나가는 힘이 좋아서, 그 힘을 쓸 자리를 만들면 좋아요.',
   중화:
-    '내 기운(일간)과 주변 기운이 제법 고르게 균형을 이룬 편으로 봅니다. 명리에서 가장 편안하게 보는 자리예요.',
+    '내 기운과 주변 기운이 제법 고르게 균형을 이룬 편으로 봅니다. 가장 편안하게 보는 자리예요.',
   신약:
-    '내 기운(일간)이 조금 여린 편으로 봅니다. 혼자 다 짊어지기보다 배우고 기대며 채우는 쪽이 잘 맞아요.',
+    '내 기운이 조금 여린 편으로 봅니다. 혼자 다 짊어지기보다 배우고 기대며 채우는 쪽이 잘 맞아요.',
   극신약:
-    '내 기운(일간)이 많이 여린 편으로 봅니다. 힘을 쓰기보다 먼저 채우고 회복하는 데 무게를 두면 좋아요.',
+    '내 기운이 많이 여린 편으로 봅니다. 힘을 쓰기보다 먼저 채우고 회복하는 데 무게를 두면 좋아요.',
 };
 
 /**
@@ -927,9 +927,9 @@ export function getYongsin(saju: SajuResult, oheng: OhengScore): YongsinResult {
     )}`,
     `${eulReul(
       `${ohengLabel(huisin)} 기운`
-    )} 곁에 두면 용신을 뒤에서 밀어주고(희신, 喜神), ${ohengLabel(
+    )} 곁에 두면 뒤에서 밀어주는 힘이 되고, ${ohengLabel(
       gisin
-    )} 기운은 조금 덜어내면 좋은 쪽(기신, 忌神)으로 봅니다. 나쁜 기운이라기보다 지금의 나에게 조금 과한 것이라고 여기면 편해요.`,
+    )} 기운은 이미 넉넉한 편이라 더 보태지 않아도 괜찮아요. 부족해서가 아니라 지금의 나에겐 충분하다는 뜻이에요.`,
     HUMBLE_TAIL[confidence],
   ].join(' ');
 
@@ -941,7 +941,7 @@ export function getYongsin(saju: SajuResult, oheng: OhengScore): YongsinResult {
     singang,
     johu,
     explanation,
-    headline: `${headlineByType[type]} — ${iGa(`용신(用神)`)} ${label}`,
+    headline: headlineByType[type],
     advice: YONGSIN_ADVICE[yongsin],
     confidence,
   };

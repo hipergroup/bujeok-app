@@ -142,13 +142,17 @@ function SectionLabel({
   index,
   title,
   sub,
+  term,
 }: {
   index: number;
   title: string;
-  sub: string;
+  /** 부연 설명 (쉬운 말) */
+  sub?: string;
+  /** 전문 용어 — 작고 흐리게 곁들임 */
+  term?: string;
 }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
       <span
         className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
         style={{ background: JUHONG, color: '#F6EDD9' }}
@@ -158,9 +162,16 @@ function SectionLabel({
       <h2 className="font-serif-kr text-[15px] font-bold" style={{ color: MEOK }}>
         {title}
       </h2>
-      <span className="text-[10.5px]" style={{ color: `${GALSAEK}99` }}>
-        {sub}
-      </span>
+      {term && (
+        <span className="text-[10px] opacity-50" style={{ color: MEOK }}>
+          {term}
+        </span>
+      )}
+      {sub && (
+        <span className="text-[10.5px]" style={{ color: `${GALSAEK}99` }}>
+          {sub}
+        </span>
+      )}
     </div>
   );
 }
@@ -890,7 +901,7 @@ function StepSajuResult({
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.45 }}
       >
-        <SectionLabel index={1} title="나를 나타내는 글자" sub="일간(日干)" />
+        <SectionLabel index={1} title="나를 나타내는 글자" term="일간(日干)" />
 
         <div className="mt-4 flex flex-col items-center">
           <div
@@ -1000,9 +1011,9 @@ function StepSajuResult({
         transition={{ delay: 0.6 }}
       >
         <div className="px-1">
-          <SectionLabel index={2} title="내 인생의 네 기둥" sub="사주팔자(四柱八字)" />
+          <SectionLabel index={2} title="내 인생의 네 기둥" term="사주팔자(四柱八字)" />
           <p className="mt-2 text-[12px] leading-relaxed" style={{ color: `${MEOK}99` }}>
-            태어난 연·월·일·시를 각각 두 글자로 나타낸 것이 사주팔자예요.
+            태어난 해·달·날·시각을 각각 두 글자로 나타낸 거예요.
             기둥마다 인생의 다른 시기를 담당합니다. <strong>기둥을 눌러보세요.</strong>
           </p>
         </div>
@@ -1127,7 +1138,7 @@ function StepSajuResult({
         transition={{ delay: 0.75 }}
       >
         <div className="px-1">
-          <SectionLabel index={3} title="내 안의 다섯 기운" sub="오행(五行) 균형" />
+          <SectionLabel index={3} title="내 안의 다섯 기운" term="오행(五行)" />
           <p className="mt-2 text-[12px] leading-relaxed" style={{ color: `${MEOK}99` }}>
             세상 모든 것은 나무·불·흙·쇠·물 다섯 기운으로 이루어져 있어요.
             내 사주에 어떤 기운이 많고 적은지 봅니다.
@@ -1299,6 +1310,9 @@ function StepSajuResult({
                 className="rounded-full px-2 py-[2px] text-[10px] font-bold"
                 style={{ background: `${yongsinColor}1E`, color: yongsinColor }}
               >
+                나에게 필요한 기운
+              </span>
+              <span className="text-[10px] opacity-50" style={{ color: MEOK }}>
                 용신(用神)
               </span>
               <span className="text-[10.5px]" style={{ color: `${GALSAEK}AA` }}>
@@ -1309,9 +1323,9 @@ function StepSajuResult({
               className="font-serif-kr mt-1.5 text-[14.5px] font-bold leading-snug"
               style={{ color: MEOK }}
             >
-              나에게 필요한 기운은{' '}
+              지금 나에게 가장 잘 맞는 기운은{' '}
               <span style={{ color: yongsinColor }}>{ohengLabel(yongsin.yongsin)}</span>
-              입니다
+              이에요
             </p>
           </div>
         </div>
@@ -1321,8 +1335,8 @@ function StepSajuResult({
         </p>
 
         <p className="mt-2.5 text-[11px] leading-relaxed" style={{ color: `${GALSAEK}AA` }}>
-          신강·조후까지 살핀 용신 풀이와 생활 속 보강법은 <strong>내 사주 풀이</strong>에
-          담아뒀어요.
+          내 기운의 세기와 계절·온도까지 살핀 자세한 풀이, 생활 속에서 이 기운을 채우는
+          방법은 <strong>내 사주 풀이</strong>에 담아뒀어요.
         </p>
       </motion.section>
 

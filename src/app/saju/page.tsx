@@ -68,21 +68,30 @@ const OHENG_TAG: Record<Oheng, string> = {
 // 용신(用神) 표시용 상수
 // ─────────────────────────────────────────────
 
-/** 취용 방식 한 줄 풀이 */
-const YONGSIN_TYPE_LABEL: Record<YongsinType, string> = {
-  억부: '억부(抑扶) · 넘치면 덜고 모자라면 채우는 방식',
-  조후: '조후(調候) · 사주의 온도를 먼저 맞추는 방식',
-  통관: '통관(通關) · 부딪히는 두 기운 사이에 다리를 놓는 방식',
-  전왕: '전왕(專旺) · 강한 흐름을 거스르지 않고 따라가는 방식',
+/** 취용 방식 — 쉬운 말이 먼저, 전문 용어는 작게 */
+const YONGSIN_TYPE_LABEL: Record<YongsinType, { plain: string; term: string }> = {
+  억부: { plain: '넘치면 덜고, 부족하면 채움', term: '억부(抑扶)' },
+  조후: { plain: '계절과 온도를 먼저 맞춤', term: '조후(調候)' },
+  통관: { plain: '맞부딪히는 기운 사이 다리', term: '통관(通關)' },
+  전왕: { plain: '강한 기운을 따름', term: '전왕(專旺)' },
 };
 
-/** 십성 묶음 한 줄 설명 */
+/** 십성 묶음 — 쉬운 말 이름 */
 const SIPSEONG_SHORT: Record<SipseongGroup, string> = {
   비겁: '나와 같은 힘',
   인성: '나를 돕는 힘',
   식상: '내가 쓰는 힘',
   재성: '내가 다루는 힘',
-  관성: '나를 누르는 힘',
+  관성: '나를 잡아주는 힘',
+};
+
+/** 십성 묶음 — 한 줄 풀이 */
+const SIPSEONG_DESC: Record<SipseongGroup, string> = {
+  비겁: '나와 어깨를 나란히 하는 힘이에요. 친구·동료·경쟁이 여기에 들어요.',
+  인성: '나를 배우게 하고 쉬게 해주는 힘이에요. 공부·어른의 도움이 여기에 들어요.',
+  식상: '내가 밖으로 표현하고 만들어내는 힘이에요. 말·솜씨·재주가 여기에 들어요.',
+  재성: '내가 다루고 챙기는 힘이에요. 돈·일·현실 감각이 여기에 들어요.',
+  관성: '나를 다잡아주는 힘이에요. 규칙·책임·자리가 여기에 들어요.',
 };
 
 /** 십성 묶음 한자 */
@@ -120,6 +129,19 @@ const SINGANG_COLOR: Record<string, string> = {
   신약: NAMSAEK,
   극신약: NAMSAEK,
 };
+
+/** 신강신약 등급 — 쉬운 말 이름 */
+const SINGANG_LABEL: Record<string, string> = {
+  극신강: '힘이 아주 많아요',
+  신강: '힘이 넘쳐요',
+  중화: '균형이 좋아요',
+  신약: '힘을 채우면 좋아요',
+  극신약: '도움이 많이 필요해요',
+};
+
+/** 내 편 / 바깥 편 — 쉬운 말 이름 */
+const ALLY_LABEL = '나를 든든하게 하는 힘';
+const ENEMY_LABEL = '나를 써야 하는 힘';
 
 /** 12지시 표기 (지지 index 기준) */
 const HOUR_RANGE_LABEL: string[] = [
@@ -195,13 +217,17 @@ function SectionLabel({
   index,
   title,
   sub,
+  term,
 }: {
   index: number;
   title: string;
+  /** 부연 설명 (쉬운 말) */
   sub?: string;
+  /** 전문 용어 — 작고 흐리게 곁들임 */
+  term?: string;
 }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
       <span
         className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
         style={{ background: `${JUHONG}16`, color: JUHONG }}
@@ -211,6 +237,11 @@ function SectionLabel({
       <h2 className="font-serif-kr text-[15px] font-bold" style={{ color: MEOK }}>
         {title}
       </h2>
+      {term && (
+        <span className="text-[10px] opacity-50" style={{ color: MEOK }}>
+          {term}
+        </span>
+      )}
       {sub && (
         <span className="text-[11px]" style={{ color: `${GALSAEK}AA` }}>
           {sub}
@@ -409,7 +440,7 @@ export default function SajuDetailPage() {
             <p className="text-[12.5px] leading-relaxed" style={{ color: `${GALSAEK}CC` }}>
               태어난 날짜와 시각을 알려주시면
               <br />
-              사주팔자와 오행을 풀어드릴게요.
+              태어난 때의 여덟 글자와 다섯 기운을 풀어드릴게요.
             </p>
             <Link
               href="/onboarding"
@@ -548,8 +579,14 @@ export default function SajuDetailPage() {
               className="flex flex-col items-center gap-1 rounded-xl py-3"
               style={{ background: `${ilganColor}12`, border: `1px solid ${ilganColor}33` }}
             >
-              <span className="text-[10px]" style={{ color: `${GALSAEK}AA` }}>
-                일간 (나 자신)
+              <span
+                className="flex flex-wrap items-center justify-center gap-x-1 text-[10px]"
+                style={{ color: `${GALSAEK}AA` }}
+              >
+                나를 나타내는 글자
+                <span className="text-[10px] opacity-50" style={{ color: MEOK }}>
+                  일간(日干)
+                </span>
               </span>
               <span
                 className="font-serif-kr text-base font-bold"
@@ -573,11 +610,16 @@ export default function SajuDetailPage() {
 
         {/* ── 2. 사주팔자 상세 ─────────────────────── */}
         <Section delay={0.06}>
-          <SectionLabel index={2} title="사주팔자 상세" sub="四柱八字" />
+          <SectionLabel
+            index={2}
+            title="태어난 때의 여덟 글자"
+            term="사주팔자(四柱八字)"
+          />
           <p className="mt-2 text-[12px] leading-relaxed" style={{ color: `${MEOK}99` }}>
-            태어난 연·월·일·시를 각각 두 글자로 적은 것이 사주팔자예요. 기둥 네 개라
-            사주(四柱), 글자가 여덟 개라 팔자(八字)입니다. 전통 방식대로 오른쪽이 년주,
-            왼쪽이 시주입니다.
+            태어난 해·달·날·시각을 각각 두 글자로 적은 것이에요. 기둥이 네 개라 사주,
+            글자가 여덟 개라 팔자라고 부릅니다. 한 칸마다 위쪽 글자(천간, 天干)와 아래쪽
+            글자(지지, 地支)가 짝을 이루고, 전통 방식대로 오른쪽이 태어난 해, 왼쪽이
+            태어난 시각이에요.
           </p>
 
           <div className="mt-5 grid grid-cols-4 gap-1.5">
@@ -665,9 +707,9 @@ export default function SajuDetailPage() {
 
         {/* ── 3. 일간 상세 해설 ────────────────────── */}
         <Section delay={0.12}>
-          <SectionLabel index={3} title="나를 나타내는 글자" sub="일간(日干)" />
+          <SectionLabel index={3} title="나를 나타내는 글자" term="일간(日干)" />
           <p className="mt-2 text-[12px] leading-relaxed" style={{ color: `${MEOK}99` }}>
-            일간은 태어난 날의 천간, 사주 여덟 글자 중 &ldquo;나 자신&rdquo;을 뜻하는
+            태어난 날의 위쪽 글자로, 여덟 글자 가운데 &ldquo;나 자신&rdquo;을 뜻하는
             자리예요. 성격을 볼 때 가장 먼저 봅니다.
           </p>
 
@@ -770,9 +812,9 @@ export default function SajuDetailPage() {
 
         {/* ── 4. 오행 상세 ─────────────────────────── */}
         <Section delay={0.18}>
-          <SectionLabel index={4} title="내 안의 다섯 기운" sub="오행(五行)" />
+          <SectionLabel index={4} title="내 안의 다섯 기운" term="오행(五行)" />
           <p className="mt-2 text-[12px] leading-relaxed" style={{ color: `${MEOK}99` }}>
-            세상 모든 것은 나무·불·흙·쇠·물 다섯 기운으로 이루어져 있어요. 사주 여덟
+            세상 모든 것은 나무·불·흙·쇠·물 다섯 기운으로 이루어져 있어요. 내 여덟
             글자에 어떤 기운이 많고 적은지 봅니다.
           </p>
 
@@ -995,10 +1037,10 @@ export default function SajuDetailPage() {
 
         {/* ── 5. 용신 ──────────────────────────────── */}
         <Section delay={0.24}>
-          <SectionLabel index={5} title="나에게 필요한 기운" sub="용신(用神)" />
+          <SectionLabel index={5} title="나에게 필요한 기운" term="용신(用神)" />
           <p className="mt-2 text-[12px] leading-relaxed" style={{ color: `${MEOK}99` }}>
-            용신(用神)은 넘치는 것은 덜어내고 모자란 것은 채워, 사주가 균형(중화, 中和)에
-            가까워지도록 도와주는 기운이에요. 명리에서는 처방약 같은 자리로 봅니다.
+            넘치는 것은 덜어내고 모자란 것은 채워서, 내 기운이 균형에 가까워지도록
+            도와주는 기운이에요. 나에게 잘 듣는 처방약 같은 자리라고 보시면 됩니다.
           </p>
 
           {/* ① 용신 대표 카드 */}
@@ -1016,10 +1058,7 @@ export default function SajuDetailPage() {
               >
                 나에게 필요한 기운
               </span>
-              <span
-                className="rounded-full px-2 py-[2px] text-[10px] font-bold"
-                style={{ background: `${yongsinColor}1E`, color: yongsinColor }}
-              >
+              <span className="text-[10px] opacity-50" style={{ color: MEOK }}>
                 용신(用神)
               </span>
             </div>
@@ -1064,10 +1103,13 @@ export default function SajuDetailPage() {
             </p>
 
             <span
-              className="mt-2.5 rounded-full px-2.5 py-[3px] text-[10.5px] font-medium"
+              className="mt-2.5 inline-flex items-center gap-1 rounded-full px-2.5 py-[3px] text-[10.5px] font-medium"
               style={{ background: `${MEOK}0E`, color: `${MEOK}AA` }}
             >
-              {YONGSIN_TYPE_LABEL[yongsin.type]}
+              {YONGSIN_TYPE_LABEL[yongsin.type].plain}
+              <span className="text-[10px] opacity-50" style={{ color: MEOK }}>
+                {YONGSIN_TYPE_LABEL[yongsin.type].term}
+              </span>
             </span>
 
             <p
@@ -1098,18 +1140,30 @@ export default function SajuDetailPage() {
           >
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-[12.5px] font-bold" style={{ color: MEOK }}>
-                사주의 힘
+                내 기운의 세기
               </span>
-              <span className="text-[11px]" style={{ color: `${GALSAEK}AA` }}>
+              <span className="text-[10px] opacity-50" style={{ color: MEOK }}>
                 신강·신약(身強·身弱)
               </span>
               <span
-                className="ml-auto rounded-full px-2.5 py-[3px] text-[11px] font-bold"
+                className="ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-[3px] text-[11px] font-bold"
                 style={{ background: `${singangColor}1E`, color: singangColor }}
               >
-                {singang.level}
+                {SINGANG_LABEL[singang.level] ?? singang.level}
+                <span
+                  className="text-[10px] font-medium opacity-50"
+                  style={{ color: MEOK }}
+                >
+                  {singang.level}
+                </span>
               </span>
             </div>
+            <p
+              className="mt-1.5 text-[12px] leading-relaxed"
+              style={{ color: `${MEOK}99` }}
+            >
+              힘이 넘치면 나누면 좋고, 부족하면 채우면 좋아요.
+            </p>
 
             {/* 가로 막대 게이지 */}
             <div className="mt-4">
@@ -1145,16 +1199,19 @@ export default function SajuDetailPage() {
                 />
               </div>
               <div className="mt-1.5 flex items-center justify-between text-[10px] font-medium">
-                <span style={{ color: `${GALSAEK}AA` }}>← 신약</span>
-                <span style={{ color: SSUK }}>중화</span>
-                <span style={{ color: `${GALSAEK}AA` }}>신강 →</span>
+                <span style={{ color: `${GALSAEK}AA` }}>← 힘을 채우면 좋아요</span>
+                <span style={{ color: SSUK }}>균형이 좋아요</span>
+                <span style={{ color: `${GALSAEK}AA` }}>힘이 넘쳐요 →</span>
               </div>
               <p
                 className="mt-1 text-[10.5px] leading-relaxed"
                 style={{ color: `${GALSAEK}99` }}
               >
-                왼쪽으로 갈수록 기대며 채우는 쪽(신약), 오른쪽으로 갈수록 밀고 나가는
-                쪽(신강)이에요. 가운데 음영이 균형이 잘 맞는 중화(中和) 구간입니다.
+                왼쪽으로 갈수록 기대며 채우면 좋은 쪽
+                <span className="opacity-50"> 신약(身弱)</span>, 오른쪽으로 갈수록 밀고
+                나가는 힘이 센 쪽<span className="opacity-50"> 신강(身強)</span>이에요.
+                가운데 음영이 균형이 잘 맞는 자리
+                <span className="opacity-50"> 중화(中和)</span>입니다.
               </p>
             </div>
 
@@ -1167,14 +1224,20 @@ export default function SajuDetailPage() {
 
             {/* 세력 분포 */}
             <div className="mt-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                 <span className="text-[11.5px] font-bold" style={{ color: `${MEOK}AA` }}>
-                  세력 분포
+                  다섯 가지 힘의 나눔
                 </span>
                 <span className="text-[10.5px] tabular-nums" style={{ color: `${GALSAEK}AA` }}>
-                  내 편 {singang.allyScore} · 바깥 편 {singang.enemyScore}
+                  {ALLY_LABEL} {singang.allyScore} · {ENEMY_LABEL} {singang.enemyScore}
                 </span>
               </div>
+              <p
+                className="mt-1 text-[11px] leading-relaxed"
+                style={{ color: `${MEOK}99` }}
+              >
+                다섯 가지 힘이 어떻게 나뉘어 있는지 보여줘요.
+              </p>
 
               {/* 가로 스택 막대 */}
               <div
@@ -1212,22 +1275,19 @@ export default function SajuDetailPage() {
                           className="shrink-0 text-[12px] font-bold"
                           style={{ color }}
                         >
+                          {SIPSEONG_SHORT[g]}
+                        </span>
+                        <span
+                          className="shrink-0 text-[10px] opacity-50"
+                          style={{ color: MEOK }}
+                        >
                           {g}({SIPSEONG_HANJA[g]})
                         </span>
                         <span
-                          className="min-w-0 flex-1 truncate text-[10.5px]"
+                          className="min-w-0 flex-1 truncate text-right text-[10.5px]"
                           style={{ color: `${GALSAEK}CC` }}
                         >
                           {ohengLabel(getGroupOheng(dayOheng, g))}
-                        </span>
-                        <span
-                          className="shrink-0 rounded-full px-1.5 py-[1px] text-[9px] font-medium"
-                          style={{
-                            background: ally ? `${SSUK}1E` : `${GALSAEK}16`,
-                            color: ally ? SSUK : `${GALSAEK}CC`,
-                          }}
-                        >
-                          {ally ? '내 편' : '바깥 편'}
                         </span>
                         <span
                           className="shrink-0 text-[11px] font-bold tabular-nums"
@@ -1236,11 +1296,22 @@ export default function SajuDetailPage() {
                           {singang.detail[g]}
                         </span>
                       </div>
+                      <div className="mt-1.5 flex items-start gap-1.5">
+                        <span
+                          className="shrink-0 rounded-full px-1.5 py-[1px] text-[9px] font-medium"
+                          style={{
+                            background: ally ? `${SSUK}1E` : `${GALSAEK}16`,
+                            color: ally ? SSUK : `${GALSAEK}CC`,
+                          }}
+                        >
+                          {ally ? ALLY_LABEL : ENEMY_LABEL}
+                        </span>
+                      </div>
                       <p
-                        className="mt-1 text-[11.5px] leading-tight"
+                        className="mt-1 text-[11.5px] leading-snug"
                         style={{ color: `${MEOK}AA` }}
                       >
-                        {SIPSEONG_SHORT[g]}
+                        {SIPSEONG_DESC[g]}
                       </p>
                     </div>
                   );
@@ -1251,8 +1322,8 @@ export default function SajuDetailPage() {
                 className="mt-2 text-[10.5px] leading-relaxed"
                 style={{ color: `${GALSAEK}99` }}
               >
-                비겁·인성은 나를 받쳐주는 &lsquo;내 편&rsquo;, 식상·재성·관성은 내가 밖으로
-                쓰거나 나를 다잡는 &lsquo;바깥 편&rsquo;으로 묶어 봅니다.
+                나와 같은 힘·나를 돕는 힘은 나를 받쳐주는 쪽, 내가 쓰는 힘·내가 다루는
+                힘·나를 잡아주는 힘은 내가 밖으로 써야 하는 쪽으로 묶어 봅니다.
               </p>
             </div>
           </div>
@@ -1277,7 +1348,7 @@ export default function SajuDetailPage() {
                 >
                   계절과 온도
                 </span>
-                <span className="text-[11px]" style={{ color: `${GALSAEK}AA` }}>
+                <span className="text-[10px] opacity-50" style={{ color: MEOK }}>
                   조후(調候)
                 </span>
                 {yongsin.johu.urgency === 'high' && (
@@ -1319,7 +1390,7 @@ export default function SajuDetailPage() {
               <span className="text-[12.5px] font-bold" style={{ color: MEOK }}>
                 생활 속에서 {yongsin.yongsin} 기운 채우기
               </span>
-              <span className="text-[11px]" style={{ color: `${GALSAEK}AA` }}>
+              <span className="text-[10px] opacity-50" style={{ color: MEOK }}>
                 개운(改運)
               </span>
             </div>
@@ -1389,7 +1460,13 @@ export default function SajuDetailPage() {
                 border: `1px solid ${OHENG_COLORS[yongsin.huisin]}33`,
               }}
             >
-              <span className="text-[10px]" style={{ color: `${GALSAEK}AA` }}>
+              <span
+                className="text-[11px] font-bold leading-tight"
+                style={{ color: `${MEOK}AA` }}
+              >
+                같이 있으면 좋은 기운
+              </span>
+              <span className="text-[10px] opacity-50" style={{ color: MEOK }}>
                 희신(喜神)
               </span>
               <span
@@ -1399,10 +1476,10 @@ export default function SajuDetailPage() {
                 {huisinInfo.emoji} {ohengLabel(yongsin.huisin)}
               </span>
               <span
-                className="text-[11px] leading-relaxed"
-                style={{ color: `${MEOK}AA` }}
+                className="text-[10.5px] leading-relaxed"
+                style={{ color: `${MEOK}88` }}
               >
-                같이 있으면 좋은 기운
+                곁에 두면 힘이 나요
               </span>
             </div>
             <div
@@ -1412,7 +1489,13 @@ export default function SajuDetailPage() {
                 border: `1px solid ${OHENG_COLORS[yongsin.gisin]}33`,
               }}
             >
-              <span className="text-[10px]" style={{ color: `${GALSAEK}AA` }}>
+              <span
+                className="text-[11px] font-bold leading-tight"
+                style={{ color: `${MEOK}AA` }}
+              >
+                지금은 넘치는 기운
+              </span>
+              <span className="text-[10px] opacity-50" style={{ color: MEOK }}>
                 기신(忌神)
               </span>
               <span
@@ -1422,10 +1505,10 @@ export default function SajuDetailPage() {
                 {gisinInfo.emoji} {ohengLabel(yongsin.gisin)}
               </span>
               <span
-                className="text-[11px] leading-relaxed"
-                style={{ color: `${MEOK}AA` }}
+                className="text-[10.5px] leading-relaxed"
+                style={{ color: `${MEOK}88` }}
               >
-                조금 덜어내면 가벼워지는 기운
+                조금 덜어내면 가벼워져요
               </span>
             </div>
           </div>
@@ -1434,14 +1517,14 @@ export default function SajuDetailPage() {
             className="mt-2.5 text-[10.5px] leading-relaxed"
             style={{ color: `${GALSAEK}99` }}
           >
-            용신은 명리에서 해석이 가장 많이 갈리는 자리예요. 정답이라기보다 방향을
-            알려주는 나침반으로 여겨주세요.
+            나에게 필요한 기운은 보는 사람에 따라 해석이 가장 많이 갈리는 자리예요.
+            정답이라기보다 방향을 알려주는 나침반으로 여겨주세요.
           </p>
         </Section>
 
         {/* ── 6. 삼재 ──────────────────────────────── */}
         <Section delay={0.3}>
-          <SectionLabel index={6} title="삼재 보기" sub="三災" />
+          <SectionLabel index={6} title="삼재 보기" term="삼재(三災)" />
 
           <div
             className="mt-4 rounded-xl px-4 py-4"
