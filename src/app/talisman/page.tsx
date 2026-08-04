@@ -102,6 +102,16 @@ const SUPPORTIVE_TALISMAN = {
   ],
 };
 
+/**
+ * 위로 부적에 대응하는 43종 카탈로그 항목(정신안정부).
+ * 위기 신호가 감지되면 키워드 기반 추천 대신 이 부적을 사용합니다.
+ * (카탈로그가 바뀌어도 앱이 죽지 않도록 건강 계열 → 전체 순으로 폴백)
+ */
+const SUPPORTIVE_TALISMAN_TYPE: TalismanType =
+  TALISMANS.find((t) => t.name === SUPPORTIVE_TALISMAN.name) ??
+  TALISMANS.find((t) => t.category === TalismanCategory.Health) ??
+  TALISMANS[0];
+
 /* ───────── helpers ───────── */
 
 /** 온보딩에서 저장한 사용자 정보 → 이름·띠 동물 */
@@ -335,8 +345,7 @@ function TalismanFlow() {
         // 대화 응답 → 키워드 → 43종 중 맞춤 부적 추천
         const kws = extractKeywords(dialogue, newResponses);
         const rec = supportiveModeRef.current
-          ? TALISMANS.find((t) => t.name === SUPPORTIVE_TALISMAN.name) ??
-            getTalismanRecommendation(TalismanCategory.Health, kws)
+          ? SUPPORTIVE_TALISMAN_TYPE
           : getTalismanRecommendation(dialogue.category, kws);
         setRecommended(rec);
 
