@@ -23,6 +23,13 @@ import {
   type SajuResult,
   type Oheng,
 } from '@/data/saju';
+// 초보자용 사주 해석 데이터 (일간·오행·기둥 의미)
+import {
+  getSajuReading,
+  PILLAR_MEANINGS,
+  OHENG_INFO,
+  type SajuReading,
+} from '@/data/saju-interpretation';
 import { saveProfile } from '@/lib/store';
 
 // ─────────────────────────────────────────────
@@ -76,13 +83,85 @@ const OHENG_COLORS: Record<string, string> = {
   '수': '#1F6FB5',
 };
 
-const OHENG_DESCRIPTIONS: Record<string, string> = {
-  '목': '성장과 인자함의 기운이 강합니다. 창의적이고 온화한 성품을 지녔으며, 새로운 시작에 대한 에너지가 넘칩니다.',
-  '화': '열정과 예의의 기운이 강합니다. 밝고 활기찬 에너지를 가졌으며, 리더십과 표현력이 뛰어납니다.',
-  '토': '안정과 신의의 기운이 강합니다. 중심을 잘 잡고 포용력이 넓으며, 사람들에게 신뢰를 줍니다.',
-  '금': '결단과 의리의 기운이 강합니다. 정의감이 강하고 깔끔한 성격이며, 집중력과 실행력이 뛰어납니다.',
-  '수': '지혜와 유연의 기운이 강합니다. 깊은 사고력을 지녔으며, 적응력이 뛰어나고 섬세합니다.',
+// ─────────────────────────────────────────────
+// 한지 디자인 토큰 (globals.css의 --color-* 와 동일 값)
+// ※ 다크테마 색(#0a0a1a, #D4A853)은 사용하지 않는다.
+// ─────────────────────────────────────────────
+const JUHONG = '#A72B21'; // --color-juhong 주홍·인주
+const MEOK = '#2E2E2E'; // --color-meok 먹
+const GALSAEK = '#7A4A34'; // --color-galsaek 짙은 갈색
+const SSUK = '#6B7D63'; // --color-ssuk 쑥·세이지
+const HWANG = '#DAA017'; // --color-hwang 겨자·황
+
+/** 오행별 이모지 + 한 단어 의미 태그 (초보자용) */
+const OHENG_META: Record<Oheng, { emoji: string; tag: string }> = {
+  '목': { emoji: '🌱', tag: '성장' },
+  '화': { emoji: '🔥', tag: '열정' },
+  '토': { emoji: '⛰️', tag: '안정' },
+  '금': { emoji: '⚔️', tag: '결단' },
+  '수': { emoji: '💧', tag: '지혜' },
 };
+
+/** 기둥 의미 — 값이 비면 PILLAR_MEANINGS(년→월→일→시 순)에서 채운다 */
+type PillarMeaningLike = (typeof PILLAR_MEANINGS)[number];
+
+function pillarMeaningOf(
+  meaning: PillarMeaningLike | undefined,
+  index: number
+): PillarMeaningLike | undefined {
+  return meaning ?? PILLAR_MEANINGS[index];
+}
+
+/** 오행 균형 상태를 한 단어 한국어 태그로 */
+const BALANCE_TAG: Record<'balanced' | 'concentrated' | 'polarized', string> = {
+  balanced: '고르게 어우러짐',
+  concentrated: '한쪽에 모임',
+  polarized: '뚜렷하게 치우침',
+};
+
+/** 부족한 오행을 보충하는 방법 3가지 (해석 데이터에서 읽되, 없으면 기본 문구) */
+const OHENG_BOOST_FALLBACK: Record<string, string[]> = {
+  '목': ['초록색 소품이나 화분을 곁에 두기', '아침 산책으로 나무·숲의 기운 쐬기', '새로 배우는 일을 하나 시작하기'],
+  '화': ['햇볕을 자주 쬐고 밝은 색 옷 입기', '사람들과 어울리는 자리를 만들기', '따뜻한 음식과 차를 챙겨 먹기'],
+  '토': ['생활 리듬과 잠자는 시간을 일정하게', '집·책상 정리로 내 자리를 안정시키기', '흙을 만지는 취미(화분·도예) 갖기'],
+  '금': ['금속 소품이나 흰색 계열 활용하기', '해야 할 일을 목록으로 정리해 끝내기', '규칙적인 운동으로 몸을 단단히'],
+  '수': ['물을 자주 마시고 물가를 산책하기', '검정·남색 계열 소품 곁에 두기', '책을 읽고 생각을 글로 정리하기'],
+};
+
+function ohengBoostBy(name: string): string[] {
+  const info = (OHENG_INFO as unknown as Record<string, { boostBy?: string[] } | undefined>)[name];
+  const fromData = info?.boostBy;
+  if (fromData && fromData.length > 0) return fromData;
+  return OHENG_BOOST_FALLBACK[name] ?? [];
+}
+
+/** 섹션 머리표 — 번호 뱃지 + 제목 + 한자 부제 */
+function SectionLabel({
+  index,
+  title,
+  sub,
+}: {
+  index: number;
+  title: string;
+  sub: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
+        style={{ background: JUHONG, color: '#F6EDD9' }}
+      >
+        {index}
+      </span>
+      <h2 className="font-serif-kr text-[15px] font-bold" style={{ color: MEOK }}>
+        {title}
+      </h2>
+      <span className="text-[10.5px]" style={{ color: `${GALSAEK}99` }}>
+        {sub}
+      </span>
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────
 // Floating Particles Component
@@ -668,223 +747,565 @@ function StepSajuResult({
     [info.year, info.month, info.day, hour]
   );
 
-  // 사주팔자 (전통 표기 순서: 시주 · 일주 · 월주 · 년주)
-  const pillars = [
-    { label: '시주', gan: saju.hourStem, ji: saju.hourBranch },
-    { label: '일주', gan: saju.dayStem, ji: saju.dayBranch },
-    { label: '월주', gan: saju.monthStem, ji: saju.monthBranch },
-    { label: '년주', gan: saju.yearStem, ji: saju.yearBranch },
-  ];
-
   // ── 오행 균형 (0-100 점수) ──
   const oheng = useMemo(() => getOheng(saju), [saju]);
   const ohengEntries = Object.entries(oheng) as [Oheng, number][];
   const maxOheng = Math.max(...ohengEntries.map(([, v]) => v), 1);
-  const dominantOheng = ohengEntries.reduce((a, b) => (b[1] > a[1] ? b : a))[0];
+
+  // ── 초보자용 해석 ──
+  const reading: SajuReading = useMemo(
+    () => getSajuReading(saju, oheng, animal),
+    [saju, oheng, animal]
+  );
 
   // ── 삼재 판별 (사주 기준 연도로 판정) ──
   const currentYear = new Date().getFullYear();
   const samjae = useMemo(() => isSamjae(currentYear, sajuYear), [currentYear, sajuYear]);
 
+  // 기둥 상세 펼침 (탭한 기둥의 인덱스)
+  const [openPillar, setOpenPillar] = useState<number | null>(null);
+  const openPillarMeaning =
+    openPillar !== null
+      ? pillarMeaningOf(reading.pillars[openPillar]?.meaning, openPillar)
+      : null;
+
+  const ilgan = reading.ilgan;
+  const ilganColor = OHENG_COLORS[ilgan.oheng] ?? JUHONG;
+
+  // 부족한 오행 → 보충 방법
+  const lacking = reading.oheng.lacking ?? [];
+  const primaryLack = lacking[0];
+  const boostBy = primaryLack ? ohengBoostBy(primaryLack) : [];
+
   return (
     <motion.div
-      className="relative flex min-h-full flex-col px-6 pb-8 pt-14"
+      className="relative mx-auto flex min-h-full w-full max-w-md flex-col px-5 pb-8 pt-14"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <FloatingParticles count={15} />
+      <FloatingParticles count={12} />
 
       {/* Title */}
-      <motion.h1
-        className="relative z-10 mb-6 text-center text-2xl font-bold"
-        style={{ color: GOLD }}
+      <motion.div
+        className="relative z-10 mb-5 flex flex-col items-center"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2 }}
+        transition={{ delay: 0.15 }}
       >
-        당신의 사주 풀이
-      </motion.h1>
-
-      {/* Animal display */}
-      <motion.div
-        className="relative z-10 mb-6 flex flex-col items-center"
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.4, type: 'spring', stiffness: 200 }}
-      >
-        <motion.span
-          className="text-7xl"
-          animate={{ rotate: [0, -5, 5, 0] }}
-          transition={{ duration: 2, delay: 1, repeat: Infinity, repeatDelay: 3 }}
-        >
-          {animal.emoji}
-        </motion.span>
-        <p className="mt-2 text-lg font-medium" style={{ color: GOLD }}>
-          당신은 <strong>{animal.name}띠</strong>입니다
-        </p>
-        <p className="mt-1 text-xs" style={{ color: `${GOLD}66` }}>
-          {sajuYear}년 {saju.yearStem.name}{saju.yearBranch.name}년생
-          {sajuYear !== info.year && ' · 입춘 전 출생'}
+        <span className="mb-1 block" style={{ color: `${JUHONG}66` }}>
+          <LotusMotif size={30} />
+        </span>
+        <h1 className="font-serif-kr text-2xl font-bold" style={{ color: JUHONG }}>
+          당신의 사주 풀이
+        </h1>
+        <p className="mt-1 text-[11px]" style={{ color: `${GALSAEK}AA` }}>
+          어려운 말은 빼고, 쉽게 풀어드릴게요
         </p>
       </motion.div>
 
-      {/* 천간지지 Four Pillars */}
-      <motion.div
-        className="relative z-10 mb-6 rounded-2xl p-4"
-        style={{ background: `${GOLD}06`, border: `1px solid ${GOLD}15` }}
-        initial={{ y: 30, opacity: 0 }}
+      {/* ── 1. 헤드라인 카드 ───────────────────────── */}
+      <motion.section
+        className="hanji-card relative z-10 mb-5 overflow-hidden rounded-2xl px-5 py-6"
+        initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.7 }}
+        transition={{ delay: 0.3 }}
       >
-        <p className="mb-3 text-center text-xs font-medium" style={{ color: `${GOLD}88` }}>
-          사주팔자 · 천간지지
-        </p>
-        <div className="grid grid-cols-4 gap-2">
-          {pillars.map((p, i) => {
-            const estimated = p.label === '시주' && !hourKnown;
-            return (
-              <motion.div
-                key={p.label}
-                className="flex flex-col items-center gap-1"
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.9 + i * 0.15 }}
-              >
-                <span className="text-[10px]" style={{ color: `${GOLD}66` }}>
-                  {p.label}{estimated ? ' *' : ''}
-                </span>
-                <div
-                  className="flex w-full flex-col items-center gap-1 rounded-xl py-3"
+        <span
+          className="pointer-events-none absolute -right-4 -top-3 block opacity-[0.07]"
+          style={{ color: GALSAEK }}
+        >
+          <MountainMotif size={110} />
+        </span>
+        <div className="relative flex flex-col items-center text-center">
+          <motion.span
+            className="text-6xl"
+            animate={{ rotate: [0, -5, 5, 0] }}
+            transition={{ duration: 2, delay: 1, repeat: Infinity, repeatDelay: 4 }}
+          >
+            {reading.animal.emoji || animal.emoji}
+          </motion.span>
+          <span
+            className="mt-2 inline-block rounded-full px-3 py-1 text-xs font-bold"
+            style={{
+              background: `${JUHONG}14`,
+              color: JUHONG,
+              border: `1px solid ${JUHONG}33`,
+            }}
+          >
+            {reading.animal.animal || animal.name}띠 {reading.animal.hanja}
+          </span>
+
+          <p
+            className="font-serif-kr mt-4 text-[19px] font-bold leading-[1.55]"
+            style={{ color: MEOK }}
+          >
+            {reading.headline}
+          </p>
+
+          {(reading.animal.traits?.length ?? 0) > 0 && (
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+              {(reading.animal.traits ?? []).slice(0, 4).map((t) => (
+                <span
+                  key={t}
+                  className="rounded-full px-2.5 py-1 text-[11px] font-medium"
                   style={{
-                    background: `${GOLD}10`,
-                    border: `1px solid ${GOLD}18`,
-                    opacity: estimated ? 0.45 : 1,
+                    background: `${GALSAEK}12`,
+                    color: GALSAEK,
+                    border: `1px solid ${GALSAEK}22`,
                   }}
                 >
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <p
+            className="mt-3 text-[12.5px] leading-relaxed"
+            style={{ color: `${MEOK}BB` }}
+          >
+            {reading.animal.description}
+          </p>
+
+          <div className="mt-4 h-px w-16" style={{ background: `${GALSAEK}33` }} />
+          <p className="mt-3 text-[11px]" style={{ color: `${GALSAEK}99` }}>
+            {sajuYear}년 {saju.yearStem.name}
+            {saju.yearBranch.name}년생
+            {sajuYear !== info.year && ' · 입춘(立春) 전 출생이라 사주상 전년도로 봅니다'}
+          </p>
+        </div>
+      </motion.section>
+
+      {/* ── 2. 나를 나타내는 글자 (일간) ─────────────── */}
+      <motion.section
+        className="hanji-card relative z-10 mb-5 rounded-2xl px-5 py-5"
+        initial={{ y: 24, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.45 }}
+      >
+        <SectionLabel index={1} title="나를 나타내는 글자" sub="일간(日干)" />
+
+        <div className="mt-4 flex flex-col items-center">
+          <div
+            className="flex h-24 w-24 flex-col items-center justify-center rounded-2xl"
+            style={{
+              background: `${ilganColor}12`,
+              border: `1.5px solid ${ilganColor}44`,
+            }}
+          >
+            <span
+              className="font-serif-kr text-[40px] font-bold leading-none"
+              style={{ color: ilganColor }}
+            >
+              {ilgan.hanja}
+            </span>
+            <span className="mt-1 text-[11px]" style={{ color: `${MEOK}88` }}>
+              {ilgan.gan} · {ilgan.oheng}
+            </span>
+          </div>
+
+          <p
+            className="font-serif-kr mt-4 text-center text-[17px] font-bold leading-snug"
+            style={{ color: MEOK }}
+          >
+            당신은 <span style={{ color: ilganColor }}>{ilgan.emoji} {ilgan.symbol}</span> 같은 사람이에요
+          </p>
+          <span
+            className="mt-2 inline-block rounded-full px-3 py-1 text-xs font-bold"
+            style={{
+              background: `${ilganColor}18`,
+              color: ilganColor,
+              border: `1px solid ${ilganColor}33`,
+            }}
+          >
+            #{ilgan.keyword}
+          </span>
+
+          <p
+            className="mt-4 text-[13px] leading-[1.75]"
+            style={{ color: `${MEOK}CC` }}
+          >
+            {ilgan.personality}
+          </p>
+        </div>
+
+        {/* 강점 */}
+        {(ilgan.strength?.length ?? 0) > 0 && (
+          <div
+            className="mt-5 rounded-xl px-4 py-3.5"
+            style={{ background: `${SSUK}12`, border: `1px solid ${SSUK}2E` }}
+          >
+            <p className="mb-2.5 text-xs font-bold" style={{ color: SSUK }}>
+              이런 점이 강해요
+            </p>
+            <ul className="flex flex-col gap-2">
+              {(ilgan.strength ?? []).slice(0, 3).map((s, i) => (
+                <motion.li
+                  key={s}
+                  className="flex items-start gap-2 text-[13px] leading-snug"
+                  style={{ color: `${MEOK}DD` }}
+                  initial={{ x: -8, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.7 + i * 0.1 }}
+                >
+                  <span className="mt-[1px] shrink-0 font-bold" style={{ color: SSUK }}>
+                    ✓
+                  </span>
+                  <span>{s}</span>
+                </motion.li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* 주의 — 부드러운 톤 */}
+        {(ilgan.caution?.length ?? 0) > 0 && (
+          <div
+            className="mt-3 rounded-xl px-4 py-3.5"
+            style={{ background: `${HWANG}14`, border: `1px solid ${HWANG}33` }}
+          >
+            <p className="mb-2.5 text-xs font-bold" style={{ color: '#9A6F0F' }}>
+              여기를 돌보면 더 좋아져요
+            </p>
+            <ul className="flex flex-col gap-2">
+              {(ilgan.caution ?? []).slice(0, 2).map((c) => (
+                <li
+                  key={c}
+                  className="flex items-start gap-2 text-[13px] leading-snug"
+                  style={{ color: `${MEOK}DD` }}
+                >
+                  <span className="mt-[1px] shrink-0" style={{ color: '#9A6F0F' }}>
+                    ·
+                  </span>
+                  <span>{c}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </motion.section>
+
+      {/* ── 3. 사주팔자 네 기둥 ─────────────────────── */}
+      <motion.section
+        className="hanji-card relative z-10 mb-5 rounded-2xl px-4 py-5"
+        initial={{ y: 24, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.6 }}
+      >
+        <div className="px-1">
+          <SectionLabel index={2} title="내 인생의 네 기둥" sub="사주팔자(四柱八字)" />
+          <p className="mt-2 text-[12px] leading-relaxed" style={{ color: `${MEOK}99` }}>
+            태어난 연·월·일·시를 각각 두 글자로 나타낸 것이 사주팔자예요.
+            기둥마다 인생의 다른 시기를 담당합니다. <strong>기둥을 눌러보세요.</strong>
+          </p>
+        </div>
+
+        <div className="mt-4 grid grid-cols-4 gap-2">
+          {reading.pillars.map((p, i) => {
+            const m = pillarMeaningOf(p.meaning, i);
+            const isDay = m?.key === 'day';
+            const estimated = m?.key === 'hour' && !hourKnown;
+            const open = openPillar === i;
+            return (
+              <motion.button
+                key={m?.label ?? i}
+                type="button"
+                onClick={() => setOpenPillar(open ? null : i)}
+                className="flex flex-col items-center gap-1.5 rounded-xl px-1 pb-2 pt-2.5 text-center"
+                style={{
+                  background: open ? `${JUHONG}0E` : 'transparent',
+                  border: `1px solid ${open ? `${JUHONG}44` : 'transparent'}`,
+                }}
+                whileTap={{ scale: 0.96 }}
+                initial={{ y: 16, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.75 + i * 0.1 }}
+              >
+                <div
+                  className="relative flex w-full flex-col items-center gap-1 rounded-lg py-2.5"
+                  style={{
+                    background: isDay ? `${JUHONG}12` : `${GALSAEK}0D`,
+                    border: `1.5px solid ${isDay ? `${JUHONG}66` : `${GALSAEK}26`}`,
+                    opacity: estimated ? 0.5 : 1,
+                  }}
+                >
+                  {isDay && (
+                    <span
+                      className="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-[1px] text-[8.5px] font-bold"
+                      style={{ background: JUHONG, color: '#F6EDD9' }}
+                    >
+                      나 자신
+                    </span>
+                  )}
                   <span
-                    className="text-xl font-bold"
+                    className="font-serif-kr text-xl font-bold leading-none"
                     style={{ color: OHENG_COLORS[p.gan.oheng] }}
                   >
                     {p.gan.name}
                   </span>
-                  <div className="h-px w-6" style={{ background: `${GOLD}25` }} />
+                  <div className="h-px w-5" style={{ background: `${GALSAEK}33` }} />
                   <span
-                    className="text-xl font-bold"
+                    className="font-serif-kr text-xl font-bold leading-none"
                     style={{ color: OHENG_COLORS[p.ji.oheng] }}
                   >
                     {p.ji.name}
                   </span>
                 </div>
-              </motion.div>
+                <span
+                  className="text-[11px] font-bold leading-none"
+                  style={{ color: isDay ? JUHONG : `${MEOK}AA` }}
+                >
+                  {m?.label}
+                  {estimated ? '*' : ''}
+                </span>
+                <span
+                  className="text-[9.5px] leading-tight"
+                  style={{ color: `${GALSAEK}AA` }}
+                >
+                  {m?.lifeArea}
+                </span>
+              </motion.button>
             );
           })}
         </div>
-        <p className="mt-3 text-center text-[10px]" style={{ color: `${GOLD}55` }}>
+
+        {/* 기둥 상세 (탭 시 확장) */}
+        <AnimatePresence initial={false} mode="wait">
+          {openPillar !== null && openPillarMeaning && (
+            <motion.div
+              key={openPillar}
+              className="mt-3 overflow-hidden rounded-xl px-4 py-3.5"
+              style={{ background: `${JUHONG}0B`, border: `1px solid ${JUHONG}26` }}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+            >
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[13px] font-bold" style={{ color: JUHONG }}>
+                  {openPillarMeaning.label}
+                </span>
+                <span
+                  className="rounded-full px-2 py-[2px] text-[10px] font-medium"
+                  style={{ background: `${JUHONG}18`, color: JUHONG }}
+                >
+                  {openPillarMeaning.ageRange}
+                </span>
+                <span className="text-[11px]" style={{ color: `${GALSAEK}CC` }}>
+                  {openPillarMeaning.represents}
+                </span>
+              </div>
+              <p
+                className="mt-2 text-[13px] leading-relaxed"
+                style={{ color: `${MEOK}CC` }}
+              >
+                {openPillarMeaning.simple}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <p className="mt-3 px-1 text-[10.5px] leading-relaxed" style={{ color: `${GALSAEK}99` }}>
           {hourKnown
             ? '24절기(만세력) 기준으로 산출되었습니다'
-            : '* 태어난 시간을 몰라 오시(11~13시) 기준으로 추정했습니다'}
+            : '* 태어난 시간을 몰라 오시(11~13시) 기준으로 추정했어요. 시주는 참고만 해주세요'}
         </p>
-      </motion.div>
+      </motion.section>
 
-      {/* 오행 Chart */}
-      <motion.div
-        className="relative z-10 mb-6 rounded-2xl p-4"
-        style={{ background: `${GOLD}06`, border: `1px solid ${GOLD}15` }}
-        initial={{ y: 30, opacity: 0 }}
+      {/* ── 4. 오행 균형 ────────────────────────────── */}
+      <motion.section
+        className="hanji-card relative z-10 mb-5 rounded-2xl px-4 py-5"
+        initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 1.2 }}
+        transition={{ delay: 0.75 }}
       >
-        <p className="mb-3 text-center text-xs font-medium" style={{ color: `${GOLD}88` }}>
-          오행 균형
-        </p>
-        <div className="flex items-end justify-center gap-3">
-          {ohengEntries.map(([name, score], i) => (
-            <motion.div
-              key={name}
-              className="flex flex-col items-center gap-1"
-              initial={{ scaleY: 0 }}
-              animate={{ scaleY: 1 }}
-              transition={{ delay: 1.4 + i * 0.1, duration: 0.5 }}
-              style={{ originY: 1 }}
+        <div className="px-1">
+          <SectionLabel index={3} title="내 안의 다섯 기운" sub="오행(五行) 균형" />
+          <p className="mt-2 text-[12px] leading-relaxed" style={{ color: `${MEOK}99` }}>
+            세상 모든 것은 나무·불·흙·쇠·물 다섯 기운으로 이루어져 있어요.
+            내 사주에 어떤 기운이 많고 적은지 봅니다.
+          </p>
+        </div>
+
+        <div className="mt-5 grid grid-cols-5 gap-1.5">
+          {ohengEntries.map(([name, score], i) => {
+            const meta = OHENG_META[name];
+            const isDominant = name === reading.oheng.dominant;
+            const isLacking = lacking.includes(name);
+            return (
+              <div key={name} className="flex min-w-0 flex-col items-center gap-1">
+                <span className="text-lg leading-none">{meta.emoji}</span>
+                <span
+                  className="text-[11px] font-bold tabular-nums"
+                  style={{ color: OHENG_COLORS[name] }}
+                >
+                  {score}
+                </span>
+                <div className="flex h-[92px] w-full items-end justify-center">
+                  <motion.div
+                    className="w-full max-w-[36px] rounded-t-md"
+                    style={{
+                      background: `linear-gradient(to top, ${OHENG_COLORS[name]}DD, ${OHENG_COLORS[name]}77)`,
+                      border: isDominant ? `1.5px solid ${OHENG_COLORS[name]}` : 'none',
+                    }}
+                    initial={{ height: 6 }}
+                    animate={{ height: Math.max((score / maxOheng) * 88, 6) }}
+                    transition={{ delay: 0.9 + i * 0.09, duration: 0.5, ease: 'easeOut' }}
+                  />
+                </div>
+                <span
+                  className="font-serif-kr text-[13px] font-bold leading-none"
+                  style={{ color: OHENG_COLORS[name] }}
+                >
+                  {name}
+                </span>
+                <span
+                  className="rounded-full px-1.5 py-[1px] text-[9.5px] font-medium leading-tight"
+                  style={{
+                    background: `${OHENG_COLORS[name]}16`,
+                    color: OHENG_COLORS[name],
+                  }}
+                >
+                  {meta.tag}
+                </span>
+                {(isDominant || isLacking) && (
+                  <span
+                    className="text-[9px] font-bold leading-none"
+                    style={{ color: isDominant ? JUHONG : `${GALSAEK}AA` }}
+                  >
+                    {isDominant ? '가장 강함' : '부족'}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 요약 */}
+        <div
+          className="mt-5 rounded-xl px-4 py-3.5"
+          style={{ background: `${GALSAEK}0D`, border: `1px solid ${GALSAEK}22` }}
+        >
+          <div className="mb-2 flex flex-wrap items-center gap-1.5">
+            <span
+              className="rounded-full px-2.5 py-[3px] text-[11px] font-bold"
+              style={{
+                background: `${OHENG_COLORS[reading.oheng.dominant] ?? JUHONG}1E`,
+                color: OHENG_COLORS[reading.oheng.dominant] ?? JUHONG,
+              }}
             >
-              <span className="text-xs font-bold" style={{ color: `${GOLD}CC` }}>
-                {score}
-              </span>
-              <div
-                className="w-10 rounded-lg transition-all"
-                style={{
-                  height: (score / maxOheng) * 80 + 8,
-                  background: `linear-gradient(to top, ${OHENG_COLORS[name]}CC, ${OHENG_COLORS[name]}66)`,
-                  boxShadow: `0 0 10px ${OHENG_COLORS[name]}40`,
-                  minHeight: 8,
-                }}
-              />
-              <span className="text-xs font-medium" style={{ color: OHENG_COLORS[name] }}>
-                {name}
-              </span>
-            </motion.div>
-          ))}
+              {OHENG_META[reading.oheng.dominant as Oheng]?.emoji} {reading.oheng.dominant} 기운 우세
+            </span>
+            <span
+              className="rounded-full px-2.5 py-[3px] text-[11px] font-medium"
+              style={{ background: `${MEOK}0E`, color: `${MEOK}AA` }}
+            >
+              균형 · {BALANCE_TAG[reading.oheng.balance] ?? '고르게 어우러짐'}
+            </span>
+          </div>
+          <p className="text-[13px] leading-[1.75]" style={{ color: `${MEOK}CC` }}>
+            {reading.oheng.summary}
+          </p>
+          {reading.oheng.advice && (
+            <p
+              className="mt-2 border-t pt-2 text-[12.5px] leading-relaxed"
+              style={{ borderColor: `${GALSAEK}22`, color: `${MEOK}AA` }}
+            >
+              💡 {reading.oheng.advice}
+            </p>
+          )}
         </div>
-      </motion.div>
 
-      {/* Personality description */}
-      <motion.div
-        className="relative z-10 mb-4 rounded-2xl p-4"
-        style={{ background: `${GOLD}06`, border: `1px solid ${GOLD}15` }}
-        initial={{ y: 30, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 1.8 }}
-      >
-        <div className="mb-2 flex items-center justify-center gap-2">
-          <span
-            className="inline-block rounded-full px-2.5 py-0.5 text-xs font-bold"
+        {/* 부족한 기운 보충 */}
+        {primaryLack && (
+          <motion.div
+            className="mt-3 rounded-xl px-4 py-3.5"
             style={{
-              background: `${OHENG_COLORS[dominantOheng]}25`,
-              color: OHENG_COLORS[dominantOheng],
-              border: `1px solid ${OHENG_COLORS[dominantOheng]}40`,
+              background: `${OHENG_COLORS[primaryLack] ?? JUHONG}0E`,
+              border: `1px solid ${OHENG_COLORS[primaryLack] ?? JUHONG}33`,
             }}
+            initial={{ y: 10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 1.3 }}
           >
-            {dominantOheng} 기운 우세
-          </span>
-        </div>
-        <p className="text-center text-sm leading-relaxed" style={{ color: `${GOLD}BB` }}>
-          {OHENG_DESCRIPTIONS[dominantOheng]}
-        </p>
-      </motion.div>
+            <p
+              className="text-[13px] font-bold"
+              style={{ color: OHENG_COLORS[primaryLack] ?? JUHONG }}
+            >
+              ⚡ {lacking.slice(0, 2).join('·')} 기운을 보충하면 좋아요
+            </p>
+            {boostBy.length > 0 && (
+              <ul className="mt-2.5 flex flex-col gap-1.5">
+                {boostBy.slice(0, 3).map((b) => (
+                  <li
+                    key={b}
+                    className="flex items-start gap-2 text-[12.5px] leading-snug"
+                    style={{ color: `${MEOK}CC` }}
+                  >
+                    <span
+                      className="mt-[2px] shrink-0 text-[10px]"
+                      style={{ color: OHENG_COLORS[primaryLack] ?? JUHONG }}
+                    >
+                      ●
+                    </span>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </motion.div>
+        )}
+      </motion.section>
 
-      {/* 삼재 Warning */}
+      {/* ── 5. 삼재 경고 ────────────────────────────── */}
       {samjae.is && (
-        <motion.div
-          className="relative z-10 mb-4 rounded-2xl p-4"
+        <motion.section
+          className="relative z-10 mb-5 rounded-2xl px-4 py-4"
           style={{
-            background: 'rgba(244, 67, 54, 0.08)',
-            border: '1px solid rgba(244, 67, 54, 0.25)',
+            background: 'rgba(167, 43, 33, 0.07)',
+            border: `1px solid ${JUHONG}3D`,
           }}
-          initial={{ scale: 0.9, opacity: 0 }}
+          initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 2.1 }}
+          transition={{ delay: 0.9 }}
         >
           <div className="flex items-start gap-3">
             <motion.span
-              className="text-2xl"
+              className="text-2xl leading-none"
               animate={{ rotate: [0, -10, 10, 0] }}
-              transition={{ duration: 1, repeat: Infinity, repeatDelay: 2 }}
+              transition={{ duration: 1, repeat: Infinity, repeatDelay: 3 }}
             >
               ⚠️
             </motion.span>
             <div>
-              <p className="mb-1 text-sm font-bold" style={{ color: '#F44336' }}>
+              <p className="mb-1 text-sm font-bold" style={{ color: JUHONG }}>
                 올해는 삼재(三災)의 해입니다
                 {samjae.type ? ` · ${samjae.type}` : ''}
               </p>
-              <p className="text-xs leading-relaxed" style={{ color: '#F4433699' }}>
-                삼재의 기운을 막아주는 <strong>삼재부</strong>를 권장합니다.
-                부적함에서 삼재부를 확인하세요.
+              <p className="text-[12.5px] leading-relaxed" style={{ color: `${MEOK}AA` }}>
+                삼재는 9년에 한 번, 3년간 조심해야 하는 시기예요. 너무 걱정하진 마세요.
+                삼재의 기운을 막아주는 <strong>삼재부</strong>를 부적함에서 확인해보세요.
               </p>
             </div>
           </div>
-        </motion.div>
+        </motion.section>
       )}
+
+      {/* ── 6. 하단 안내 ────────────────────────────── */}
+      <motion.div
+        className="relative z-10 mb-5 flex items-center justify-center gap-2 rounded-xl px-4 py-3"
+        style={{ background: `${GALSAEK}0D`, border: `1px dashed ${GALSAEK}33` }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1 }}
+      >
+        <span className="block shrink-0" style={{ color: `${GALSAEK}99` }}>
+          <KnotMotif size={18} />
+        </span>
+        <p className="text-[12px] leading-snug" style={{ color: `${GALSAEK}CC` }}>
+          더 자세한 풀이는 <strong>마이페이지</strong>에서 언제든 다시 볼 수 있어요
+        </p>
+      </motion.div>
 
       {/* Next button */}
       <motion.button
@@ -892,14 +1313,14 @@ function StepSajuResult({
         style={{
           background: `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})`,
           color: '#F6EDD9',
-          boxShadow: `0 4px 30px ${GOLD}40`,
+          boxShadow: `0 4px 20px ${GOLD}33`,
         }}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.97 }}
         onClick={onNext}
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 2.3 }}
+        transition={{ delay: 1.1 }}
       >
         첫 부적 받기
       </motion.button>
