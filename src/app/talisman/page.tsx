@@ -14,7 +14,7 @@ import {
   getTalismanRecommendation,
   type TalismanType,
 } from "@/data/talismans";
-import { JIJI, getAnimal } from "@/data/saju";
+import { getAnimal } from "@/data/saju";
 import { ENERGIES, getEnergyById, type Energy } from "@/data/energies";
 import ChatBubble, { type DialogueOption } from "@/components/ChatBubble";
 import TalismanPreview from "@/components/TalismanPreview";
@@ -22,7 +22,6 @@ import CrisisSupport from "@/components/CrisisSupport";
 import HanjiBackground from "@/components/hanji/HanjiBackground";
 import TraditionalHeader from "@/components/hanji/TraditionalHeader";
 import TraditionalButton from "@/components/hanji/TraditionalButton";
-import EnergySelector from "@/components/hanji/EnergySelector";
 import TalismanCategoryCard from "@/components/hanji/TalismanCategoryCard";
 import {
   BackIcon,
@@ -31,10 +30,7 @@ import {
   BrushPen,
   FlameMotif,
 } from "@/components/hanji/motifs";
-import {
-  generateTalismanSVG,
-  BACKGROUND_PRESETS,
-} from "@/lib/talisman-generator";
+import { generateTalismanSVG } from "@/lib/talisman-generator";
 import { detectCrisis, SAFETY_DISCLAIMER } from "@/lib/crisis-detection";
 import {
   composeShareImage,
@@ -105,12 +101,6 @@ const SUPPORTIVE_TALISMAN = {
     "마음이 편안해지기를 기원합니다",
   ],
 };
-
-/** 12지 수호 동물 선택지 (없음 포함) */
-const ANIMAL_OPTIONS: { label: string; emoji: string; value: string }[] = [
-  { label: "없음", emoji: "🚫", value: "" },
-  ...JIJI.map((ji) => ({ label: ji.animal, emoji: ji.emoji, value: ji.animal })),
-];
 
 /* ───────── helpers ───────── */
 
@@ -196,7 +186,6 @@ function TalismanFlow() {
   const [userInput, setUserInput] = useState("");
   const [chatDone, setChatDone] = useState(false);
   const [responses, setResponses] = useState<Record<string, string>>({});
-  const [keywords, setKeywords] = useState<string[]>([]);
   const [recommended, setRecommended] = useState<TalismanType | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -291,7 +280,6 @@ function TalismanFlow() {
     setBackground(energy.paper); // 시안: 기운별 색지 기본 적용 (한지/남색/쑥/황금)
     setPhase("chat");
     setResponses({});
-    setKeywords([]);
     setRecommended(null);
     const flow = DIALOGUE_FLOWS.find((f) => f.category === energy.category);
     if (!flow) return;
@@ -346,7 +334,6 @@ function TalismanFlow() {
       if (step.next === null) {
         // 대화 응답 → 키워드 → 43종 중 맞춤 부적 추천
         const kws = extractKeywords(dialogue, newResponses);
-        setKeywords(kws);
         const rec = supportiveModeRef.current
           ? TALISMANS.find((t) => t.name === SUPPORTIVE_TALISMAN.name) ??
             getTalismanRecommendation(TalismanCategory.Health, kws)
@@ -445,18 +432,6 @@ function TalismanFlow() {
     [userInput, submitUserText]
   );
 
-  /* customize 단계에서 기운을 바꾸면 색·추천을 다시 계산 */
-  const handleEnergyChange = useCallback(
-    (energy: Energy) => {
-      setSelectedEnergy(energy);
-      setBackground(energy.paper);
-      if (!supportiveModeRef.current) {
-        setRecommended(getTalismanRecommendation(energy.category, keywords));
-      }
-    },
-    [keywords]
-  );
-
   /* 상담 초기화 후 카테고리로 */
   const resetToCategory = useCallback(() => {
     setPhase("category");
@@ -465,7 +440,6 @@ function TalismanFlow() {
     setChatDone(false);
     setIsTyping(false);
     setResponses({});
-    setKeywords([]);
     setRecommended(null);
     setCrisisLevel(null);
     pendingTextRef.current = null;
@@ -759,19 +733,8 @@ function TalismanFlow() {
               <BrushStroke width={100} />
             </div>
 
-            {/* 기운 선택 (가로 스크롤) */}
-            <div className="mb-4">
-              <label className="mb-1.5 block text-xs font-bold text-[var(--color-galsaek)]">
-                기운 선택
-              </label>
-              <EnergySelector
-                selectedId={selectedEnergy?.id ?? ""}
-                onSelect={handleEnergyChange}
-              />
-            </div>
-
             {/* 화풍 */}
-            <div className="mb-4">
+            <div className="mb-6">
               <label className="mb-1.5 block text-xs font-bold text-[var(--color-galsaek)]">
                 화풍
               </label>
@@ -794,83 +757,6 @@ function TalismanFlow() {
                     {s === "traditional" ? "전통" : "현대"}
                   </button>
                 ))}
-              </div>
-            </div>
-
-            {/* 바탕 종이 — 기운 선택 시 어울리는 색지가 자동 적용, 직접 변경 가능 */}
-            <div className="mb-4">
-              <label className="mb-1.5 block text-xs font-bold text-[var(--color-galsaek)]">
-                바탕 종이
-              </label>
-              <div className="flex gap-1.5">
-                {BACKGROUND_PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    onClick={() => setBackground(preset.id)}
-                    title={preset.label}
-                    className="flex flex-1 flex-col items-center gap-1 rounded-lg py-1.5"
-                    style={{
-                      border:
-                        background === preset.id
-                          ? "1.5px solid var(--color-juhong)"
-                          : "1px solid rgba(122,74,52,0.3)",
-                    }}
-                  >
-                    <span
-                      className="h-5 w-5 rounded-full"
-                      style={{
-                        backgroundColor: preset.swatch,
-                        border: "1px solid rgba(122,74,52,0.35)",
-                      }}
-                    />
-                    <span className="text-[9px] text-[var(--color-galsaek)]">
-                      {preset.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 수호 동물 */}
-            <div className="mb-6">
-              <label className="mb-1.5 block text-xs font-bold text-[var(--color-galsaek)]">
-                수호 동물
-                {userCtx.animal && (
-                  <span className="ml-1.5 font-normal opacity-70">
-                    (내 띠: {userCtx.animal})
-                  </span>
-                )}
-              </label>
-              <div className="grid grid-cols-7 gap-1.5">
-                {ANIMAL_OPTIONS.map((opt) => {
-                  const active = animalChoice === opt.value;
-                  return (
-                    <button
-                      key={opt.value || "none"}
-                      onClick={() => setAnimalChoice(opt.value)}
-                      title={opt.label}
-                      className={`flex flex-col items-center gap-0.5 rounded-lg py-1.5 transition-colors ${
-                        active ? "bg-[rgba(167,43,33,0.12)]" : ""
-                      }`}
-                      style={{
-                        border: active
-                          ? "1.5px solid var(--color-juhong)"
-                          : "1px solid rgba(122,74,52,0.25)",
-                      }}
-                    >
-                      <span className="text-base leading-none">{opt.emoji}</span>
-                      <span
-                        className={`text-[9px] ${
-                          active
-                            ? "font-bold text-[var(--color-juhong)]"
-                            : "text-[var(--color-galsaek)]"
-                        }`}
-                      >
-                        {opt.label}
-                      </span>
-                    </button>
-                  );
-                })}
               </div>
             </div>
 
