@@ -313,8 +313,22 @@ function TalismanFlow() {
   useEffect(() => {
     if (autoStarted.current) return;
     const id = searchParams.get("energy");
-    if (!id) return;
-    const energy = getEnergyById(id);
+    if (id) {
+      const energy = getEnergyById(id);
+      if (energy) {
+        autoStarted.current = true;
+        handleEnergySelect(energy);
+      }
+      return;
+    }
+
+    /* 홈의 "오늘 당신에게 필요한 부적"에서 ?recommended= 로 진입한 경우
+       해당 부적의 카테고리(마음)를 미리 골라 상담을 시작한다. */
+    const recId = searchParams.get("recommended");
+    if (!recId) return;
+    const talisman = TALISMANS.find((t) => t.id === recId);
+    if (!talisman) return;
+    const energy = ENERGIES.find((e) => e.category === talisman.category);
     if (energy) {
       autoStarted.current = true;
       handleEnergySelect(energy);

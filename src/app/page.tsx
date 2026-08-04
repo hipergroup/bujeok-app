@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomTab from "@/components/BottomTab";
 import HanjiBackground from "@/components/hanji/HanjiBackground";
@@ -15,8 +16,13 @@ import {
   KnotMotif,
 } from "@/components/hanji/motifs";
 import { HOME_ENERGIES } from "@/data/energies";
-import { getSaju, getOheng } from "@/data/saju";
+import { getSaju, getSajuDetail, getOheng, getAnimal, isSamjae } from "@/data/saju";
 import { getDailyFortune } from "@/data/fortune";
+import {
+  getTodayTalisman,
+  type SajuMatchInput,
+  type SajuTalismanMatch,
+} from "@/data/saju-talisman-match";
 // 첫 실행 사용자 대부분이 온보딩을 보므로 별도 청크 분리(추가 왕복) 대신 함께 번들
 import OnboardingPage from "./onboarding/page";
 
@@ -129,6 +135,26 @@ export default function HomePage() {
     }
     setReady(true);
   }, []);
+
+  /* ── 오늘 당신에게 필요한 부적 (사주 기반) ──
+     생년월일이 없으면 null — 섹션은 안내 카드로 대체된다. */
+  const todayMatch: SajuTalismanMatch | null = useMemo(() => {
+    if (!birthData) return null;
+    try {
+      const { year, month, day, hour } = birthData;
+      const detail = getSajuDetail(year, month, day, hour);
+      const today = new Date();
+      const input: SajuMatchInput = {
+        saju: detail,
+        oheng: getOheng(detail),
+        animal: getAnimal(year, month, day, hour),
+        samjae: isSamjae(today.getFullYear(), detail.sajuYear),
+      };
+      return getTodayTalisman(input, today);
+    } catch {
+      return null;
+    }
+  }, [birthData]);
 
   if (!ready) {
     return (
@@ -261,6 +287,97 @@ export default function HomePage() {
               {fortune.colorReason && ` — ${fortune.colorReason}`}
             </p>
           </div>
+        </motion.section>
+
+        {/* ── 오늘 당신에게 필요한 부적 (사주 기반 추천) ── */}
+        <motion.section variants={fadeUp} className="mt-4">
+          <div className="mb-2 flex items-center gap-1.5 px-0.5">
+            <h2 className="font-serif-kr text-sm font-bold text-[var(--color-meok)]">
+              오늘 당신에게 필요한 부적
+            </h2>
+            {todayMatch && (
+              <span className="text-[10px] text-[var(--color-galsaek)] opacity-70">
+                사주 기반
+              </span>
+            )}
+          </div>
+
+          {todayMatch ? (
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() =>
+                router.push(`/talisman?recommended=${todayMatch.talisman.id}`)
+              }
+              className="hanji-card w-full rounded-xl px-5 py-4 text-left"
+              aria-label={`${todayMatch.talisman.name} 부적 만들러 가기`}
+            >
+              <div className="flex items-start gap-3">
+                {/* 한자 인장 */}
+                <span
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg font-serif-kr text-lg font-bold leading-none text-[var(--color-juhong)]"
+                  style={{
+                    border: "1.5px solid rgba(167,43,33,0.35)",
+                    background: "rgba(167,43,33,0.06)",
+                  }}
+                >
+                  {todayMatch.talisman.hanja.slice(0, 2)}
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-serif-kr text-base font-bold text-[var(--color-meok)]">
+                      {todayMatch.talisman.name}
+                    </span>
+                    <span
+                      className="rounded-full px-2 py-[2px] text-[10px] font-bold text-[var(--color-galsaek)]"
+                      style={{
+                        background: "rgba(122,74,52,0.10)",
+                        border: "1px solid rgba(122,74,52,0.20)",
+                      }}
+                    >
+                      {todayMatch.talisman.category}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-[var(--color-juhong)]">
+                    {todayMatch.headline}
+                  </p>
+                </div>
+              </div>
+
+              {todayMatch.reasons.length > 0 && (
+                <ul className="mt-3 flex flex-col gap-1.5">
+                  {todayMatch.reasons.slice(0, 2).map((r) => (
+                    <li
+                      key={r.kind + r.text}
+                      className="flex items-start gap-1.5 text-[12px] leading-relaxed text-[var(--color-galsaek)]"
+                    >
+                      <span className="mt-[6px] shrink-0 text-[6px] text-[var(--color-juhong)] opacity-70">
+                        ●
+                      </span>
+                      <span>{r.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <span className="mt-3 flex items-center justify-end gap-1 text-[11.5px] font-bold text-[var(--color-juhong)]">
+                이 부적 만들러 가기 <span aria-hidden>→</span>
+              </span>
+            </motion.button>
+          ) : (
+            <div className="hanji-card rounded-xl px-5 py-4">
+              <p className="text-[12.5px] leading-relaxed text-[var(--color-galsaek)]">
+                생년월일을 입력하면 맞춤 부적을 추천해드려요.
+              </p>
+              <Link
+                href="/onboarding"
+                className="mt-2.5 inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-[12px] font-bold text-[var(--color-juhong)]"
+                style={{ border: "1px solid rgba(167,43,33,0.35)" }}
+              >
+                사주 입력하러 가기 <span aria-hidden>→</span>
+              </Link>
+            </div>
+          )}
         </motion.section>
       </motion.main>
 

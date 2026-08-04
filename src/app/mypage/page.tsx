@@ -506,6 +506,7 @@ export default function MyPage() {
           transition={{ duration: 0.4, delay: 0.3 }}
           className="hanji-card rounded-2xl py-1"
         >
+          <SettingsRow icon="🔮" label="내 사주 풀이" href="/saju" />
           <SettingsRow icon="📖" label="부적 도감" href="/encyclopedia" />
           <SettingsRow icon="📝" label="사주 정보 수정" href="/onboarding" />
           <SettingsRow
