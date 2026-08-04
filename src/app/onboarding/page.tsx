@@ -10,7 +10,9 @@ import {
   KnotMotif,
   LotusMotif,
 } from '@/components/hanji/motifs';
-import { generateTalismanSVG } from '@/lib/talisman-generator';
+import { getTalismanById } from '@/data/talismans';
+import { pushTalismanToWidget } from '@/lib/widget-bridge';
+import hosinbuGift from '../../../public/talismans/hosinbu-gift.png';
 import wordmarkFull from '../../../public/brand/wordmark.png';
 
 // 만세력(24절기) 기반 정확한 사주 모듈
@@ -375,22 +377,7 @@ function ScrollPicker({
 // ─────────────────────────────────────────────
 
 function HosinbuTalisman() {
-  // 새 한지 디자인 생성기로 그린 웰컴 호신부 — 앱 전체 부적과 동일한 화풍
-  const svg = useMemo(
-    () =>
-      generateTalismanSVG({
-        type: 'hosinbu-gift',
-        style: 'traditional',
-        background: 'hwangji',
-        accent: '#A72B21',
-        title: '호신부',
-        hanja: '護身符',
-        message: '몸과 마음의 평안을 지켜드릴게요',
-        mantra: '급급여율령 (急急如律令)',
-      }),
-    []
-  );
-
+  // 황지·주사 실사 호신부 (public/talismans/hosinbu-gift.png, 찢긴 가장자리 투명 처리)
   return (
     <motion.div
       className="relative mx-auto"
@@ -409,13 +396,15 @@ function HosinbuTalisman() {
         animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.95, 1.04, 0.95] }}
         transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
       />
-      <div
-        className="relative overflow-hidden rounded-xl"
+      <Image
+        src={hosinbuGift}
+        alt="호신부 부적"
+        priority
+        className="relative h-auto w-full"
         style={{
-          aspectRatio: '360 / 560',
-          boxShadow: '0 2px 6px rgba(122,74,52,0.25), 0 10px 30px rgba(122,74,52,0.2)',
+          filter:
+            'drop-shadow(0 2px 6px rgba(122,74,52,0.35)) drop-shadow(0 10px 24px rgba(122,74,52,0.25))',
         }}
-        dangerouslySetInnerHTML={{ __html: svg }}
       />
     </motion.div>
   );
@@ -1424,7 +1413,7 @@ function StepTalismanGift({
 }) {
   const [saved, setSaved] = useState(false);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     const hour = effectiveHour(info.hour);
     const hourKnown = info.hour !== HOUR_UNKNOWN;
 
@@ -1496,6 +1485,44 @@ function StepTalismanGift({
       })
     );
     localStorage.setItem('onboarding_completed', 'true');
+
+    // 선물 호신부를 부적함(bujeok-collection)에도 저장 — 수집 카운트·위젯에 반영.
+    // 이미지는 data URI로 인라인해 재배포 후에도 깨지지 않게 한다.
+    try {
+      const list: { id?: string }[] = JSON.parse(
+        localStorage.getItem('bujeok-collection') || '[]'
+      );
+      if (!list.some((t) => t.id === 'hosinbu-gift')) {
+        const catalog = getTalismanById('protect-04'); // 43종 카탈로그의 호신부
+        const blob = await (await fetch(hosinbuGift.src)).blob();
+        const dataUri = await new Promise<string>((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(fr.result as string);
+          fr.onerror = () => reject(fr.error);
+          fr.readAsDataURL(blob);
+        });
+        const giftSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 560"><image href="${dataUri}" x="0" y="0" width="360" height="560" preserveAspectRatio="xMidYMid meet"/></svg>`;
+        const entry = {
+          ...catalog,
+          id: 'hosinbu-gift',
+          savedAt: now,
+          note: '몸과 마음의 평안을 지켜드릴게요',
+          svg: giftSvg,
+        };
+        localStorage.setItem(
+          'bujeok-collection',
+          JSON.stringify([entry, ...list])
+        );
+        // 네이티브 앱이면 홈 화면 위젯에도 첫 부적을 띄운다 (웹에선 no-op)
+        void pushTalismanToWidget(giftSvg, {
+          name: '호신부',
+          hanja: '護身符',
+          savedAt: now,
+        });
+      }
+    } catch {
+      // 부적함 저장이 실패해도 온보딩 완료는 막지 않는다
+    }
 
     // 공용 스토어(bujeok_app_v1)에도 프로필 반영
     saveProfile({
