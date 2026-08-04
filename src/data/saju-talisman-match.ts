@@ -2,7 +2,7 @@
 // 사주(四柱) 기반 부적 추천 엔진
 // ------------------------------------------------------------
 // 대화 키워드만 보고 고르는 것이 아니라, 사용자의 사주 원국
-// (오행 분포 · 일간 · 띠 · 삼재)을 읽어 43종 전통 부적 중에서
+// (용신 · 오행 분포 · 일간 · 띠 · 삼재)을 읽어 43종 전통 부적 중에서
 // "지금 이 사람에게 필요한 부적"을 골라준다.
 //
 // 원칙
@@ -12,6 +12,18 @@
 //  3. 겁주지 않는다 — 약점은 "여기를 채우면 더 편해져요" 로 말한다.
 //  4. 단정하지 않는다 — "반드시 ~된다" 같은 적중 표현을 쓰지 않는다.
 //  5. 전문용어(삼재·오행·일간 등)는 괄호로 한자와 함께 풀어 쓴다.
+//
+// 추천의 1순위 근거는 용신(用神, yongsin.ts)이다.
+// ------------------------------------------------------------
+// 왜 "개수가 적은 오행" 이 아니라 용신인가
+//   글자 수만 세면 "적으니까 부족하다" 는 결론밖에 나오지 않는다.
+//   명리에서는 적어도 지금 필요 없는 기운이 있고(예: 신약한 사주의 관성),
+//   많아도 더 필요한 기운이 있다(예: 조후가 급한 사주의 화).
+//   반대로 신강한 사주는 나를 도와주는 기운이 아무리 많아도
+//   그것을 '덜어내야' 편해진다.
+//   용신은 신강신약 · 조후 · 통관까지 따져 나온 결론이므로,
+//   추천의 최상위 가중치를 용신에 둔다.
+//   (용신 계산이 어떤 이유로든 실패하면 예전의 lacking/excess 규칙으로 물러난다)
 //
 // 오행 ↔ 부적 매핑의 근거 (전통 오방 상징)
 //  | 오행 | 색 | 방위 | 상징            | 보강하는 영역          |
@@ -31,6 +43,8 @@ import {
   getTalismanRecommendation,
 } from './talismans';
 import type { TalismanType } from './talismans';
+import { getYongsin, getGyejeol } from './yongsin';
+import type { YongsinResult, Gyejeol } from './yongsin';
 
 // ============================================================
 // 1. 공개 타입
@@ -38,8 +52,12 @@ import type { TalismanType } from './talismans';
 
 export type MatchReasonKind =
   | 'samjae' // 삼재년 — 최우선
-  | 'lackingOheng' // 부족한 오행 보강
-  | 'excessOheng' // 과다한 오행 제어
+  | 'yongsin' // 용신(用神) 오행 직결 — 최고 가중치
+  | 'huisin' // 희신(喜神) 오행 — 용신을 뒤에서 밀어주는 기운
+  | 'gisin' // 기신(忌神) 오행 — 지금은 조금 과한 기운 (감점)
+  | 'singang' // 신강신약(身強身弱) 보완
+  | 'lackingOheng' // (폴백) 부족한 오행 보강
+  | 'excessOheng' // (폴백) 과다한 오행 제어
   | 'ilganTrait' // 일간 성격상 보완
   | 'animal' // 띠 수호
   | 'balance'; // 전반 균형
@@ -65,6 +83,12 @@ export interface SajuMatchInput {
   oheng: OhengScore;
   animal: AnimalInfo;
   samjae: SamjaeResult;
+  /**
+   * 용신(用神) — 추천의 1순위 근거.
+   * 넘기지 않으면 내부에서 getYongsin(saju, oheng) 으로 계산한다.
+   * (이미 화면에서 계산해 둔 값이 있으면 그대로 넘겨 중복 계산을 피할 수 있다)
+   */
+  yongsin?: YongsinResult;
 }
 
 // ============================================================
@@ -369,11 +393,34 @@ function hasAnimalSymbol(t: TalismanType, animalName: string): boolean {
 // ============================================================
 
 const W = {
+  /** 삼재년 → 삼재부 */
   samjae: 50,
+
+  // ── 용신 기반 (1순위 근거) ───────────────────────────────
+  /** 용신 오행을 대표하는 카테고리의 부적 */
+  yongsinCategory: 40,
+  /** 용신 오행의 결에 맞는 개별 부적 */
+  yongsinId: 24,
+  /** 희신 오행을 대표하는 카테고리의 부적 */
+  huisinCategory: 20,
+  /** 희신 오행의 결에 맞는 개별 부적 */
+  huisinId: 12,
+  /** 용신·희신 오행의 오방색까지 맞을 때의 가산 */
+  yongsinColor: 10,
+  /** 기신 오행의 부적 — 지금은 이미 넉넉한 기운이라 뒤로 미룬다 */
+  gisin: -15,
+  /**
+   * 신강신약 보완 — 어느 방향으로 손보면 좋은지 "설명"만 덧붙인다.
+   * 방향 자체는 이미 용신 점수에 반영돼 있어 중복 가산하지 않는다.
+   */
+  singang: 0,
+
+  // ── 폴백 (용신 계산 실패 시에만 쓰인다) ──────────────────
   lackingCategory: 30,
   lackingId: 18,
   lackingColor: 10,
   excess: 15,
+
   ilgan: 20,
   animal: 10,
   balance: 8,
@@ -389,11 +436,17 @@ const CATEGORY_PRIORITY: Record<TalismanCategory, number> = {
   [TalismanCategory.Other]: 5,
 };
 
-/** headline 을 뽑을 때의 이유 우선순위 */
+/**
+ * headline 을 뽑을 때의 이유 우선순위.
+ * 'gisin' 은 감점 근거라 카드 문구로는 쓰지 않는다.
+ */
 const REASON_PRIORITY: MatchReasonKind[] = [
   'samjae',
+  'yongsin',
+  'huisin',
   'lackingOheng',
   'ilganTrait',
+  'singang',
   'excessOheng',
   'animal',
   'balance',
@@ -424,11 +477,25 @@ function eulReul(word: string): string {
   return word + (hasJongseong(word) ? '을' : '를');
 }
 
-/** 부적이 해당 오행의 보강 대상인지 — 카테고리 우선, 없으면 개별 지정 */
-function ohengSupportPoints(t: TalismanType, o: Oheng): number {
+/**
+ * 부적이 해당 오행의 보강 대상인지 — 카테고리(강한 연결) 우선, 없으면 개별 지정.
+ * 어느 층에 걸렸는지만 돌려주고, 점수는 호출자가 근거 종류에 맞춰 매긴다.
+ */
+function ohengSupportTier(
+  t: TalismanType,
+  o: Oheng
+): 'category' | 'id' | null {
   const support = OHENG_SUPPORT[o];
-  if (support.categories.includes(t.category)) return W.lackingCategory;
-  if (support.ids.includes(t.id)) return W.lackingId;
+  if (support.categories.includes(t.category)) return 'category';
+  if (support.ids.includes(t.id)) return 'id';
+  return null;
+}
+
+/** 부적이 해당 오행의 보강 대상인지 (폴백 경로용 점수) */
+function ohengSupportPoints(t: TalismanType, o: Oheng): number {
+  const tier = ohengSupportTier(t, o);
+  if (tier === 'category') return W.lackingCategory;
+  if (tier === 'id') return W.lackingId;
   return 0;
 }
 
@@ -452,14 +519,33 @@ function isDominantOverwhelming(score: OhengScore, dominant: Oheng): boolean {
 
 /** headline 을 만들 때 쓰는, "이 부적에 실제로 걸린" 근거들 */
 interface HeadlineContext {
-  /** 이 부적이 실제로 채워주는 기운 (없으면 null) */
+  /** 이 부적이 담고 있는 용신 오행 (없으면 null) */
+  matchedYongsin: Oheng | null;
+  /** 이 부적이 담고 있는 희신 오행 (없으면 null) */
+  matchedHuisin: Oheng | null;
+  /** 조후(調候)가 급한 사주일 때의 온도 방향 */
+  johuUrgent: { needed: Oheng; season: Gyejeol } | null;
+  /** 신강신약 등급 (중화면 null) */
+  singangLevel: '극신강' | '신강' | '신약' | '극신약' | null;
+  /** (폴백) 이 부적이 실제로 채워주는 기운 */
   matchedLacking: Oheng | null;
-  /** 이 부적이 실제로 다스려주는 기운 (없으면 null) */
+  /** (폴백) 이 부적이 실제로 다스려주는 기운 */
   tamedExcess: Oheng | null;
   /** 일간 표기 (예: '무(戊)') */
   ilgan: string;
   /** 띠 이름 (예: '개') */
   animal: string;
+}
+
+/** 조후가 급할 때의 카드 문구 — 없으면 null */
+function johuHeadline(ctx: HeadlineContext): string | null {
+  if (!ctx.johuUrgent) return null;
+  const { needed, season } = ctx.johuUrgent;
+  if (ctx.matchedYongsin !== needed) return null;
+  if (needed === '화') return '차가운 사주에 온기를 더하는 부적';
+  if (needed === '수')
+    return `${season} 사주의 열기를 시원하게 식혀주는 부적`;
+  return '흩어지기 쉬운 기운에 중심을 잡아주는 부적';
 }
 
 /** 이유 목록에서 카드용 한 줄 문구 만들기 */
@@ -471,12 +557,27 @@ function buildHeadline(reasons: MatchReason[], ctx: HeadlineContext): string {
     switch (kind) {
       case 'samjae':
         return '삼재(三災)의 해를 든든히 지켜주는 부적';
+      case 'yongsin': {
+        const johu = johuHeadline(ctx);
+        if (johu) return johu;
+        return ctx.matchedYongsin
+          ? `용신 ${ohengLabel(ctx.matchedYongsin)}의 기운을 담은 부적`
+          : '지금 가장 필요한 기운을 담은 부적';
+      }
+      case 'huisin':
+        return ctx.matchedHuisin
+          ? `용신을 뒤에서 밀어주는 ${ohengLabel(ctx.matchedHuisin)} 기운의 부적`
+          : '지금 필요한 기운을 거들어주는 부적';
       case 'lackingOheng':
         return ctx.matchedLacking
           ? `부족한 ${ohengLabel(ctx.matchedLacking)} 기운을 채워주는 부적`
           : '지금 필요한 기운을 채워주는 부적';
       case 'ilganTrait':
         return `${ctx.ilgan} 일간(日干, 나 자신)의 결을 받쳐주는 부적`;
+      case 'singang':
+        return ctx.singangLevel === '신강' || ctx.singangLevel === '극신강'
+          ? '넉넉한 힘을 부드럽게 덜어내주는 부적'
+          : '여린 기운을 든든하게 채워주는 부적';
       case 'excessOheng':
         return ctx.tamedExcess
           ? `넘치는 ${ohengLabel(ctx.tamedExcess)} 기운을 다스려주는 부적`
@@ -490,17 +591,48 @@ function buildHeadline(reasons: MatchReason[], ctx: HeadlineContext): string {
   return '지금의 나에게 마음 기대기 좋은 부적';
 }
 
+// ── 용신 기반 문구 조각 ─────────────────────────────────────
+
+/** 조후가 급한 사주일 때 덧붙이는 온도 이야기 — 없으면 null */
+function johuPhrase(yongsin: YongsinResult, season: Gyejeol): string | null {
+  const { johu } = yongsin;
+  if (johu.urgency !== 'high' || !johu.needed) return null;
+  if (johu.needed === '화')
+    return `${season}에 태어나 사주가 차가운 편인데, 이 부적이 온기를 더해줘요`;
+  if (johu.needed === '수')
+    return `${season}에 태어나 사주에 열기가 있는 편인데, 이 부적이 시원한 기운을 더해줘요`;
+  return '기운이 흩어지기 쉬운 편인데, 이 부적이 가운데를 잡아줘요';
+}
+
+/** 신강·신약을 부적과 이어 설명하는 한 줄 — 중화면 null */
+function singangPhrase(yongsin: YongsinResult): string | null {
+  switch (yongsin.singang.level) {
+    case '극신강':
+    case '신강':
+      return '힘이 넉넉한 사주라 그 기운을 부드럽게 덜어내면 좋아요(신강, 身強)—이 부적이 힘을 쓸 통로가 되어줍니다';
+    case '신약':
+    case '극신약':
+      return '혼자 다 짊어지기보다 기대며 채우는 결이에요(신약, 身弱)—이 부적이 그 자리를 받쳐줍니다';
+    default:
+      return null;
+  }
+}
+
 /** 부적 하나에 대한 사주 점수 · 이유 계산 */
 function scoreTalisman(
   t: TalismanType,
   input: SajuMatchInput,
   analysis: OhengAnalysis,
-  excess: Oheng | null
+  excess: Oheng | null,
+  yongsin: YongsinResult | null,
+  season: Gyejeol
 ): { score: number; reasons: MatchReason[]; headline: string } {
   const reasons: MatchReason[] = [];
   let score = 0;
 
   // 이 부적에 "실제로" 걸린 근거 — headline 문구를 정확히 쓰기 위해 기록한다.
+  let matchedYongsin: Oheng | null = null;
+  let matchedHuisin: Oheng | null = null;
   let matchedLacking: Oheng | null = null;
   let matchedLackingWeight = 0;
   let tamedExcess: Oheng | null = null;
@@ -516,55 +648,131 @@ function scoreTalisman(
     score += W.samjae;
   }
 
-  // ── 2. 부족한 오행 보강 ────────────────────────────────
   const colorOhengs = talismanColorOhengs(t);
-  let lackingMatched = false;
+  /** 이 부적이 "지금 필요한 기운" 을 실제로 담고 있는가 (balance 근거 판정용) */
+  let needMatched = false;
 
-  for (const lack of analysis.lacking) {
-    const base = ohengSupportPoints(t, lack);
-    if (base <= 0) continue;
+  if (yongsin) {
+    // ── 2. 용신(用神) — 지금 이 사람에게 가장 필요한 기운 ──
+    const yTier = ohengSupportTier(t, yongsin.yongsin);
+    if (yTier) {
+      const base = yTier === 'category' ? W.yongsinCategory : W.yongsinId;
+      const hasColor = colorOhengs.has(yongsin.yongsin);
+      const weight = base + (hasColor ? W.yongsinColor : 0);
+      const label = ohengLabel(yongsin.yongsin);
+      const guide = OHENG_TALISMAN_GUIDE[yongsin.yongsin];
+      const info = OHENG_INFO[yongsin.yongsin];
 
-    lackingMatched = true;
-    const info = OHENG_INFO[lack];
+      // 조후가 급하면 온도 이야기를 앞세우는 편이 훨씬 와닿는다.
+      const johu = johuPhrase(yongsin, season);
+      const head = johu
+        ? `${johu}`
+        : `당신의 용신(用神, 지금 가장 필요한 기운)은 ${label}—이 부적이 그 기운을 담고 있어요`;
 
-    const guide = OHENG_TALISMAN_GUIDE[lack];
-    const hasColor = colorOhengs.has(lack);
-    const weight = base + (hasColor ? W.lackingColor : 0);
-
-    reasons.push({
-      kind: 'lackingOheng',
-      text: hasColor
-        ? `부족한 ${ohengLabel(lack)} 기운—${eulReul(
-            info.meaning
-          )} 보충해주고, ${guide.colorName} 빛깔이 그 기운을 더해줍니다`
-        : `부족한 ${ohengLabel(lack)} 기운—${eulReul(info.meaning)} 보충해줍니다`,
-      weight,
-    });
-    score += weight;
-
-    if (weight > matchedLackingWeight) {
-      matchedLackingWeight = weight;
-      matchedLacking = lack;
-    }
-  }
-
-  // ── 3. 과다한 기운 다스리기 (상극, 相剋) ────────────────
-  if (excess) {
-    const tamer = CONTROLLED_BY[excess];
-    if (ohengSupportPoints(t, tamer) > 0) {
       reasons.push({
-        kind: 'excessOheng',
-        text: `넉넉한 ${ohengLabel(excess)} 기운을 ${ohengLabel(
-          tamer
-        )}의 결로 부드럽게 다스려줘요`,
-        weight: W.excess,
+        kind: 'yongsin',
+        text: hasColor
+          ? `${head}. ${guide.colorName} 빛깔이 ${eulReul(
+              info.meaning
+            )} 한층 또렷하게 살려줍니다`
+          : `${head}. ${eulReul(info.meaning)} 곁에서 받쳐줍니다`,
+        weight,
       });
-      score += W.excess;
-      tamedExcess = excess;
+      score += weight;
+      matchedYongsin = yongsin.yongsin;
+      needMatched = true;
+    }
+
+    // ── 3. 희신(喜神) — 용신을 뒤에서 밀어주는 기운 ────────
+    const hTier = ohengSupportTier(t, yongsin.huisin);
+    if (hTier && yongsin.huisin !== yongsin.yongsin) {
+      const weight = hTier === 'category' ? W.huisinCategory : W.huisinId;
+      reasons.push({
+        kind: 'huisin',
+        text: `${ohengLabel(yongsin.huisin)} 기운은 용신 ${eulReul(
+          ohengLabel(yongsin.yongsin)
+        )} 생(生)해주는 희신(喜神)이에요—이 부적이 그 뒷심을 보태줍니다`,
+        weight,
+      });
+      score += weight;
+      matchedHuisin = yongsin.huisin;
+      needMatched = true;
+    }
+
+    // ── 4. 기신(忌神) — 지금은 이미 넉넉한 기운이라 뒤로 ────
+    const gTier = ohengSupportTier(t, yongsin.gisin);
+    if (
+      gTier &&
+      yongsin.gisin !== yongsin.yongsin &&
+      yongsin.gisin !== yongsin.huisin
+    ) {
+      reasons.push({
+        kind: 'gisin',
+        text: `${ohengLabel(
+          yongsin.gisin
+        )} 기운은 지금 이미 넉넉한 편(기신, 忌神)이라 서두르지 않아도 괜찮아요—마음이 가면 그때 곁에 두어도 충분합니다`,
+        weight: W.gisin,
+      });
+      score += W.gisin;
+    }
+
+    // ── 5. 신강신약(身強身弱) 보완 설명 ────────────────────
+    // 방향은 이미 용신 점수에 반영돼 있어, 여기서는 이유만 덧붙인다.
+    if (needMatched) {
+      const phrase = singangPhrase(yongsin);
+      if (phrase) {
+        reasons.push({ kind: 'singang', text: phrase, weight: W.singang });
+        score += W.singang;
+      }
+    }
+  } else {
+    // ── (폴백) 용신을 잡지 못했을 때 — 예전의 개수 기반 규칙 ──
+    for (const lack of analysis.lacking) {
+      const base = ohengSupportPoints(t, lack);
+      if (base <= 0) continue;
+
+      needMatched = true;
+      const info = OHENG_INFO[lack];
+
+      const guide = OHENG_TALISMAN_GUIDE[lack];
+      const hasColor = colorOhengs.has(lack);
+      const weight = base + (hasColor ? W.lackingColor : 0);
+
+      reasons.push({
+        kind: 'lackingOheng',
+        text: hasColor
+          ? `부족한 ${ohengLabel(lack)} 기운—${eulReul(
+              info.meaning
+            )} 보충해주고, ${guide.colorName} 빛깔이 그 기운을 더해줍니다`
+          : `부족한 ${ohengLabel(lack)} 기운—${eulReul(info.meaning)} 보충해줍니다`,
+        weight,
+      });
+      score += weight;
+
+      if (weight > matchedLackingWeight) {
+        matchedLackingWeight = weight;
+        matchedLacking = lack;
+      }
+    }
+
+    // 과다한 기운 다스리기 (상극, 相剋)
+    if (excess) {
+      const tamer = CONTROLLED_BY[excess];
+      if (ohengSupportPoints(t, tamer) > 0) {
+        reasons.push({
+          kind: 'excessOheng',
+          text: `넉넉한 ${ohengLabel(excess)} 기운을 ${ohengLabel(
+            tamer
+          )}의 결로 부드럽게 다스려줘요`,
+          weight: W.excess,
+        });
+        score += W.excess;
+        tamedExcess = excess;
+      }
     }
   }
 
-  // ── 4. 일간(日干) 보완 ─────────────────────────────────
+  // ── 6. 일간(日干) 보완 ─────────────────────────────────
   const ilganName = input.saju.dayStem.name;
   const ilganSupport = ILGAN_SUPPORT[ilganName];
   if (ilganSupport && ilganSupport.ids.includes(t.id)) {
@@ -576,7 +784,7 @@ function scoreTalisman(
     score += W.ilgan;
   }
 
-  // ── 5. 띠 문양 ─────────────────────────────────────────
+  // ── 7. 띠 문양 ─────────────────────────────────────────
   if (hasAnimalSymbol(t, input.animal.name)) {
     reasons.push({
       kind: 'animal',
@@ -586,7 +794,7 @@ function scoreTalisman(
     score += W.animal;
   }
 
-  // ── 6. 전반 균형 ───────────────────────────────────────
+  // ── 8. 전반 균형 ───────────────────────────────────────
   if (analysis.balance === 'balanced') {
     // 이미 고른 사주 — 지금의 결을 지켜주는 두루 좋은 부적을 조금 밀어준다.
     if (t.id === 'wealth-01' || t.id === 'protect-04') {
@@ -597,7 +805,7 @@ function scoreTalisman(
       });
       score += W.balance;
     }
-  } else if (analysis.balance === 'polarized' && lackingMatched) {
+  } else if (analysis.balance === 'polarized' && needMatched) {
     // 색이 진한 사주 — 약점이 아니라 "반대쪽을 조금 채우면 편해지는" 결이다.
     reasons.push({
       kind: 'balance',
@@ -607,7 +815,17 @@ function scoreTalisman(
     score += W.balance;
   }
 
+  const singangLevel =
+    yongsin && yongsin.singang.level !== '중화' ? yongsin.singang.level : null;
+
   const headline = buildHeadline(reasons, {
+    matchedYongsin,
+    matchedHuisin,
+    johuUrgent:
+      yongsin && yongsin.johu.urgency === 'high' && yongsin.johu.needed
+        ? { needed: yongsin.johu.needed, season }
+        : null,
+    singangLevel,
     matchedLacking,
     tamedExcess,
     ilgan: `${input.saju.dayStem.name}(${input.saju.dayStem.hanja})`,
@@ -626,15 +844,37 @@ function compareMatches(a: SajuTalismanMatch, b: SajuTalismanMatch): number {
   return a.talisman.id.localeCompare(b.talisman.id);
 }
 
+/**
+ * 용신 확보 — 호출자가 넘긴 값이 있으면 그대로, 없으면 계산한다.
+ * 계산이 실패하면 null 을 돌려 예전(개수 기반) 규칙으로 물러난다.
+ */
+function resolveYongsin(input: SajuMatchInput): YongsinResult | null {
+  if (input.yongsin) return input.yongsin;
+  try {
+    return getYongsin(input.saju, input.oheng);
+  } catch {
+    return null;
+  }
+}
+
 /** 43종 전체에 대한 사주 점수표 */
 function scoreAll(input: SajuMatchInput): SajuTalismanMatch[] {
   const analysis = analyzeOheng(input.oheng);
   const excess = isDominantOverwhelming(input.oheng, analysis.dominant)
     ? analysis.dominant
     : null;
+  const yongsin = resolveYongsin(input);
+  const season = getGyejeol(input.saju);
 
   return TALISMANS.map((t) => {
-    const { score, reasons, headline } = scoreTalisman(t, input, analysis, excess);
+    const { score, reasons, headline } = scoreTalisman(
+      t,
+      input,
+      analysis,
+      excess,
+      yongsin,
+      season
+    );
     return { talisman: t, score, reasons, headline };
   }).sort(compareMatches);
 }
@@ -646,10 +886,11 @@ function scoreAll(input: SajuMatchInput): SajuTalismanMatch[] {
 /**
  * 사주 기반 부적 추천 — 상위 N개
  *
- * 삼재 → 부족한 오행 → 과다한 오행 → 일간 → 띠 순으로 가중치를 매겨
+ * 삼재 → 용신 → 희신 → 일간 → 띠 순으로 가중치를 매기고,
+ * 지금 넉넉한 기신(忌神) 쪽 부적은 조금 뒤로 미뤄
  * 43종 전통 부적 중 지금 도움이 될 만한 것을 골라준다.
  *
- * @param input 사주 원국 · 오행 점수 · 띠 · 삼재 판정
+ * @param input 사주 원국 · 오행 점수 · 띠 · 삼재 판정 (+ 선택적으로 용신)
  * @param limit 받아볼 개수 (기본 5, 1 이상)
  */
 export function recommendBySaju(

@@ -25,6 +25,14 @@ import {
   BALANCE_LABEL,
   type PillarMeaning,
 } from '@/data/saju-interpretation';
+import {
+  getYongsin,
+  getGroupOheng,
+  ohengLabel,
+  SIPSEONG_ORDER,
+  type SipseongGroup,
+  type YongsinType,
+} from '@/data/yongsin';
 
 // ─────────────────────────────────────────────
 // 한지 디자인 토큰 (globals.css의 --color-* 와 동일 값)
@@ -35,6 +43,8 @@ const MEOK = '#2E2E2E'; // --color-meok 먹
 const GALSAEK = '#7A4A34'; // --color-galsaek 짙은 갈색
 const SSUK = '#6B7D63'; // --color-ssuk 쑥·세이지
 const HWANG = '#DAA017'; // --color-hwang 겨자·황
+const NAMSAEK = '#1F3E63'; // --color-namsaek 짙은 남
+const HANJI = '#F6EDD9'; // 한지 밝은 면 (색 위 글자용)
 
 /** 밝은 한지 배경에서 읽히도록 명도를 낮춘 오행색 (OHENG_INFO.color 와 동일) */
 const OHENG_COLORS: Record<Oheng, string> = {
@@ -52,6 +62,63 @@ const OHENG_TAG: Record<Oheng, string> = {
   토: '안정',
   금: '결단',
   수: '지혜',
+};
+
+// ─────────────────────────────────────────────
+// 용신(用神) 표시용 상수
+// ─────────────────────────────────────────────
+
+/** 취용 방식 한 줄 풀이 */
+const YONGSIN_TYPE_LABEL: Record<YongsinType, string> = {
+  억부: '억부(抑扶) · 넘치면 덜고 모자라면 채우는 방식',
+  조후: '조후(調候) · 사주의 온도를 먼저 맞추는 방식',
+  통관: '통관(通關) · 부딪히는 두 기운 사이에 다리를 놓는 방식',
+  전왕: '전왕(專旺) · 강한 흐름을 거스르지 않고 따라가는 방식',
+};
+
+/** 십성 묶음 한 줄 설명 */
+const SIPSEONG_SHORT: Record<SipseongGroup, string> = {
+  비겁: '나와 같은 힘',
+  인성: '나를 돕는 힘',
+  식상: '내가 쓰는 힘',
+  재성: '내가 다루는 힘',
+  관성: '나를 누르는 힘',
+};
+
+/** 십성 묶음 한자 */
+const SIPSEONG_HANJA: Record<SipseongGroup, string> = {
+  비겁: '比劫',
+  인성: '印星',
+  식상: '食傷',
+  재성: '財星',
+  관성: '官星',
+};
+
+/** 내 편(비겁·인성)은 서늘한 색, 밖으로 쓰는 편은 따뜻한 색으로 구분 */
+const SIPSEONG_COLOR: Record<SipseongGroup, string> = {
+  비겁: SSUK,
+  인성: NAMSAEK,
+  식상: HWANG,
+  재성: GALSAEK,
+  관성: JUHONG,
+};
+
+/** 아군 여부 */
+const SIPSEONG_ALLY: Record<SipseongGroup, boolean> = {
+  비겁: true,
+  인성: true,
+  식상: false,
+  재성: false,
+  관성: false,
+};
+
+/** 신강신약 등급 배지 색 */
+const SINGANG_COLOR: Record<string, string> = {
+  극신강: JUHONG,
+  신강: GALSAEK,
+  중화: SSUK,
+  신약: NAMSAEK,
+  극신약: NAMSAEK,
 };
 
 /** 12지시 표기 (지지 index 기준) */
@@ -285,6 +352,7 @@ export default function SajuDetailPage() {
     const animal = getAnimal(year, month, day, hour);
     const oheng = getOheng(detail);
     const reading = getSajuReading(detail, oheng, animal);
+    const yongsin = getYongsin(detail, oheng);
 
     const currentYear = new Date().getFullYear();
     const samjae = isSamjae(currentYear, detail.sajuYear);
@@ -311,6 +379,7 @@ export default function SajuDetailPage() {
       animal,
       oheng,
       reading,
+      yongsin,
       currentYear,
       samjae,
       samjaeYears,
@@ -374,12 +443,24 @@ export default function SajuDetailPage() {
     );
   }
 
-  const { detail, animal, oheng, reading, currentYear, samjae, samjaeYears } = data;
+  const { detail, animal, oheng, reading, yongsin, currentYear, samjae, samjaeYears } =
+    data;
   const { birth, hourKnown, name } = profile;
   const ilgan = reading.ilgan;
   const ilganColor = OHENG_COLORS[ilgan.oheng] ?? JUHONG;
   const maxOheng = Math.max(...OHENG_ORDER.map((o) => oheng[o]), 1);
   const lacking = reading.oheng.lacking ?? [];
+
+  // ── 용신 표시용 값 ──────────────────────────
+  const yongsinInfo = OHENG_INFO[yongsin.yongsin];
+  const yongsinColor = OHENG_COLORS[yongsin.yongsin];
+  const huisinInfo = OHENG_INFO[yongsin.huisin];
+  const gisinInfo = OHENG_INFO[yongsin.gisin];
+  const singang = yongsin.singang;
+  const singangColor = SINGANG_COLOR[singang.level] ?? SSUK;
+  /** 게이지 마커 위치 (양끝이 잘리지 않도록 4~96% 로 가둠) */
+  const singangMarker = Math.min(96, Math.max(4, singang.ratio * 100));
+  const dayOheng = detail.dayStem.oheng;
 
   // 시·일·월·년 순
   const pillars: Array<{ meaning: PillarMeaning; gan: CheonGan; ji: JiJi }> = [
@@ -912,9 +993,455 @@ export default function SajuDetailPage() {
           </div>
         </Section>
 
-        {/* ── 5. 삼재 ──────────────────────────────── */}
+        {/* ── 5. 용신 ──────────────────────────────── */}
         <Section delay={0.24}>
-          <SectionLabel index={5} title="삼재 보기" sub="三災" />
+          <SectionLabel index={5} title="나에게 필요한 기운" sub="용신(用神)" />
+          <p className="mt-2 text-[12px] leading-relaxed" style={{ color: `${MEOK}99` }}>
+            용신(用神)은 넘치는 것은 덜어내고 모자란 것은 채워, 사주가 균형(중화, 中和)에
+            가까워지도록 도와주는 기운이에요. 명리에서는 처방약 같은 자리로 봅니다.
+          </p>
+
+          {/* ① 용신 대표 카드 */}
+          <div
+            className="mt-4 flex flex-col items-center rounded-2xl px-4 py-6 text-center"
+            style={{
+              background: `${yongsinColor}0D`,
+              border: `1.5px solid ${yongsinColor}44`,
+            }}
+          >
+            <div className="flex flex-wrap items-center justify-center gap-1.5">
+              <span
+                className="font-serif-kr text-[14px] font-bold"
+                style={{ color: MEOK }}
+              >
+                나에게 필요한 기운
+              </span>
+              <span
+                className="rounded-full px-2 py-[2px] text-[10px] font-bold"
+                style={{ background: `${yongsinColor}1E`, color: yongsinColor }}
+              >
+                용신(用神)
+              </span>
+            </div>
+
+            <motion.div
+              className="mt-4 flex h-28 w-28 flex-col items-center justify-center rounded-full"
+              style={{
+                background: yongsinColor,
+                boxShadow: `0 6px 22px ${yongsinColor}33`,
+              }}
+              initial={{ scale: 0.86, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.36, duration: 0.45, ease: 'easeOut' }}
+            >
+              <span className="text-base leading-none">{yongsinInfo.emoji}</span>
+              <span
+                className="font-serif-kr text-[46px] font-bold leading-none"
+                style={{ color: HANJI }}
+              >
+                {yongsinInfo.hanja}
+              </span>
+              <span
+                className="mt-0.5 text-[12px] font-bold leading-none"
+                style={{ color: `${HANJI}D9` }}
+              >
+                {yongsin.yongsin}
+              </span>
+            </motion.div>
+
+            <span
+              className="mt-3 text-[11px] leading-tight"
+              style={{ color: `${GALSAEK}AA` }}
+            >
+              {yongsinInfo.season} · {yongsinInfo.direction} · {yongsinInfo.meaning}
+            </span>
+
+            <p
+              className="font-serif-kr mt-3 text-[15.5px] font-bold leading-[1.6]"
+              style={{ color: MEOK }}
+            >
+              {yongsin.headline}
+            </p>
+
+            <span
+              className="mt-2.5 rounded-full px-2.5 py-[3px] text-[10.5px] font-medium"
+              style={{ background: `${MEOK}0E`, color: `${MEOK}AA` }}
+            >
+              {YONGSIN_TYPE_LABEL[yongsin.type]}
+            </span>
+
+            <p
+              className="mt-3.5 text-left text-[13px] leading-[1.85]"
+              style={{ color: `${MEOK}CC` }}
+            >
+              {yongsin.explanation}
+            </p>
+
+            {yongsin.confidence === 'low' && (
+              <p
+                className="mt-3 w-full rounded-lg px-3 py-2 text-left text-[11px] leading-relaxed"
+                style={{
+                  background: `${HWANG}14`,
+                  border: `1px dashed ${HWANG}44`,
+                  color: `${GALSAEK}CC`,
+                }}
+              >
+                이 풀이는 보는 사람에 따라 달라질 수 있어요.
+              </p>
+            )}
+          </div>
+
+          {/* ② 사주의 힘 (신강신약) */}
+          <div
+            className="mt-3 rounded-xl px-4 py-4"
+            style={{ background: `${GALSAEK}0A`, border: `1px solid ${GALSAEK}22` }}
+          >
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[12.5px] font-bold" style={{ color: MEOK }}>
+                사주의 힘
+              </span>
+              <span className="text-[11px]" style={{ color: `${GALSAEK}AA` }}>
+                신강·신약(身強·身弱)
+              </span>
+              <span
+                className="ml-auto rounded-full px-2.5 py-[3px] text-[11px] font-bold"
+                style={{ background: `${singangColor}1E`, color: singangColor }}
+              >
+                {singang.level}
+              </span>
+            </div>
+
+            {/* 가로 막대 게이지 */}
+            <div className="mt-4">
+              <div
+                className="relative h-3 w-full rounded-full"
+                style={{
+                  background: `linear-gradient(to right, ${NAMSAEK}22, ${GALSAEK}14, ${JUHONG}22)`,
+                  border: `1px solid ${GALSAEK}22`,
+                }}
+              >
+                {/* 중화 구간 (0.45~0.55) */}
+                <div
+                  className="absolute inset-y-0"
+                  style={{
+                    left: '45%',
+                    width: '10%',
+                    background: `${SSUK}4D`,
+                    borderLeft: `1px solid ${SSUK}66`,
+                    borderRight: `1px solid ${SSUK}66`,
+                  }}
+                />
+                {/* 내 위치 마커 */}
+                <motion.div
+                  className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                  style={{
+                    background: singangColor,
+                    border: `2px solid ${HANJI}`,
+                    boxShadow: `0 2px 6px ${MEOK}33`,
+                  }}
+                  initial={{ left: '50%', opacity: 0 }}
+                  animate={{ left: `${singangMarker}%`, opacity: 1 }}
+                  transition={{ delay: 0.45, duration: 0.6, ease: 'easeOut' }}
+                />
+              </div>
+              <div className="mt-1.5 flex items-center justify-between text-[10px] font-medium">
+                <span style={{ color: `${GALSAEK}AA` }}>← 신약</span>
+                <span style={{ color: SSUK }}>중화</span>
+                <span style={{ color: `${GALSAEK}AA` }}>신강 →</span>
+              </div>
+              <p
+                className="mt-1 text-[10.5px] leading-relaxed"
+                style={{ color: `${GALSAEK}99` }}
+              >
+                왼쪽으로 갈수록 기대며 채우는 쪽(신약), 오른쪽으로 갈수록 밀고 나가는
+                쪽(신강)이에요. 가운데 음영이 균형이 잘 맞는 중화(中和) 구간입니다.
+              </p>
+            </div>
+
+            <p
+              className="mt-3.5 text-[13px] leading-[1.8]"
+              style={{ color: `${MEOK}CC` }}
+            >
+              {singang.summary}
+            </p>
+
+            {/* 세력 분포 */}
+            <div className="mt-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[11.5px] font-bold" style={{ color: `${MEOK}AA` }}>
+                  세력 분포
+                </span>
+                <span className="text-[10.5px] tabular-nums" style={{ color: `${GALSAEK}AA` }}>
+                  내 편 {singang.allyScore} · 바깥 편 {singang.enemyScore}
+                </span>
+              </div>
+
+              {/* 가로 스택 막대 */}
+              <div
+                className="mt-2 flex h-4 w-full overflow-hidden rounded-full"
+                style={{ border: `1px solid ${GALSAEK}22` }}
+              >
+                {SIPSEONG_ORDER.map((g, i) => (
+                  <motion.div
+                    key={g}
+                    style={{ background: SIPSEONG_COLOR[g] }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${singang.detail[g]}%` }}
+                    transition={{ delay: 0.5 + i * 0.07, duration: 0.45, ease: 'easeOut' }}
+                  />
+                ))}
+              </div>
+
+              {/* 십성 칩 5개 */}
+              <div className="mt-2.5 flex flex-col gap-1.5">
+                {SIPSEONG_ORDER.map((g) => {
+                  const color = SIPSEONG_COLOR[g];
+                  const ally = SIPSEONG_ALLY[g];
+                  return (
+                    <div
+                      key={g}
+                      className="rounded-lg px-2.5 py-2"
+                      style={{ background: `${color}0F`, border: `1px solid ${color}2E` }}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ background: color }}
+                        />
+                        <span
+                          className="shrink-0 text-[12px] font-bold"
+                          style={{ color }}
+                        >
+                          {g}({SIPSEONG_HANJA[g]})
+                        </span>
+                        <span
+                          className="min-w-0 flex-1 truncate text-[10.5px]"
+                          style={{ color: `${GALSAEK}CC` }}
+                        >
+                          {ohengLabel(getGroupOheng(dayOheng, g))}
+                        </span>
+                        <span
+                          className="shrink-0 rounded-full px-1.5 py-[1px] text-[9px] font-medium"
+                          style={{
+                            background: ally ? `${SSUK}1E` : `${GALSAEK}16`,
+                            color: ally ? SSUK : `${GALSAEK}CC`,
+                          }}
+                        >
+                          {ally ? '내 편' : '바깥 편'}
+                        </span>
+                        <span
+                          className="shrink-0 text-[11px] font-bold tabular-nums"
+                          style={{ color }}
+                        >
+                          {singang.detail[g]}
+                        </span>
+                      </div>
+                      <p
+                        className="mt-1 text-[11.5px] leading-tight"
+                        style={{ color: `${MEOK}AA` }}
+                      >
+                        {SIPSEONG_SHORT[g]}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p
+                className="mt-2 text-[10.5px] leading-relaxed"
+                style={{ color: `${GALSAEK}99` }}
+              >
+                비겁·인성은 나를 받쳐주는 &lsquo;내 편&rsquo;, 식상·재성·관성은 내가 밖으로
+                쓰거나 나를 다잡는 &lsquo;바깥 편&rsquo;으로 묶어 봅니다.
+              </p>
+            </div>
+          </div>
+
+          {/* ③ 계절과 온도 (조후) */}
+          {yongsin.johu.urgency !== 'none' && (
+            <div
+              className="mt-3 rounded-xl px-4 py-4"
+              style={{
+                background:
+                  yongsin.johu.urgency === 'high' ? `${JUHONG}0E` : `${GALSAEK}0A`,
+                border: `1px solid ${
+                  yongsin.johu.urgency === 'high' ? `${JUHONG}3D` : `${GALSAEK}22`
+                }`,
+              }}
+            >
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-base leading-none">🌡️</span>
+                <span
+                  className="text-[12.5px] font-bold"
+                  style={{ color: yongsin.johu.urgency === 'high' ? JUHONG : MEOK }}
+                >
+                  계절과 온도
+                </span>
+                <span className="text-[11px]" style={{ color: `${GALSAEK}AA` }}>
+                  조후(調候)
+                </span>
+                {yongsin.johu.urgency === 'high' && (
+                  <span
+                    className="rounded-full px-2 py-[2px] text-[10px] font-bold"
+                    style={{ background: JUHONG, color: HANJI }}
+                  >
+                    먼저 챙기면 좋아요
+                  </span>
+                )}
+              </div>
+              <p
+                className="mt-2.5 leading-[1.8]"
+                style={{
+                  color: yongsin.johu.urgency === 'high' ? `${MEOK}DD` : `${MEOK}CC`,
+                  fontSize: yongsin.johu.urgency === 'high' ? '13.5px' : '13px',
+                }}
+              >
+                {yongsin.johu.reason}
+              </p>
+              {yongsin.johu.needed && (
+                <span
+                  className="mt-2.5 inline-block rounded-full px-2.5 py-[3px] text-[11px] font-bold"
+                  style={{
+                    background: `${OHENG_COLORS[yongsin.johu.needed]}1E`,
+                    color: OHENG_COLORS[yongsin.johu.needed],
+                  }}
+                >
+                  {OHENG_INFO[yongsin.johu.needed].emoji}{' '}
+                  {ohengLabel(yongsin.johu.needed)} 기운이 온도를 맞춰줘요
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* ④ 생활 속 조언 */}
+          <div className="mt-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[12.5px] font-bold" style={{ color: MEOK }}>
+                생활 속에서 {yongsin.yongsin} 기운 채우기
+              </span>
+              <span className="text-[11px]" style={{ color: `${GALSAEK}AA` }}>
+                개운(改運)
+              </span>
+            </div>
+
+            {/* 용신 오행의 색·방위 */}
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span
+                className="flex items-center gap-1.5 rounded-full px-2.5 py-[3px] text-[11px] font-medium"
+                style={{ background: `${yongsinColor}14`, color: yongsinColor }}
+              >
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ background: yongsinColor, border: `1px solid ${MEOK}22` }}
+                />
+                내 색
+              </span>
+              <span
+                className="rounded-full px-2.5 py-[3px] text-[11px] font-medium"
+                style={{ background: `${yongsinColor}14`, color: yongsinColor }}
+              >
+                🧭 {yongsinInfo.direction}
+              </span>
+              <span
+                className="rounded-full px-2.5 py-[3px] text-[11px] font-medium"
+                style={{ background: `${yongsinColor}14`, color: yongsinColor }}
+              >
+                🍃 {yongsinInfo.season}
+              </span>
+            </div>
+
+            <div className="mt-2.5 flex flex-col gap-2">
+              {yongsin.advice.map((a, i) => (
+                <motion.div
+                  key={a}
+                  className="flex items-start gap-2.5 rounded-xl px-3.5 py-3"
+                  style={{
+                    background: `${yongsinColor}0B`,
+                    border: `1px solid ${yongsinColor}2E`,
+                  }}
+                  initial={{ y: 8, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.55 + i * 0.08, duration: 0.35 }}
+                >
+                  <span
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10.5px] font-bold"
+                    style={{ background: `${yongsinColor}1E`, color: yongsinColor }}
+                  >
+                    {i + 1}
+                  </span>
+                  <p
+                    className="text-[13px] leading-[1.75]"
+                    style={{ color: `${MEOK}CC` }}
+                  >
+                    {a}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* ⑤ 희신 / 기신 */}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div
+              className="flex flex-col items-center gap-1 rounded-xl px-2 py-3.5 text-center"
+              style={{
+                background: `${OHENG_COLORS[yongsin.huisin]}0D`,
+                border: `1px solid ${OHENG_COLORS[yongsin.huisin]}33`,
+              }}
+            >
+              <span className="text-[10px]" style={{ color: `${GALSAEK}AA` }}>
+                희신(喜神)
+              </span>
+              <span
+                className="font-serif-kr text-[15px] font-bold leading-tight"
+                style={{ color: OHENG_COLORS[yongsin.huisin] }}
+              >
+                {huisinInfo.emoji} {ohengLabel(yongsin.huisin)}
+              </span>
+              <span
+                className="text-[11px] leading-relaxed"
+                style={{ color: `${MEOK}AA` }}
+              >
+                같이 있으면 좋은 기운
+              </span>
+            </div>
+            <div
+              className="flex flex-col items-center gap-1 rounded-xl px-2 py-3.5 text-center"
+              style={{
+                background: `${OHENG_COLORS[yongsin.gisin]}0D`,
+                border: `1px solid ${OHENG_COLORS[yongsin.gisin]}33`,
+              }}
+            >
+              <span className="text-[10px]" style={{ color: `${GALSAEK}AA` }}>
+                기신(忌神)
+              </span>
+              <span
+                className="font-serif-kr text-[15px] font-bold leading-tight"
+                style={{ color: OHENG_COLORS[yongsin.gisin] }}
+              >
+                {gisinInfo.emoji} {ohengLabel(yongsin.gisin)}
+              </span>
+              <span
+                className="text-[11px] leading-relaxed"
+                style={{ color: `${MEOK}AA` }}
+              >
+                조금 덜어내면 가벼워지는 기운
+              </span>
+            </div>
+          </div>
+
+          <p
+            className="mt-2.5 text-[10.5px] leading-relaxed"
+            style={{ color: `${GALSAEK}99` }}
+          >
+            용신은 명리에서 해석이 가장 많이 갈리는 자리예요. 정답이라기보다 방향을
+            알려주는 나침반으로 여겨주세요.
+          </p>
+        </Section>
+
+        {/* ── 6. 삼재 ──────────────────────────────── */}
+        <Section delay={0.3}>
+          <SectionLabel index={6} title="삼재 보기" sub="三災" />
 
           <div
             className="mt-4 rounded-xl px-4 py-4"
@@ -1021,13 +1548,13 @@ export default function SajuDetailPage() {
           )}
         </Section>
 
-        {/* ── 6. 하단 고지 ─────────────────────────── */}
+        {/* ── 7. 하단 고지 ─────────────────────────── */}
         <motion.div
           className="flex items-start gap-2 rounded-xl px-4 py-3.5"
           style={{ background: `${GALSAEK}0D`, border: `1px dashed ${GALSAEK}33` }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.36 }}
         >
           <span className="mt-[1px] block shrink-0" style={{ color: `${GALSAEK}99` }}>
             <KnotMotif size={18} />

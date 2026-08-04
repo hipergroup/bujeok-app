@@ -30,6 +30,8 @@ import {
   OHENG_INFO,
   type SajuReading,
 } from '@/data/saju-interpretation';
+// 용신(用神) — 나에게 필요한 기운
+import { getYongsin, ohengLabel } from '@/data/yongsin';
 import { saveProfile } from '@/lib/store';
 
 // ─────────────────────────────────────────────
@@ -758,6 +760,11 @@ function StepSajuResult({
     [saju, oheng, animal]
   );
 
+  // ── 용신 (나에게 필요한 기운) — 요약만 노출 ──
+  const yongsin = useMemo(() => getYongsin(saju, oheng), [saju, oheng]);
+  const yongsinColor = OHENG_COLORS[yongsin.yongsin] ?? JUHONG;
+  const yongsinInfo = OHENG_INFO[yongsin.yongsin];
+
   // ── 삼재 판별 (사주 기준 연도로 판정) ──
   const currentYear = new Date().getFullYear();
   const samjae = useMemo(() => isSamjae(currentYear, sajuYear), [currentYear, sajuYear]);
@@ -1257,7 +1264,69 @@ function StepSajuResult({
         )}
       </motion.section>
 
-      {/* ── 5. 삼재 경고 ────────────────────────────── */}
+      {/* ── 5. 용신 요약 (자세한 풀이는 사주 풀이 화면에서) ── */}
+      <motion.section
+        className="relative z-10 mb-5 rounded-2xl px-4 py-4"
+        style={{
+          background: `${yongsinColor}0D`,
+          border: `1px solid ${yongsinColor}3D`,
+        }}
+        initial={{ y: 16, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.85 }}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-full"
+            style={{ background: yongsinColor }}
+          >
+            <span
+              className="font-serif-kr text-[24px] font-bold leading-none"
+              style={{ color: '#F6EDD9' }}
+            >
+              {yongsinInfo.hanja}
+            </span>
+            <span
+              className="mt-[1px] text-[9.5px] font-bold leading-none"
+              style={{ color: '#F6EDD9CC' }}
+            >
+              {yongsin.yongsin}
+            </span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span
+                className="rounded-full px-2 py-[2px] text-[10px] font-bold"
+                style={{ background: `${yongsinColor}1E`, color: yongsinColor }}
+              >
+                용신(用神)
+              </span>
+              <span className="text-[10.5px]" style={{ color: `${GALSAEK}AA` }}>
+                {yongsinInfo.season} · {yongsinInfo.direction}
+              </span>
+            </div>
+            <p
+              className="font-serif-kr mt-1.5 text-[14.5px] font-bold leading-snug"
+              style={{ color: MEOK }}
+            >
+              나에게 필요한 기운은{' '}
+              <span style={{ color: yongsinColor }}>{ohengLabel(yongsin.yongsin)}</span>
+              입니다
+            </p>
+          </div>
+        </div>
+
+        <p className="mt-3 text-[12.5px] leading-relaxed" style={{ color: `${MEOK}BB` }}>
+          {yongsin.headline}
+        </p>
+
+        <p className="mt-2.5 text-[11px] leading-relaxed" style={{ color: `${GALSAEK}AA` }}>
+          신강·조후까지 살핀 용신 풀이와 생활 속 보강법은 <strong>내 사주 풀이</strong>에
+          담아뒀어요.
+        </p>
+      </motion.section>
+
+      {/* ── 6. 삼재 경고 ────────────────────────────── */}
       {samjae.is && (
         <motion.section
           className="relative z-10 mb-5 rounded-2xl px-4 py-4"
@@ -1291,7 +1360,7 @@ function StepSajuResult({
         </motion.section>
       )}
 
-      {/* ── 6. 하단 안내 ────────────────────────────── */}
+      {/* ── 7. 하단 안내 ────────────────────────────── */}
       <motion.div
         className="relative z-10 mb-5 flex items-center justify-center gap-2 rounded-xl px-4 py-3"
         style={{ background: `${GALSAEK}0D`, border: `1px dashed ${GALSAEK}33` }}
