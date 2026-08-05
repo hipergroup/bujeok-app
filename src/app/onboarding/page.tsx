@@ -1493,10 +1493,14 @@ function StepTalismanGift({
     // 선물 호신부를 부적함(bujeok-collection)에도 저장 — 수집 카운트·위젯에 반영.
     // 이미지는 data URI로 인라인해 재배포 후에도 깨지지 않게 한다.
     try {
-      const list: { id?: string }[] = JSON.parse(
+      const list: { id?: string; svg?: string }[] = JSON.parse(
         localStorage.getItem('bujeok-collection') || '[]'
       );
-      if (!list.some((t) => t.id === 'hosinbu-gift')) {
+      const existing = list.find((t) => t.id === 'hosinbu-gift');
+      if (existing) {
+        // 재온보딩: 이미 담긴 호신부를 재사용해 위젯 질문은 그대로 보여준다
+        giftSvgRef.current = existing.svg ?? null;
+      } else {
         const catalog = getTalismanById('protect-04'); // 43종 카탈로그의 호신부
         const blob = await (await fetch(hosinbuGift.src)).blob();
         const dataUri = await new Promise<string>((resolve, reject) => {
