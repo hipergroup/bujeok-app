@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import BottomTab from '@/components/BottomTab';
+import YongsinCabinet from '@/components/YongsinCabinet';
 import HanjiBackground from '@/components/hanji/HanjiBackground';
 import TraditionalHeader from '@/components/hanji/TraditionalHeader';
 import { BackIcon, KnotMotif, LotusMotif } from '@/components/hanji/motifs';
@@ -367,6 +368,8 @@ export default function SajuDetailPage() {
   const router = useRouter();
   // localStorage 는 클라이언트에만 존재하므로 마운트 후에 한 번 읽는다 (SSR 안전)
   const [loaded, setLoaded] = useState<{ profile: SajuProfile | null } | null>(null);
+  /** 약장(藥欌) 처방 애니메이션이 끝났는지 — 끝나면 오행 배지를 띄운다 */
+  const [cabinetDone, setCabinetDone] = useState(false);
 
   useEffect(() => {
     setLoaded({ profile: loadSajuProfile() });
@@ -1063,33 +1066,40 @@ export default function SajuDetailPage() {
               </span>
             </div>
 
-            <motion.div
-              className="mt-4 flex h-28 w-28 flex-col items-center justify-center rounded-full"
+            {/* 약장(藥欌) — 다섯 서랍 중 내 용신 서랍이 열린다 */}
+            <div className="mt-2 flex w-full justify-center">
+              <YongsinCabinet
+                yongsin={yongsin.yongsin}
+                width={214}
+                onComplete={() => setCabinetDone(true)}
+              />
+            </div>
+
+            {/* 처방이 끝나면 오행 배지가 떠오른다 */}
+            <motion.span
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-[5px] text-[12px] font-bold leading-none"
               style={{
                 background: yongsinColor,
-                boxShadow: `0 6px 22px ${yongsinColor}33`,
+                color: HANJI,
+                boxShadow: `0 4px 14px ${yongsinColor}33`,
               }}
-              initial={{ scale: 0.86, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.36, duration: 0.45, ease: 'easeOut' }}
+              initial={{ opacity: 0, y: 6, scale: 0.9 }}
+              animate={
+                cabinetDone
+                  ? { opacity: 1, y: 0, scale: 1 }
+                  : { opacity: 0, y: 6, scale: 0.9 }
+              }
+              transition={{ duration: 0.4, ease: 'easeOut' }}
             >
-              <span className="text-base leading-none">{yongsinInfo.emoji}</span>
-              <span
-                className="font-serif-kr text-[46px] font-bold leading-none"
-                style={{ color: HANJI }}
-              >
+              <span className="text-[13px] leading-none">{yongsinInfo.emoji}</span>
+              <span className="font-serif-kr text-[14px] leading-none">
                 {yongsinInfo.hanja}
               </span>
-              <span
-                className="mt-0.5 text-[12px] font-bold leading-none"
-                style={{ color: `${HANJI}D9` }}
-              >
-                {yongsin.yongsin}
-              </span>
-            </motion.div>
+              <span className="leading-none">{yongsin.yongsin}</span>
+            </motion.span>
 
             <span
-              className="mt-3 text-[11px] leading-tight"
+              className="mt-2 text-[11px] leading-tight"
               style={{ color: `${GALSAEK}AA` }}
             >
               {yongsinInfo.season} · {yongsinInfo.direction} · {yongsinInfo.meaning}
