@@ -11,7 +11,7 @@ import {
   LotusMotif,
 } from '@/components/hanji/motifs';
 import { getTalismanById } from '@/data/talismans';
-import { pushTalismanToWidget } from '@/lib/widget-bridge';
+import { hasWidgetBridge, pushTalismanToWidget } from '@/lib/widget-bridge';
 import hosinbuGift from '../../../public/talismans/hosinbu-gift.png';
 import wordmarkFull from '../../../public/brand/wordmark.png';
 
@@ -1412,6 +1412,10 @@ function StepTalismanGift({
   onComplete: () => void;
 }) {
   const [saved, setSaved] = useState(false);
+  /* 네이티브 앱에서만: 저장 후 "위젯에도 담을까요?" 질문 단계 */
+  const [askWidget, setAskWidget] = useState(false);
+  const [widgetDone, setWidgetDone] = useState(false);
+  const giftSvgRef = useRef<string | null>(null);
 
   const handleSave = useCallback(async () => {
     const hour = effectiveHour(info.hour);
@@ -1513,12 +1517,7 @@ function StepTalismanGift({
           'bujeok-collection',
           JSON.stringify([entry, ...list])
         );
-        // 네이티브 앱이면 홈 화면 위젯에도 첫 부적을 띄운다 (웹에선 no-op)
-        void pushTalismanToWidget(giftSvg, {
-          name: '호신부',
-          hanja: '護身符',
-          savedAt: now,
-        });
+        giftSvgRef.current = giftSvg; // 위젯 담기 질문에서 사용
       }
     } catch {
       // 부적함 저장이 실패해도 온보딩 완료는 막지 않는다
@@ -1537,10 +1536,37 @@ function StepTalismanGift({
     });
 
     setSaved(true);
+
+    // 네이티브 앱(위젯 브릿지 존재)이면 위젯 담기를 물어보고, 아니면 바로 홈으로
+    if (hasWidgetBridge() && giftSvgRef.current) {
+      setTimeout(() => setAskWidget(true), 900);
+    } else {
+      setTimeout(() => {
+        onComplete();
+      }, 1200);
+    }
+  }, [info, onComplete]);
+
+  /* 위젯에 담기 / 나중에 하기 */
+  const handleWidgetYes = useCallback(() => {
+    if (giftSvgRef.current) {
+      void pushTalismanToWidget(giftSvgRef.current, {
+        name: '호신부',
+        hanja: '護身符',
+        savedAt: new Date().toISOString(),
+      });
+    }
+    setWidgetDone(true);
     setTimeout(() => {
       onComplete();
-    }, 1200);
-  }, [info, onComplete]);
+    }, 2600);
+  }, [onComplete]);
+
+  const handleWidgetLater = useCallback(() => {
+    setTimeout(() => {
+      onComplete();
+    }, 250);
+  }, [onComplete]);
 
   return (
     <motion.div
@@ -1610,45 +1636,107 @@ function StepTalismanGift({
 
       <div className="flex-1" />
 
-      {/* Save button */}
-      <motion.button
-        className="relative z-10 w-full max-w-xs rounded-2xl px-8 py-4 text-base font-bold tracking-wider"
-        style={{
-          background: saved
-            ? `linear-gradient(135deg, #4CAF50, #388E3C)`
-            : `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})`,
-          color: '#F6EDD9',
-          boxShadow: saved ? `0 4px 30px #4CAF5040` : `0 4px 30px ${GOLD}40`,
-        }}
-        whileHover={!saved ? { scale: 1.02 } : {}}
-        whileTap={!saved ? { scale: 0.97 } : {}}
-        onClick={!saved ? handleSave : undefined}
-        initial={{ y: 30, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 1.8 }}
-        disabled={saved}
-      >
-        <AnimatePresence mode="wait">
-          {saved ? (
-            <motion.span
-              key="saved"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-center gap-2"
-            >
-              ✓ 부적함에 담았습니다
-            </motion.span>
-          ) : (
-            <motion.span
-              key="save"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              부적함에 담기
-            </motion.span>
-          )}
-        </AnimatePresence>
-      </motion.button>
+      {/* Save button ↔ 위젯 담기 질문 카드 */}
+      <AnimatePresence mode="wait">
+        {!askWidget ? (
+          <motion.button
+            key="save-btn"
+            className="relative z-10 w-full max-w-xs rounded-2xl px-8 py-4 text-base font-bold tracking-wider"
+            style={{
+              background: saved
+                ? `linear-gradient(135deg, #4CAF50, #388E3C)`
+                : `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})`,
+              color: '#F6EDD9',
+              boxShadow: saved ? `0 4px 30px #4CAF5040` : `0 4px 30px ${GOLD}40`,
+            }}
+            whileHover={!saved ? { scale: 1.02 } : {}}
+            whileTap={!saved ? { scale: 0.97 } : {}}
+            onClick={!saved ? handleSave : undefined}
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 20, opacity: 0 }}
+            transition={{ delay: saved ? 0 : 1.8 }}
+            disabled={saved}
+          >
+            <AnimatePresence mode="wait">
+              {saved ? (
+                <motion.span
+                  key="saved"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center justify-center gap-2"
+                >
+                  ✓ 부적함에 담았습니다
+                </motion.span>
+              ) : (
+                <motion.span
+                  key="save"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  부적함에 담기
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.button>
+        ) : (
+          <motion.div
+            key="widget-ask"
+            className="hanji-card relative z-10 w-full max-w-xs rounded-2xl px-6 py-5 text-center"
+            initial={{ y: 24, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {!widgetDone ? (
+              <>
+                <p className="font-serif-kr text-base font-bold text-[var(--color-meok)]">
+                  홈 화면 위젯에도 담아드릴까요?
+                </p>
+                <p className="mt-2 text-xs leading-relaxed text-[var(--color-galsaek)]">
+                  부적은 몸에 지니고 다닐 때 힘을 낸다고 해요.
+                  <br />
+                  위젯에 담아두면 휴대폰을 열 때마다
+                  <br />
+                  호신부가 당신의 하루를 지켜드려요.
+                </p>
+                <button
+                  className="mt-4 w-full rounded-xl px-6 py-3 text-sm font-bold tracking-wider"
+                  style={{
+                    background: `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})`,
+                    color: '#F6EDD9',
+                    boxShadow: `0 4px 20px ${GOLD}40`,
+                  }}
+                  onClick={handleWidgetYes}
+                >
+                  위젯에 담기
+                </button>
+                <button
+                  className="mt-2 w-full py-2 text-xs text-[var(--color-galsaek)] opacity-80"
+                  onClick={handleWidgetLater}
+                >
+                  나중에 할게요
+                </button>
+              </>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <p className="font-serif-kr text-base font-bold text-[var(--color-meok)]">
+                  ✓ 위젯에 담았어요
+                </p>
+                <p className="mt-2 text-xs leading-relaxed text-[var(--color-galsaek)]">
+                  홈 화면을 길게 눌러 &lsquo;수호부&rsquo; 위젯을 추가하면
+                  <br />
+                  바로 만날 수 있어요. 시간이 흐르면 종이가
+                  <br />
+                  조금씩 낡아가요 — 당신을 지켜온 흔적이에요.
+                </p>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
