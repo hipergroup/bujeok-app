@@ -1415,7 +1415,10 @@ function StepTalismanGift({
   /* 네이티브 앱에서만: 저장 후 "위젯에도 담을까요?" 질문 단계 */
   const [askWidget, setAskWidget] = useState(false);
   const [widgetDone, setWidgetDone] = useState(false);
+  /* 질문을 못 띄울 때 이유를 보여주는 안내 (웹 안내 겸 진단) */
+  const [widgetNote, setWidgetNote] = useState('');
   const giftSvgRef = useRef<string | null>(null);
+  const saveErrorRef = useRef<string | null>(null);
 
   const handleSave = useCallback(async () => {
     const hour = effectiveHour(info.hour);
@@ -1523,8 +1526,9 @@ function StepTalismanGift({
         );
         giftSvgRef.current = giftSvg; // 위젯 담기 질문에서 사용
       }
-    } catch {
+    } catch (e) {
       // 부적함 저장이 실패해도 온보딩 완료는 막지 않는다
+      saveErrorRef.current = e instanceof Error ? e.message : String(e);
     }
 
     // 공용 스토어(bujeok_app_v1)에도 프로필 반영
@@ -1545,9 +1549,17 @@ function StepTalismanGift({
     if (hasWidgetBridge() && giftSvgRef.current) {
       setTimeout(() => setAskWidget(true), 900);
     } else {
+      if (hasWidgetBridge()) {
+        // 브릿지는 있는데 부적 준비가 안 됨 — 원인을 화면에 남긴다
+        setWidgetNote(
+          `위젯 담기를 준비하지 못했어요 (${saveErrorRef.current ?? '부적 데이터 없음'})`
+        );
+      } else {
+        setWidgetNote('홈 화면 위젯은 수호부 앱에서 지원돼요');
+      }
       setTimeout(() => {
         onComplete();
-      }, 1200);
+      }, 2200);
     }
   }, [info, onComplete]);
 
@@ -1682,6 +1694,15 @@ function StepTalismanGift({
                 </motion.span>
               )}
             </AnimatePresence>
+            {saved && widgetNote && (
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="absolute -bottom-7 left-0 right-0 text-center text-[11px] font-normal text-[var(--color-galsaek)] opacity-90"
+              >
+                {widgetNote}
+              </motion.span>
+            )}
           </motion.button>
         ) : (
           <motion.div

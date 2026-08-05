@@ -70,6 +70,8 @@ struct WebView: UIViewRepresentable {
         web.scrollView.backgroundColor = hanjiUIColor
         // viewport-fit=cover + env(safe-area-inset-*)를 웹이 처리하므로 네이티브 인셋은 끈다
         web.scrollView.contentInsetAdjustmentBehavior = .never
+        // 개발 서명 빌드 진단용: Safari/pymobiledevice3 웹 인스펙터 연결 허용
+        web.isInspectable = true
         // 항상 서버와 재검증(ETag 304) — 배포 직후에도 옛 캐시 페이지가 뜨지 않게
         web.load(URLRequest(url: appURL, cachePolicy: .reloadRevalidatingCacheData))
         return web
