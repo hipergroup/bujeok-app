@@ -1,5 +1,6 @@
 import WidgetKit
 import SwiftUI
+import ImageIO
 
 // ============================================================
 // 수호부 홈 화면 위젯 — "당신의 하루를 지켜주는 작은 부적"
@@ -29,48 +30,77 @@ private func parseISODate(_ s: String) -> Date? {
     return ISO8601DateFormatter().date(from: s)
 }
 
+/// 공유 저장소에서 한 번만 읽는 부적 데이터 — 타임라인 엔트리들이 이미지를 공유한다
+private struct SharedTalisman {
+    let image: UIImage
+    let name: String
+    let savedAt: Date?
+}
+
+/// 큰 원본이 와도 위젯 메모리 한도(약 30MB)를 넘지 않게 축소 디코딩한다.
+/// UIImage(data:)로 원본 전체를 디코딩하면 3배율 PNG에서 한도를 넘어
+/// 타임라인 생성이 실패하고 위젯이 이전(빈) 스냅샷에 머물 수 있다.
+private func downsampledImage(_ url: URL, maxPixel: CGFloat) -> UIImage? {
+    guard let src = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+    let opts: [CFString: Any] = [
+        kCGImageSourceCreateThumbnailFromImageAlways: true,
+        kCGImageSourceCreateThumbnailWithTransform: true,
+        kCGImageSourceThumbnailMaxPixelSize: maxPixel,
+    ]
+    guard let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, opts as CFDictionary) else {
+        return nil
+    }
+    return UIImage(cgImage: cg)
+}
+
+private func loadShared() -> SharedTalisman? {
+    guard
+        let container = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: appGroupID
+        ),
+        let metaData = try? Data(
+            contentsOf: container.appendingPathComponent("widget-meta.json")
+        ),
+        let meta = try? JSONSerialization.jsonObject(with: metaData) as? [String: Any],
+        let img = downsampledImage(
+            container.appendingPathComponent("widget-talisman.png"),
+            maxPixel: 1200
+        )
+    else { return nil }
+    return SharedTalisman(
+        image: img,
+        name: meta["name"] as? String ?? "부적",
+        savedAt: (meta["savedAt"] as? String).flatMap(parseISODate)
+    )
+}
+
 struct Provider: TimelineProvider {
-    private func loadEntry(for date: Date) -> TalismanEntry {
-        guard
-            let container = FileManager.default.containerURL(
-                forSecurityApplicationGroupIdentifier: appGroupID
-            ),
-            let metaData = try? Data(
-                contentsOf: container.appendingPathComponent("widget-meta.json")
-            ),
-            let meta = try? JSONSerialization.jsonObject(with: metaData) as? [String: Any],
-            let imgData = try? Data(
-                contentsOf: container.appendingPathComponent("widget-talisman.png")
-            ),
-            let img = UIImage(data: imgData)
-        else {
-            return TalismanEntry(date: date, image: nil, name: "수호부", savedAt: nil)
-        }
-        let savedAt = (meta["savedAt"] as? String).flatMap(parseISODate)
-        return TalismanEntry(
+    private func entry(for date: Date, shared: SharedTalisman?) -> TalismanEntry {
+        TalismanEntry(
             date: date,
-            image: img,
-            name: meta["name"] as? String ?? "부적",
-            savedAt: savedAt
+            image: shared?.image,
+            name: shared?.name ?? "수호부",
+            savedAt: shared?.savedAt
         )
     }
 
     func placeholder(in context: Context) -> TalismanEntry {
-        loadEntry(for: Date())
+        entry(for: Date(), shared: loadShared())
     }
 
     func getSnapshot(in context: Context, completion: @escaping (TalismanEntry) -> Void) {
-        completion(loadEntry(for: Date()))
+        completion(entry(for: Date(), shared: loadShared()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TalismanEntry>) -> Void) {
-        // 매일 자정 항목 — 종이가 하루씩 낡아간다
-        var entries: [TalismanEntry] = [loadEntry(for: Date())]
+        // 이미지는 한 번만 읽고, 매일 자정 항목이 공유한다 — 종이가 하루씩 낡아간다
+        let shared = loadShared()
+        var entries: [TalismanEntry] = [entry(for: Date(), shared: shared)]
         let cal = Calendar.current
         let todayStart = cal.startOfDay(for: Date())
         for day in 1...7 {
             if let date = cal.date(byAdding: .day, value: day, to: todayStart) {
-                entries.append(loadEntry(for: date))
+                entries.append(entry(for: date, shared: shared))
             }
         }
         completion(Timeline(entries: entries, policy: .atEnd))

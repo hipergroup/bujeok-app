@@ -52,6 +52,10 @@ struct ContentView: View {
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20))
             }
         }
+        .onAppear {
+            // 앱을 열 때마다 위젯 타임라인 갱신 — 이전 실패 상태도 자가 회복
+            WidgetCenter.shared.reloadAllTimelines()
+        }
     }
 }
 

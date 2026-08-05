@@ -57,6 +57,23 @@ export function debugToNative(msg: string): void {
 /**
  * 부적 SVG를 PNG로 합성해 위젯으로 보낸다. 실패해도 앱 흐름에 영향 없음.
  */
+/** 위젯 표시 해상도(대형 위젯 3배율 기준)를 넘는 원본은 축소해 전송 부담을 줄인다 */
+async function downscaleForWidget(blob: Blob, maxHeight: number): Promise<Blob> {
+  const bmp = await createImageBitmap(blob);
+  if (bmp.height <= maxHeight) return blob;
+  const width = Math.round((bmp.width * maxHeight) / bmp.height);
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = maxHeight;
+  canvas.getContext('2d')!.drawImage(bmp, 0, 0, width, maxHeight);
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error('위젯 이미지 축소 실패'))),
+      'image/png'
+    );
+  });
+}
+
 export async function pushTalismanToWidget(
   svg: string,
   meta: WidgetTalisman
@@ -68,7 +85,7 @@ export async function pushTalismanToWidget(
       name: meta.name,
       hanja: meta.hanja,
     });
-    const png = await blobToBase64(blob);
+    const png = await blobToBase64(await downscaleForWidget(blob, 1120));
     bridge.postMessage({ ...meta, png });
     debugToNative(`push-ok: ${meta.name} (${png.length} chars)`);
   } catch (e) {
