@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SavedTalisman, TalismanInfo } from '@/lib/types';
 import { getEnergyByCategory } from '@/data/energies';
+import { hasWidgetBridge, pushTalismanToWidget } from '@/lib/widget-bridge';
 import TalismanThumbnail from './TalismanThumbnail';
 
 interface TalismanModalProps {
@@ -82,6 +83,13 @@ export default function TalismanModal({
   actionButton,
 }: TalismanModalProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  /* 네이티브 앱에서만 true — 홈 화면 위젯으로 보내기 지원 여부 */
+  const [canWidget, setCanWidget] = useState(false);
+  const [widgetDone, setWidgetDone] = useState(false);
+
+  useEffect(() => {
+    setCanWidget(hasWidgetBridge());
+  }, []);
 
   if (!talisman) return null;
 
@@ -136,6 +144,19 @@ export default function TalismanModal({
     }
     onDelete?.();
     setConfirmDelete(false);
+  };
+
+  /* 이 부적을 홈 화면 위젯으로 보낸다 (네이티브 앱 전용) */
+  const handleWidget = async () => {
+    if (!saved || !talisman.svg || widgetDone) return;
+    await pushTalismanToWidget(talisman.svg, {
+      name: talisman.name,
+      hanja: talisman.hanja,
+      note: talisman.note,
+      savedAt: talisman.savedAt,
+    });
+    setWidgetDone(true);
+    setTimeout(() => setWidgetDone(false), 2400);
   };
 
   const actionBtnStyle: React.CSSProperties = {
@@ -279,6 +300,26 @@ export default function TalismanModal({
             {/* Action buttons */}
             <div className="mt-6 flex w-full flex-col gap-3">
               {actionButton}
+
+              {saved && canWidget && talisman.svg && (
+                <button
+                  onClick={handleWidget}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition active:scale-95"
+                  style={{
+                    border: '1px solid rgba(167,43,33,0.45)',
+                    backgroundColor: widgetDone
+                      ? 'rgba(76,175,80,0.12)'
+                      : 'rgba(167,43,33,0.07)',
+                    color: widgetDone ? '#2E7D32' : 'var(--color-juhong)',
+                  }}
+                >
+                  {widgetDone ? (
+                    <>✓ 위젯에 담았어요 — 홈 화면에서 확인해 보세요</>
+                  ) : (
+                    <>📌 위젯에 담기</>
+                  )}
+                </button>
+              )}
 
               {saved && (
                 <div className="flex w-full gap-3">
