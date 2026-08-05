@@ -369,8 +369,8 @@ function TalismanFlow() {
           const resultMsg: ChatMessage = {
             id: "result",
             text: supportiveModeRef.current
-              ? `당신의 마음을 가만히 담아봤어요 🌿\n\n「${SUPPORTIVE_TALISMAN.name}」\n\n${SUPPORTIVE_TALISMAN.description}`
-              : `당신에게 어울리는 부적을 찾았어요 ✨\n\n「${rec.name} (${rec.hanja})」\n\n${rec.description}`,
+              ? `당신의 마음을 가만히 담아봤어요\n\n「${SUPPORTIVE_TALISMAN.name}」\n\n${SUPPORTIVE_TALISMAN.description}`
+              : `당신에게 어울리는 부적을 찾았어요\n\n「${rec.name} (${rec.hanja})」\n\n${rec.description}`,
             isBot: true,
           };
           setMessages((prev) => [...prev, resultMsg]);
@@ -518,7 +518,7 @@ function TalismanFlow() {
         const result = await shareOrDownload(
           blob,
           `수호부_${talismanName}`,
-          `✨ 나만의 부적 「${talismanName}」을 만들었어요 🙏`
+          `나만의 부적 「${talismanName}」을 만들었어요`
         );
         if (result !== "cancelled") {
           setShareStatus(format);
@@ -556,7 +556,7 @@ function TalismanFlow() {
         title="나만의 부적 만들기"
         right={
           <button
-            onClick={() => alert("설정은 준비 중이에요 🙏")}
+            onClick={() => alert("설정은 준비 중이에요")}
             aria-label="설정"
           >
             <GearIcon size={20} />

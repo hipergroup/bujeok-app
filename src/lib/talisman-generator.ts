@@ -148,7 +148,7 @@ function wrapText(text: string, maxCharsPerLine: number): string[] {
 
 // ─── 동물 심볼 SVG 패스 ────────────────────────────────────
 
-const ANIMAL_PATHS: Record<string, string> = {
+export const ANIMAL_PATHS: Record<string, string> = {
   쥐: `<g transform="translate(-20,-20) scale(0.8)">
     <circle cx="25" cy="15" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
     <circle cx="25" cy="35" r="15" fill="none" stroke="currentColor" stroke-width="2"/>

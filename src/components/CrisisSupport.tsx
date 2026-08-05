@@ -13,6 +13,7 @@
 // ============================================================
 
 import { motion, AnimatePresence } from "framer-motion";
+import { PhoneMotif } from "./hanji/motifs";
 import { useEffect } from "react";
 import { CRISIS_HOTLINES, telHref, type Hotline } from "@/lib/crisis-detection";
 
@@ -60,9 +61,7 @@ function HotlineButton({ hotline, delay }: { hotline: Hotline; delay: number }) 
         hover:bg-[#e2edf7] hover:border-[#a9c8e0]
         active:scale-[0.98] transition-all duration-200"
     >
-      <span className="text-xl leading-none" aria-hidden="true">
-        📞
-      </span>
+      <span aria-hidden="true"><PhoneMotif size={20} /></span>
       <span className="flex flex-col items-start min-w-0 flex-1">
         <span className="text-[13px] text-[#4d677f] leading-tight">
           {hotline.name}

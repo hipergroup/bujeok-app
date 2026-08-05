@@ -176,13 +176,13 @@ export default function HomePage() {
     <HanjiBackground decorated>
       <TraditionalHeader
         left={
-          <button onClick={() => alert("메뉴는 준비 중이에요 🙏")} aria-label="메뉴">
+          <button onClick={() => alert("메뉴는 준비 중이에요")} aria-label="메뉴">
             <MenuIcon size={22} />
           </button>
         }
         wordmark
         right={
-          <button onClick={() => alert("알림은 준비 중이에요 🙏")} aria-label="알림">
+          <button onClick={() => alert("알림은 준비 중이에요")} aria-label="알림">
             <BellIcon size={22} />
           </button>
         }

@@ -6,6 +6,7 @@ import { SavedTalisman, TalismanInfo } from '@/lib/types';
 import { getEnergyByCategory } from '@/data/energies';
 import { hasWidgetBridge, pushTalismanToWidget } from '@/lib/widget-bridge';
 import TalismanThumbnail from './TalismanThumbnail';
+import { ShareMotif, DownloadMotif, TrashMotif } from './hanji/motifs';
 
 interface TalismanModalProps {
   talisman: (SavedTalisman | TalismanInfo) | null;
@@ -328,14 +329,14 @@ export default function TalismanModal({
                     className="flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium text-[var(--color-galsaek)] transition active:scale-95"
                     style={actionBtnStyle}
                   >
-                    <span>📤</span> 공유
+                    <ShareMotif size={16} /> 공유
                   </button>
                   <button
                     onClick={handleDownload}
                     className="flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium text-[var(--color-galsaek)] transition active:scale-95"
                     style={actionBtnStyle}
                   >
-                    <span>⬇️</span> 다운로드
+                    <DownloadMotif size={16} /> 다운로드
                   </button>
                   <button
                     onClick={handleDelete}
@@ -345,7 +346,7 @@ export default function TalismanModal({
                         : 'border-red-900/30 bg-red-900/5 text-red-800'
                     }`}
                   >
-                    <span>🗑️</span> {confirmDelete ? '정말 삭제?' : '삭제'}
+                    <TrashMotif size={16} /> {confirmDelete ? '정말 삭제?' : '삭제'}
                   </button>
                 </div>
               )}

@@ -307,6 +307,133 @@ export function PersonTabIcon(props: MotifProps) {
   );
 }
 
+/* ══ 기본 이모지 대체 문양 (전통풍 선 아이콘) ══ */
+
+/** 두루마리 (받은 부적) */
+export function ScrollMotif(props: MotifProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 10c-3 0-5 2-5 5s2 5 5 5" stroke="currentColor" strokeWidth="2" />
+      <path d="M12 10h26c-3 2-3 8 0 10H12" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M36 20c3 0 5 2 5 5s-2 5-5 5H14c3 2 3 8 0 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M36 30H14M36 40H14c-3 0-5-2-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M20 15h12M20 25h12M20 35h8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" opacity="0.6" />
+    </Svg>
+  );
+}
+
+/** 고서 (도감) */
+export function BookMotif(props: MotifProps) {
+  return (
+    <Svg {...props}>
+      <path d="M24 12c-4-3-10-4-15-3v27c5-1 11 0 15 3 4-3 10-4 15-3V9c-5-1-11 0-15 3z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M24 12v27" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M13 16c2.5-.4 5.5 0 8 1M13 22c2.5-.4 5.5 0 8 1M13 28c2.5-.4 5.5 0 8 1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.6" />
+      <path d="M35 16c-2.5-.4-5.5 0-8 1M35 22c-2.5-.4-5.5 0-8 1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.6" />
+    </Svg>
+  );
+}
+
+/** 소각 (삭제 — 부적은 태워 보낸다) */
+export function TrashMotif(props: MotifProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 16h24M20 16v-3h8v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 16l2 24h14l2-24" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M21 22v12M27 22v12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** 안내 (두루마리 인장) */
+export function InfoMotif(props: MotifProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="24" cy="24" r="17" stroke="currentColor" strokeWidth="2" />
+      <circle cx="24" cy="15.5" r="1.8" fill="currentColor" />
+      <path d="M24 21v13" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M20 34h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** 나눔 (공유) */
+export function ShareMotif(props: MotifProps) {
+  return (
+    <Svg {...props}>
+      <path d="M24 28V8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M17 14l7-7 7 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 24h-4v16h28V24h-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+/** 내려받기 */
+export function DownloadMotif(props: MotifProps) {
+  return (
+    <Svg {...props}>
+      <path d="M24 8v20" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M17 22l7 7 7-7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10 34v6h28v-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+/** 전화 */
+export function PhoneMotif(props: MotifProps) {
+  return (
+    <Svg {...props}>
+      <path
+        d="M16 8c2 0 4 4 4 6 0 2-3 3-3 5s2 5 4 7 5 4 7 4 3-3 5-3 6 2 6 4-2 6-6 6C21 37 11 27 11 15c0-4 3-7 5-7z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/** 찾기 (돋보기) */
+export function SearchMotif(props: MotifProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="21" cy="21" r="11" stroke="currentColor" strokeWidth="2.2" />
+      <path d="M30 30l10 10" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** 새싹 (오행 목) */
+export function SproutMotif(props: MotifProps) {
+  return (
+    <Svg {...props}>
+      <path d="M24 40V22" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M24 24c0-8-5-13-13-13 0 8 5 13 13 13z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M24 20c0-6 4-10 10-10 0 6-4 10-10 10z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+/** 칼 (오행 금) */
+export function SwordMotif(props: MotifProps) {
+  return (
+    <Svg {...props}>
+      <path d="M30 8l8 8-16 18-8 2 2-8L30 8z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M14 34l-4 4M18 38l-2 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** 물방울 (오행 수) */
+export function WaterDropMotif(props: MotifProps) {
+  return (
+    <Svg {...props}>
+      <path d="M24 7c6 8 12 14 12 21a12 12 0 11-24 0c0-7 6-13 12-21z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M18 28a6 6 0 006 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+    </Svg>
+  );
+}
+
 /** 기운(motif kind) → 문양 컴포넌트 */
 export const MOTIF_COMPONENTS = {
   knot: KnotMotif,

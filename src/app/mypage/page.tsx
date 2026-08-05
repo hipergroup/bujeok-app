@@ -10,6 +10,17 @@ import { TOTAL_TALISMAN_COUNT } from '@/data/talismans';
 import { getSaju, getOheng, type SajuResult } from '@/data/saju';
 import { getDailyFortune } from '@/data/fortune';
 import { CRISIS_HOTLINES, SAFETY_DISCLAIMER, telHref } from '@/lib/crisis-detection';
+import {
+  ScrollMotif,
+  BookMotif,
+  FlameMotif,
+  BellIcon,
+  TrashMotif,
+  InfoMotif,
+  PhoneMotif,
+  BrushTabIcon,
+} from '@/components/hanji/motifs';
+import AnimalMotif from '@/components/hanji/AnimalMotif';
 
 /* ── 온보딩이 저장한 프로필 로드 ───────────────────── */
 
@@ -193,7 +204,7 @@ function SettingsRow({
   danger,
   onClick,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   href?: string;
   danger?: boolean;
@@ -206,7 +217,7 @@ function SettingsRow({
   }`;
   const inner = (
     <>
-      <span className="text-base">{icon}</span>
+      <span className="flex h-5 w-5 items-center justify-center opacity-80">{icon}</span>
       <span className="flex-1 text-sm">{label}</span>
       <span className="text-xs text-[var(--color-galsaek)] opacity-50">›</span>
     </>
@@ -271,8 +282,8 @@ function ServiceInfoSheet({ onClose }: { onClose: () => void }) {
                 href={telHref(h.number)}
                 className="flex items-center gap-3 rounded-2xl border border-[#c9dcec] bg-[#eef4fa] px-4 py-3.5 text-[#22384d] shadow-sm transition-all duration-200 hover:bg-[#e2edf7] active:scale-[0.98]"
               >
-                <span className="text-xl leading-none" aria-hidden="true">
-                  📞
+                <span className="leading-none text-[#4d677f]" aria-hidden="true">
+                  <PhoneMotif size={20} />
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col items-start">
                   <span className="text-[13px] leading-tight text-[#4d677f]">{h.name}</span>
@@ -390,10 +401,10 @@ export default function MyPage() {
             <>
               <div className="flex items-center gap-4">
                 <div
-                  className="flex h-14 w-14 items-center justify-center rounded-full text-3xl"
+                  className="flex h-14 w-14 items-center justify-center rounded-full text-[var(--color-juhong)]"
                   style={{ border: '1.5px solid rgba(167,43,33,0.35)' }}
                 >
-                  {profile?.animalEmoji ?? '✨'}
+                  <AnimalMotif animal={profile?.animal} size={36} />
                 </div>
                 <div className="flex-1">
                   <h2 className="font-serif-kr text-lg font-bold text-[var(--color-meok)]">
@@ -465,15 +476,15 @@ export default function MyPage() {
           className="grid grid-cols-3 gap-3"
         >
           {[
-            { label: '받은 부적', value: `${collectedCount}개`, icon: '📜' },
-            { label: '수집 종류', value: `${collectedCount}/${TOTAL_TALISMAN_COUNT}`, icon: '📖' },
-            { label: '연속 방문', value: `${streakDays}일`, icon: '🔥' },
+            { label: '받은 부적', value: `${collectedCount}개`, icon: <ScrollMotif size={20} /> },
+            { label: '수집 종류', value: `${collectedCount}/${TOTAL_TALISMAN_COUNT}`, icon: <BookMotif size={20} /> },
+            { label: '연속 방문', value: `${streakDays}일`, icon: <FlameMotif size={20} /> },
           ].map((stat) => (
             <div
               key={stat.label}
               className="hanji-card flex flex-col items-center gap-1 rounded-xl p-4"
             >
-              <span className="text-xl">{stat.icon}</span>
+              <span className="flex h-6 items-center text-[var(--color-juhong)] opacity-80">{stat.icon}</span>
               <span className="font-serif-kr text-base font-bold text-[var(--color-meok)]">
                 {stat.value}
               </span>
@@ -507,17 +518,17 @@ export default function MyPage() {
           className="hanji-card rounded-2xl py-1"
         >
           <SettingsRow icon="🔮" label="내 사주 풀이" href="/saju" />
-          <SettingsRow icon="📖" label="부적 도감" href="/encyclopedia" />
+          <SettingsRow icon={<BookMotif size={18} />} label="부적 도감" href="/encyclopedia" />
           <SettingsRow icon="📚" label="사주 용어 사전" href="/glossary" />
-          <SettingsRow icon="📝" label="사주 정보 수정" href="/onboarding" />
+          <SettingsRow icon={<BrushTabIcon size={18} />} label="사주 정보 수정" href="/onboarding" />
           <SettingsRow
-            icon="🔔"
+            icon={<BellIcon size={18} />}
             label="알림 설정"
             onClick={() => alert('알림 설정은 준비 중이에요 🙏')}
           />
-          <SettingsRow icon="🗑️" label="데이터 초기화" danger onClick={handleDataReset} />
+          <SettingsRow icon={<TrashMotif size={18} />} label="데이터 초기화" danger onClick={handleDataReset} />
           <SettingsRow
-            icon="ℹ️"
+            icon={<InfoMotif size={18} />}
             label="서비스 안내"
             onClick={() => setShowServiceInfo(true)}
           />

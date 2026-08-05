@@ -70,7 +70,7 @@ export default function CollectionPage() {
         title="내 부적함"
         right={
           <button
-            onClick={() => alert('설정은 준비 중이에요 🙏')}
+            onClick={() => alert('설정은 준비 중이에요')}
             aria-label="설정"
           >
             <GearIcon size={20} />

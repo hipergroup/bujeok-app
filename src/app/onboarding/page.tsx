@@ -9,7 +9,12 @@ import {
   MountainMotif,
   KnotMotif,
   LotusMotif,
+  SproutMotif,
+  FlameMotif,
+  SwordMotif,
+  WaterDropMotif,
 } from '@/components/hanji/motifs';
+import AnimalMotif from '@/components/hanji/AnimalMotif';
 import { getTalismanById } from '@/data/talismans';
 import { hasWidgetBridge, pushTalismanToWidget } from '@/lib/widget-bridge';
 import hosinbuGift from '../../../public/talismans/hosinbu-gift.png';
@@ -98,12 +103,12 @@ const SSUK = '#6B7D63'; // --color-ssuk 쑥·세이지
 const HWANG = '#DAA017'; // --color-hwang 겨자·황
 
 /** 오행별 이모지 + 한 단어 의미 태그 (초보자용) */
-const OHENG_META: Record<Oheng, { emoji: string; tag: string }> = {
-  '목': { emoji: '🌱', tag: '성장' },
-  '화': { emoji: '🔥', tag: '열정' },
-  '토': { emoji: '⛰️', tag: '안정' },
-  '금': { emoji: '⚔️', tag: '결단' },
-  '수': { emoji: '💧', tag: '지혜' },
+const OHENG_META: Record<Oheng, { Motif: React.ComponentType<{ size?: number; className?: string }>; tag: string }> = {
+  '목': { Motif: SproutMotif, tag: '성장' },
+  '화': { Motif: FlameMotif, tag: '열정' },
+  '토': { Motif: MountainMotif, tag: '안정' },
+  '금': { Motif: SwordMotif, tag: '결단' },
+  '수': { Motif: WaterDropMotif, tag: '지혜' },
 };
 
 /** 기둥 의미 — 값이 비면 PILLAR_MEANINGS(년→월→일→시 순)에서 채운다 */
@@ -688,7 +693,7 @@ function StepBirthInfo({
         transition={{ delay: 0.7 }}
       >
         <div className="flex items-center justify-center gap-2" style={{ color: `${GOLD}77` }}>
-          <span className="text-2xl">{animal.emoji}</span>
+          <AnimalMotif animal={animal.name} size={30} />
           <span className="text-sm">{sajuYear}년 {animal.name}띠</span>
         </div>
         {sajuYear !== info.year && (
@@ -825,11 +830,11 @@ function StepSajuResult({
         </span>
         <div className="relative flex flex-col items-center text-center">
           <motion.span
-            className="text-6xl"
+            style={{ color: JUHONG }}
             animate={{ rotate: [0, -5, 5, 0] }}
             transition={{ duration: 2, delay: 1, repeat: Infinity, repeatDelay: 4 }}
           >
-            {reading.animal.emoji || animal.emoji}
+            <AnimalMotif animal={reading.animal.animal || animal.name} size={76} />
           </motion.span>
           <span
             className="mt-2 inline-block rounded-full px-3 py-1 text-xs font-bold"
@@ -915,7 +920,7 @@ function StepSajuResult({
             className="font-serif-kr mt-4 text-center text-[17px] font-bold leading-snug"
             style={{ color: MEOK }}
           >
-            당신은 <span style={{ color: ilganColor }}>{ilgan.emoji} {ilgan.symbol}</span> 같은 사람이에요
+            당신은 <span style={{ color: ilganColor }}>{ilgan.symbol}</span> 같은 사람이에요
           </p>
           <span
             className="mt-2 inline-block rounded-full px-3 py-1 text-xs font-bold"
@@ -1141,7 +1146,7 @@ function StepSajuResult({
             const isLacking = lacking.includes(name);
             return (
               <div key={name} className="flex min-w-0 flex-col items-center gap-1">
-                <span className="text-lg leading-none">{meta.emoji}</span>
+                <span className="leading-none"><meta.Motif size={18} /></span>
                 <span
                   className="text-[11px] font-bold tabular-nums"
                   style={{ color: OHENG_COLORS[name] }}
@@ -1201,7 +1206,7 @@ function StepSajuResult({
                 color: OHENG_COLORS[reading.oheng.dominant] ?? JUHONG,
               }}
             >
-              {OHENG_META[reading.oheng.dominant as Oheng]?.emoji} {reading.oheng.dominant} 기운 우세
+              {reading.oheng.dominant} 기운 우세
             </span>
             <span
               className="rounded-full px-2.5 py-[3px] text-[11px] font-medium"
