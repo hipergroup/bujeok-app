@@ -54,8 +54,9 @@ html {
 body {
   font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic",
     -apple-system, BlinkMacSystemFont, sans-serif;
-  background: linear-gradient(165deg, var(--color-bg-start) 0%, var(--color-bg-end) 100%);
-  color: var(--color-text-primary);
+  /* 한지색 — 스크롤 바운스·하단 틈에서 다크 배경이 비치지 않게 (구 다크 그라데이션 제거) */
+  background: var(--color-hanji);
+  color: var(--color-meok);
   min-height: 100dvh;
   overflow-x: hidden;
   padding-top: env(safe-area-inset-top);
