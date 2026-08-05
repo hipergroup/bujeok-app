@@ -45,6 +45,15 @@ export function hasWidgetBridge(): boolean {
   return typeof window !== 'undefined' && !!window.webkit?.messageHandlers?.widgetBridge;
 }
 
+/** 네이티브 앱 시스템 로그(os_log)로 진단 메시지 전송 — 웹에선 no-op */
+export function debugToNative(msg: string): void {
+  try {
+    window.webkit?.messageHandlers?.widgetBridge?.postMessage({ debug: msg });
+  } catch {
+    // no-op
+  }
+}
+
 /**
  * 부적 SVG를 PNG로 합성해 위젯으로 보낸다. 실패해도 앱 흐름에 영향 없음.
  */
@@ -61,7 +70,9 @@ export async function pushTalismanToWidget(
     });
     const png = await blobToBase64(blob);
     bridge.postMessage({ ...meta, png });
-  } catch {
-    // 위젯 전달 실패는 무시
+    debugToNative(`push-ok: ${meta.name} (${png.length} chars)`);
+  } catch (e) {
+    // 위젯 전달 실패는 앱 흐름을 막지 않되, 네이티브 로그에는 남긴다
+    debugToNative(`push-fail: ${e instanceof Error ? e.message : String(e)}`);
   }
 }

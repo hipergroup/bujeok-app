@@ -1,9 +1,13 @@
 import SwiftUI
 import WebKit
 import WidgetKit
+import os
 
 /// 위젯과 공유하는 App Group
 private let appGroupID = "group.com.juno.bujeok"
+
+/// 브릿지 진단 로그 — `pymobiledevice3 syslog live` 또는 Console.app에서 확인
+private let bridgeLog = Logger(subsystem: "com.juno.bujeok", category: "bridge")
 
 /// 배포된 웹앱을 여는 네이티브 껍데기.
 /// 웹(main 푸시 → GitHub Pages)만 갱신되면 앱 재설치 없이 내용이 바뀐다.
@@ -61,6 +65,7 @@ struct WebView: UIViewRepresentable {
         config.allowsInlineMediaPlayback = true
         // 웹 → 네이티브 위젯 브리지: 부적 저장 시 PNG·메타를 App Group에 기록
         config.userContentController.add(context.coordinator, name: "widgetBridge")
+        bridgeLog.notice("widgetBridge handler registered")
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
         web.uiDelegate = context.coordinator
@@ -88,14 +93,28 @@ struct WebView: UIViewRepresentable {
             _ userContentController: WKUserContentController,
             didReceive message: WKScriptMessage
         ) {
+            let rawBody = message.body as? [String: Any]
+
+            // 웹 쪽 진단 메시지는 로그만 남긴다
+            if let dbg = rawBody?["debug"] as? String {
+                bridgeLog.notice("web: \(dbg, privacy: .public)")
+                return
+            }
+            bridgeLog.notice(
+                "talisman message received (png \((rawBody?["png"] as? String)?.count ?? -1) chars)"
+            )
+
             guard message.name == "widgetBridge",
-                  let body = message.body as? [String: Any],
+                  let body = rawBody,
                   let pngBase64 = body["png"] as? String,
                   let data = Data(base64Encoded: pngBase64),
                   let container = FileManager.default.containerURL(
                     forSecurityApplicationGroupIdentifier: appGroupID
                   )
-            else { return }
+            else {
+                bridgeLog.error("talisman message rejected (payload or app-group)")
+                return
+            }
 
             let meta: [String: Any] = [
                 "name": body["name"] as? String ?? "부적",
@@ -109,6 +128,18 @@ struct WebView: UIViewRepresentable {
                 try? metaData.write(to: container.appendingPathComponent("widget-meta.json"))
             }
             WidgetCenter.shared.reloadAllTimelines()
+            bridgeLog.notice("widget files written, timelines reloaded")
+        }
+
+        /// 페이지 로드 완료 시 JS 컨텍스트에서 브릿지가 보이는지 자가 진단
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            webView.evaluateJavaScript(
+                "!!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.widgetBridge)"
+            ) { result, error in
+                bridgeLog.notice(
+                    "js-probe bridgeVisible=\(String(describing: result), privacy: .public) error=\(String(describing: error), privacy: .public)"
+                )
+            }
         }
 
         // tel:(위기 지원 전화)·mailto: 등 웹뷰가 못 여는 스킴은 시스템으로 넘긴다

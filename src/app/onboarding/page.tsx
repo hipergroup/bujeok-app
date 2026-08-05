@@ -16,7 +16,11 @@ import {
 } from '@/components/hanji/motifs';
 import AnimalMotif from '@/components/hanji/AnimalMotif';
 import { getTalismanById } from '@/data/talismans';
-import { hasWidgetBridge, pushTalismanToWidget } from '@/lib/widget-bridge';
+import {
+  debugToNative,
+  hasWidgetBridge,
+  pushTalismanToWidget,
+} from '@/lib/widget-bridge';
 import hosinbuGift from '../../../public/talismans/hosinbu-gift.png';
 import wordmarkFull from '../../../public/brand/wordmark.png';
 
@@ -1534,6 +1538,7 @@ function StepTalismanGift({
     } catch (e) {
       // 부적함 저장이 실패해도 온보딩 완료는 막지 않는다
       saveErrorRef.current = e instanceof Error ? e.message : String(e);
+      debugToNative(`gift-error: ${saveErrorRef.current}`);
     }
 
     // 공용 스토어(bujeok_app_v1)에도 프로필 반영
@@ -1551,6 +1556,9 @@ function StepTalismanGift({
     setSaved(true);
 
     // 네이티브 앱(위젯 브릿지 존재)이면 위젯 담기를 물어보고, 아니면 바로 홈으로
+    debugToNative(
+      `gift-save: bridge=${hasWidgetBridge()} svgReady=${!!giftSvgRef.current}`
+    );
     if (hasWidgetBridge() && giftSvgRef.current) {
       setTimeout(() => setAskWidget(true), 900);
     } else {
