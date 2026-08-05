@@ -123,16 +123,22 @@ struct TalismanWidgetView: View {
         GeometryReader { geo in
             ZStack {
                 if let ui = entry.image {
+                    // 부적 온장이 잘리지 않게 — 한지 바탕 위에 통째로 올린다
                     Image(uiImage: ui)
                         .resizable()
-                        .scaledToFill()
+                        .scaledToFit()
+                        .overlay(
+                            // 세월의 갈변 — 부적 종이만 은은하게 진해진다
+                            Color(red: 0.48, green: 0.29, blue: 0.20)
+                                .opacity(0.10 * age)
+                                .blendMode(.multiply)
+                        )
+                        .shadow(
+                            color: Color(red: 0.35, green: 0.20, blue: 0.12).opacity(0.30),
+                            radius: 5, y: 2
+                        )
+                        .padding(5)
                         .frame(width: geo.size.width, height: geo.size.height)
-                        .clipped()
-
-                    // 세월의 갈변 — 은은하게 진해진다
-                    Color(red: 0.48, green: 0.29, blue: 0.20)
-                        .opacity(0.10 * age)
-                        .blendMode(.multiply)
 
                     // 가장자리 바램(비네트)
                     RadialGradient(
