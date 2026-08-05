@@ -1583,6 +1583,7 @@ function StepTalismanGift({
         name: '호신부',
         hanja: '護身符',
         savedAt: new Date().toISOString(),
+        agingDays: 3, // 서비스로 드리는 부적 — 사흘에 걸쳐 낡아간다
       });
     }
     setWidgetDone(true);
@@ -1766,9 +1767,9 @@ function StepTalismanGift({
                 <p className="mt-2 text-xs leading-relaxed text-[var(--color-galsaek)]">
                   홈 화면을 길게 눌러 &lsquo;수호부&rsquo; 위젯을 추가하면
                   <br />
-                  바로 만날 수 있어요. 시간이 흐르면 종이가
+                  바로 만날 수 있어요. 선물 부적은 사흘에 걸쳐
                   <br />
-                  조금씩 낡아가요 — 당신을 지켜온 흔적이에요.
+                  조금씩 낡아가요 — 새 부적으로 마음을 다시 채워보세요.
                 </p>
               </motion.div>
             )}

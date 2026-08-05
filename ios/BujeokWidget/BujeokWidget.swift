@@ -21,6 +21,8 @@ struct TalismanEntry: TimelineEntry {
     let image: UIImage?
     let name: String
     let savedAt: Date?
+    /// 종이가 다 낡기까지 걸리는 기간(일) — 선물 부적 3일, 기본 45일
+    let agingDays: Double
 }
 
 private func parseISODate(_ s: String) -> Date? {
@@ -35,6 +37,7 @@ private struct SharedTalisman {
     let image: UIImage
     let name: String
     let savedAt: Date?
+    let agingDays: Double
 }
 
 /// 큰 원본이 와도 위젯 메모리 한도(약 30MB)를 넘지 않게 축소 디코딩한다.
@@ -70,7 +73,8 @@ private func loadShared() -> SharedTalisman? {
     return SharedTalisman(
         image: img,
         name: meta["name"] as? String ?? "부적",
-        savedAt: (meta["savedAt"] as? String).flatMap(parseISODate)
+        savedAt: (meta["savedAt"] as? String).flatMap(parseISODate),
+        agingDays: meta["agingDays"] as? Double ?? 45
     )
 }
 
@@ -80,7 +84,8 @@ struct Provider: TimelineProvider {
             date: date,
             image: shared?.image,
             name: shared?.name ?? "수호부",
-            savedAt: shared?.savedAt
+            savedAt: shared?.savedAt,
+            agingDays: shared?.agingDays ?? 45
         )
     }
 
@@ -93,14 +98,24 @@ struct Provider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TalismanEntry>) -> Void) {
-        // 이미지는 한 번만 읽고, 매일 자정 항목이 공유한다 — 종이가 하루씩 낡아간다
+        // 이미지는 한 번만 읽고 모든 항목이 공유한다
         let shared = loadShared()
         var entries: [TalismanEntry] = [entry(for: Date(), shared: shared)]
         let cal = Calendar.current
-        let todayStart = cal.startOfDay(for: Date())
-        for day in 1...7 {
-            if let date = cal.date(byAdding: .day, value: day, to: todayStart) {
-                entries.append(entry(for: date, shared: shared))
+        if (shared?.agingDays ?? 45) <= 7 {
+            // 짧게 낡는 부적(선물 3일)은 6시간 간격으로 부드럽게
+            for step in 1...12 {
+                if let date = cal.date(byAdding: .hour, value: step * 6, to: Date()) {
+                    entries.append(entry(for: date, shared: shared))
+                }
+            }
+        } else {
+            // 기본 부적은 매일 자정 — 종이가 하루씩 낡아간다
+            let todayStart = cal.startOfDay(for: Date())
+            for day in 1...7 {
+                if let date = cal.date(byAdding: .day, value: day, to: todayStart) {
+                    entries.append(entry(for: date, shared: shared))
+                }
             }
         }
         completion(Timeline(entries: entries, policy: .atEnd))
@@ -112,11 +127,11 @@ struct Provider: TimelineProvider {
 struct TalismanWidgetView: View {
     var entry: TalismanEntry
 
-    /// 0(새 종이) ~ 1(45일 이상) — 낡아가는 정도
+    /// 0(새 종이) ~ 1(기간 경과) — 낡아가는 정도. 기간은 부적마다 다르다(선물 3일, 기본 45일)
     private var age: Double {
         guard let saved = entry.savedAt else { return 0 }
         let days = max(0, entry.date.timeIntervalSince(saved) / 86_400)
-        return min(days / 45.0, 1.0)
+        return min(days / max(entry.agingDays, 1), 1.0)
     }
 
     var body: some View {

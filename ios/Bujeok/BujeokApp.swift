@@ -126,6 +126,8 @@ struct WebView: UIViewRepresentable {
                 "note": body["note"] as? String ?? "",
                 "savedAt": body["savedAt"] as? String
                     ?? ISO8601DateFormatter().string(from: Date()),
+                // 낡아가는 기간(일) — 선물 부적은 3일, 기본 45일
+                "agingDays": body["agingDays"] as? Double ?? 45,
             ]
             try? data.write(to: container.appendingPathComponent("widget-talisman.png"))
             if let metaData = try? JSONSerialization.data(withJSONObject: meta) {

@@ -12,6 +12,8 @@ interface WidgetTalisman {
   hanja?: string;
   note?: string;
   savedAt: string; // ISO
+  /** 위젯에서 종이가 낡아가는 기간(일). 미지정 시 45일 — 선물 호신부는 3일 */
+  agingDays?: number;
 }
 
 interface WidgetMessageHandler {
