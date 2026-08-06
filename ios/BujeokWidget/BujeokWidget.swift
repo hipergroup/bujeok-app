@@ -20,6 +20,8 @@ struct TalismanEntry: TimelineEntry {
     let date: Date
     let image: UIImage?
     let name: String
+    let hanja: String
+    let note: String
     let savedAt: Date?
     /// 종이가 다 낡기까지 걸리는 기간(일) — 선물 부적 3일, 기본 45일
     let agingDays: Double
@@ -36,6 +38,8 @@ private func parseISODate(_ s: String) -> Date? {
 private struct SharedTalisman {
     let image: UIImage
     let name: String
+    let hanja: String
+    let note: String
     let savedAt: Date?
     let agingDays: Double
 }
@@ -73,6 +77,8 @@ private func loadShared() -> SharedTalisman? {
     return SharedTalisman(
         image: img,
         name: meta["name"] as? String ?? "부적",
+        hanja: meta["hanja"] as? String ?? "",
+        note: meta["note"] as? String ?? "",
         savedAt: (meta["savedAt"] as? String).flatMap(parseISODate),
         agingDays: meta["agingDays"] as? Double ?? 45
     )
@@ -84,6 +90,8 @@ struct Provider: TimelineProvider {
             date: date,
             image: shared?.image,
             name: shared?.name ?? "수호부",
+            hanja: shared?.hanja ?? "",
+            note: shared?.note ?? "",
             savedAt: shared?.savedAt,
             agingDays: shared?.agingDays ?? 45
         )
@@ -124,7 +132,67 @@ struct Provider: TimelineProvider {
 
 // ─── View ───────────────────────────────────────────────────
 
+/// 부적 한 장 — 종이 비율 그대로 잘리지 않게, 세월의 갈변과 그림자를 함께 그린다
+private struct TalismanPaper: View {
+    let image: UIImage
+    let age: Double
+
+    var body: some View {
+        let ratio = image.size.height > 0 ? image.size.width / image.size.height : 360.0 / 560.0
+        Image(uiImage: image)
+            .resizable()
+            .aspectRatio(ratio, contentMode: .fit)
+            .overlay(
+                // 종이 영역에만 얹히는 세월의 흔적 (갈변 + 가장자리 바램)
+                GeometryReader { g in
+                    ZStack {
+                        Color(red: 0.48, green: 0.29, blue: 0.20)
+                            .opacity(0.10 * age)
+                            .blendMode(.multiply)
+                        RadialGradient(
+                            colors: [
+                                .clear,
+                                Color(red: 0.35, green: 0.20, blue: 0.12)
+                                    .opacity(0.05 + 0.16 * age),
+                            ],
+                            center: .center,
+                            startRadius: g.size.width * 0.35,
+                            endRadius: g.size.width * 0.95
+                        )
+                    }
+                }
+            )
+            .shadow(
+                color: Color(red: 0.35, green: 0.20, blue: 0.12).opacity(0.30),
+                radius: 5, y: 2
+            )
+    }
+}
+
+/// 수호부 낙관 (빈 상태용)
+private struct SealMark: View {
+    var size: CGFloat = 46
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: size * 0.15)
+            .fill(juhong)
+            .frame(width: size, height: size)
+            .overlay(
+                RoundedRectangle(cornerRadius: size * 0.11)
+                    .inset(by: size * 0.076)
+                    .stroke(hanji.opacity(0.9), lineWidth: 1.2)
+            )
+            .overlay(
+                Text("수호\n부")
+                    .font(.system(size: size * 0.26, weight: .bold, design: .serif))
+                    .foregroundStyle(hanji)
+                    .multilineTextAlignment(.center)
+            )
+    }
+}
+
 struct TalismanWidgetView: View {
+    @Environment(\.widgetFamily) private var family
     var entry: TalismanEntry
 
     /// 0(새 종이) ~ 1(기간 경과) — 낡아가는 정도. 기간은 부적마다 다르다(선물 3일, 기본 45일)
@@ -134,64 +202,132 @@ struct TalismanWidgetView: View {
         return min(days / max(entry.agingDays, 1), 1.0)
     }
 
-    var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                if let ui = entry.image {
-                    // 부적 온장이 잘리지 않게 — 한지 바탕 위에 통째로 올린다
-                    Image(uiImage: ui)
-                        .resizable()
-                        .scaledToFit()
-                        .overlay(
-                            // 세월의 갈변 — 부적 종이만 은은하게 진해진다
-                            Color(red: 0.48, green: 0.29, blue: 0.20)
-                                .opacity(0.10 * age)
-                                .blendMode(.multiply)
-                        )
-                        .shadow(
-                            color: Color(red: 0.35, green: 0.20, blue: 0.12).opacity(0.30),
-                            radius: 5, y: 2
-                        )
-                        .padding(5)
-                        .frame(width: geo.size.width, height: geo.size.height)
+    /// 지닌 날수 (당일 = 1일째)
+    private var heldDays: Int {
+        guard let saved = entry.savedAt else { return 1 }
+        let cal = Calendar.current
+        let from = cal.startOfDay(for: saved)
+        let to = cal.startOfDay(for: entry.date)
+        return max(1, (cal.dateComponents([.day], from: from, to: to).day ?? 0) + 1)
+    }
 
-                    // 가장자리 바램(비네트)
-                    RadialGradient(
-                        colors: [
-                            .clear,
-                            Color(red: 0.35, green: 0.20, blue: 0.12)
-                                .opacity(0.05 + 0.16 * age),
-                        ],
-                        center: .center,
-                        startRadius: geo.size.width * 0.30,
-                        endRadius: geo.size.width * 0.80
-                    )
-                } else {
-                    // 아직 부적이 없을 때
-                    VStack(spacing: 10) {
-                        RoundedRectangle(cornerRadius: 7)
-                            .fill(juhong)
-                            .frame(width: 46, height: 46)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 5)
-                                    .inset(by: 3.5)
-                                    .stroke(hanji.opacity(0.9), lineWidth: 1.2)
-                            )
-                            .overlay(
-                                Text("수호\n부")
-                                    .font(.system(size: 12, weight: .bold, design: .serif))
-                                    .foregroundStyle(hanji)
-                                    .multilineTextAlignment(.center)
-                            )
-                        Text("부적을 만들어 보세요")
-                            .font(.system(size: 11, design: .serif))
-                            .foregroundStyle(galsaek)
-                    }
-                    .frame(width: geo.size.width, height: geo.size.height)
-                }
+    var body: some View {
+        Group {
+            switch family {
+            case .systemMedium: mediumBody
+            case .systemLarge: largeBody
+            default: smallBody
             }
         }
         .containerBackground(hanji, for: .widget)
+    }
+
+    // ── 작게: 부적 한 장으로 꽉 채운다 ──
+    private var smallBody: some View {
+        Group {
+            if let ui = entry.image {
+                TalismanPaper(image: ui, age: age)
+                    .padding(7)
+            } else {
+                VStack(spacing: 9) {
+                    SealMark(size: 44)
+                    Text("부적을 만들어 보세요")
+                        .font(.system(size: 11, design: .serif))
+                        .foregroundStyle(galsaek)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // ── 중간: 가로가 넓으므로 부적 + 이름·기원 문구를 나란히 ──
+    private var mediumBody: some View {
+        Group {
+            if let ui = entry.image {
+                HStack(spacing: 14) {
+                    TalismanPaper(image: ui, age: age)
+                        .padding(.vertical, 10)
+                    infoColumn(alignment: .leading, compact: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, 14)
+            } else {
+                HStack(spacing: 14) {
+                    SealMark(size: 48)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("수호부")
+                            .font(.system(size: 15, weight: .bold, design: .serif))
+                            .foregroundStyle(juhong)
+                        Text("당신의 하루를 지켜주는 작은 부적")
+                            .font(.system(size: 12, design: .serif))
+                            .foregroundStyle(galsaek)
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // ── 크게: 부적을 크게 두고 아래에 이름·기원 문구 ──
+    private var largeBody: some View {
+        Group {
+            if let ui = entry.image {
+                VStack(spacing: 10) {
+                    TalismanPaper(image: ui, age: age)
+                        .frame(maxHeight: .infinity)
+                    infoColumn(alignment: .center, compact: false)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 14)
+                .padding(.bottom, 16)
+            } else {
+                VStack(spacing: 12) {
+                    SealMark(size: 62)
+                    Text("부적을 만들어 보세요")
+                        .font(.system(size: 15, weight: .bold, design: .serif))
+                        .foregroundStyle(juhong)
+                    Text("오늘의 마음을 담아\n나만의 부적을 만들 수 있어요")
+                        .font(.system(size: 12, design: .serif))
+                        .foregroundStyle(galsaek)
+                        .multilineTextAlignment(.center)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // ── 이름 · 한자 · 기원 문구 · 지닌 날수 ──
+    private func infoColumn(
+        alignment: HorizontalAlignment,
+        compact: Bool
+    ) -> some View {
+        VStack(alignment: alignment, spacing: compact ? 4 : 5) {
+            HStack(spacing: 5) {
+                Text(entry.name)
+                    .font(.system(size: compact ? 15 : 17, weight: .bold, design: .serif))
+                    .foregroundStyle(juhong)
+                if !entry.hanja.isEmpty {
+                    Text(entry.hanja)
+                        .font(.system(size: compact ? 10 : 11, design: .serif))
+                        .foregroundStyle(galsaek.opacity(0.75))
+                }
+            }
+
+            if !entry.note.isEmpty {
+                Text("\u{201C}\(entry.note)\u{201D}")
+                    .font(.system(size: compact ? 12 : 13, design: .serif))
+                    .foregroundStyle(Color(red: 46 / 255, green: 46 / 255, blue: 46 / 255))
+                    .lineSpacing(2)
+                    .lineLimit(compact ? 3 : 2)
+                    .multilineTextAlignment(alignment == .center ? .center : .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Text("\(heldDays)일째 지니는 중")
+                .font(.system(size: compact ? 10 : 11, design: .serif))
+                .foregroundStyle(galsaek.opacity(0.7))
+        }
     }
 }
 
