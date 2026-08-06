@@ -34,6 +34,12 @@ import {
   type SipseongGroup,
   type YongsinType,
 } from '@/data/yongsin';
+import {
+  getDaeun,
+  RELATION_BADGE,
+  DAEUN_TALISMAN_SUGGESTION,
+  type DaeunPillar,
+} from '@/data/daeun';
 
 // ─────────────────────────────────────────────
 // 한지 디자인 토큰 (globals.css의 --color-* 와 동일 값)
@@ -168,6 +174,13 @@ interface SajuProfile {
   name: string;
   birth: { year: number; month: number; day: number; hour: number };
   hourKnown: boolean;
+  /** 성별 — 대운(大運) 방향 판정용. 없으면 UI에서 한 번 물어본다 */
+  gender: 'M' | 'F' | null;
+}
+
+/** 저장된 성별 값 정규화 */
+function parseGender(v: unknown): 'M' | 'F' | null {
+  return v === 'M' || v === 'F' ? v : null;
 }
 
 function loadSajuProfile(): SajuProfile | null {
@@ -185,6 +198,7 @@ function loadSajuProfile(): SajuProfile | null {
             hour: u.birth.hour ?? 12,
           },
           hourKnown: u.birth.hourKnown !== false,
+          gender: parseGender(u.gender),
         };
       }
     }
@@ -201,6 +215,7 @@ function loadSajuProfile(): SajuProfile | null {
             hour: u.birthHour ?? 12,
           },
           hourKnown: u.birthHourKnown !== false,
+          gender: parseGender(u.gender),
         };
       }
     }
@@ -208,6 +223,26 @@ function loadSajuProfile(): SajuProfile | null {
     // ignore
   }
   return null;
+}
+
+/**
+ * 성별을 기존 프로필 객체에 병합 저장한다.
+ * bujeok-user / user_profile 두 키 모두, 기존 필드는 건드리지 않고 gender 만 추가.
+ */
+function saveGenderToProfile(gender: 'M' | 'F') {
+  try {
+    for (const key of ['bujeok-user', 'user_profile']) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const obj = JSON.parse(raw);
+      if (obj && typeof obj === 'object') {
+        obj.gender = gender;
+        localStorage.setItem(key, JSON.stringify(obj));
+      }
+    }
+  } catch {
+    // ignore
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -370,10 +405,19 @@ export default function SajuDetailPage() {
   const [loaded, setLoaded] = useState<{ profile: SajuProfile | null } | null>(null);
   /** 약장(藥欌) 처방 애니메이션이 끝났는지 — 끝나면 오행 배지를 띄운다 */
   const [cabinetDone, setCabinetDone] = useState(false);
+  /** 성별 — 대운(大運) 방향 판정용. 프로필에 없으면 UI에서 한 번 묻고 저장 */
+  const [gender, setGender] = useState<'M' | 'F' | null>(null);
 
   useEffect(() => {
-    setLoaded({ profile: loadSajuProfile() });
+    const p = loadSajuProfile();
+    setLoaded({ profile: p });
+    if (p?.gender) setGender(p.gender);
   }, []);
+
+  const selectGender = (g: 'M' | 'F') => {
+    setGender(g);
+    saveGenderToProfile(g);
+  };
 
   const ready = loaded !== null;
   const profile = loaded?.profile ?? null;
@@ -419,6 +463,16 @@ export default function SajuDetailPage() {
       samjaeYears,
     };
   }, [profile]);
+
+  // 대운 — 성별을 알아야 순행·역행이 정해지므로 성별 선택 후에만 계산한다
+  const daeun = useMemo(() => {
+    if (!profile || !data || !gender) return null;
+    return getDaeun({
+      birth: profile.birth,
+      gender,
+      yongsin: data.yongsin,
+    });
+  }, [profile, data, gender]);
 
   /* ── 정보 없음 ─────────────────────────────── */
   if (ready && !data) {
@@ -1532,9 +1586,238 @@ export default function SajuDetailPage() {
           </p>
         </Section>
 
-        {/* ── 6. 삼재 ──────────────────────────────── */}
+        {/* ── 6. 대운 — 인생의 큰 흐름 ─────────────── */}
         <Section delay={0.3}>
-          <SectionLabel index={6} title="삼재 보기" term="삼재(三災)" />
+          <SectionLabel index={6} title="인생의 큰 흐름" term="대운(大運)" />
+          <p className="mt-2 text-[12px] leading-relaxed" style={{ color: `${MEOK}99` }}>
+            대운은 10년마다 바뀌는 &ldquo;인생의 계절&rdquo;이에요. 타고난 여덟
+            글자가 지도라면, 대운은 그 위를 지나가는 날씨입니다. 어느 시기에 어떤
+            기운이 들어오는지 큰 흐름을 봅니다.
+          </p>
+
+          {!gender ? (
+            /* 성별 선택 — 순행·역행 판정에 필요해 한 번만 묻고 저장한다 */
+            <div
+              className="mt-4 rounded-xl px-4 py-5 text-center"
+              style={{ background: `${GALSAEK}0A`, border: `1px dashed ${GALSAEK}33` }}
+            >
+              <p
+                className="text-[13px] font-bold leading-relaxed"
+                style={{ color: MEOK }}
+              >
+                대운을 보려면 성별이 필요해요
+              </p>
+              <p
+                className="mt-1 text-[11.5px] leading-relaxed"
+                style={{ color: `${GALSAEK}CC` }}
+              >
+                전통 명리학은 성별로 대운의 방향(순행·역행)을 정합니다. 한 번만
+                여쭙고 기억해둘게요.
+              </p>
+              <div className="mt-3.5 flex justify-center gap-2">
+                <button
+                  onClick={() => selectGender('M')}
+                  className="rounded-full px-6 py-2 text-[13px] font-bold"
+                  style={{
+                    border: `1.5px solid ${NAMSAEK}66`,
+                    color: NAMSAEK,
+                    background: `${NAMSAEK}0D`,
+                  }}
+                >
+                  남성
+                </button>
+                <button
+                  onClick={() => selectGender('F')}
+                  className="rounded-full px-6 py-2 text-[13px] font-bold"
+                  style={{
+                    border: `1.5px solid ${JUHONG}66`,
+                    color: JUHONG,
+                    background: `${JUHONG}0D`,
+                  }}
+                >
+                  여성
+                </button>
+              </div>
+            </div>
+          ) : (
+            daeun && (
+              <>
+                {/* 방향 · 대운수 요약 */}
+                <div className="mt-4 flex flex-wrap items-center gap-1.5">
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full px-2.5 py-[3px] text-[11px] font-bold"
+                    style={{ background: `${GALSAEK}14`, color: GALSAEK }}
+                  >
+                    {daeun.direction === '순행' ? '⏩ 앞으로 흐름' : '⏪ 거꾸로 흐름'}
+                    <span className="text-[10px] font-medium opacity-50" style={{ color: MEOK }}>
+                      {daeun.direction}({daeun.direction === '순행' ? '順行' : '逆行'})
+                    </span>
+                  </span>
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full px-2.5 py-[3px] text-[11px] font-bold"
+                    style={{ background: `${GALSAEK}14`, color: GALSAEK }}
+                  >
+                    만 {daeun.daeunSu}세부터 첫 대운
+                    <span className="text-[10px] font-medium opacity-50" style={{ color: MEOK }}>
+                      대운수(大運數) {daeun.daeunSu}
+                    </span>
+                  </span>
+                </div>
+
+                {/* 가로 스크롤 타임라인 */}
+                <div className="-mx-4 mt-3 overflow-x-auto px-4 pb-1">
+                  <div className="flex w-max gap-2">
+                    {daeun.pillars.map((p: DaeunPillar, i: number) => {
+                      const isNow = daeun.current?.index === p.index;
+                      const badge = RELATION_BADGE[p.relation];
+                      const badgeColor =
+                        p.relation === 'yongsin'
+                          ? SSUK
+                          : p.relation === 'huisin'
+                            ? NAMSAEK
+                            : p.relation === 'gisin'
+                              ? GALSAEK
+                              : `${MEOK}99`;
+                      return (
+                        <motion.div
+                          key={p.index}
+                          className="relative flex w-[86px] shrink-0 flex-col items-center gap-1 rounded-xl px-1.5 pb-2.5 pt-3"
+                          style={{
+                            background: isNow ? `${JUHONG}0E` : `${GALSAEK}0A`,
+                            border: `1.5px solid ${isNow ? JUHONG : `${GALSAEK}26`}`,
+                          }}
+                          initial={{ opacity: 0, x: 12 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.35 + i * 0.05, duration: 0.35 }}
+                        >
+                          {isNow && (
+                            <span
+                              className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full px-2 py-[1px] text-[9px] font-bold"
+                              style={{ background: JUHONG, color: HANJI }}
+                            >
+                              지금
+                            </span>
+                          )}
+                          <span
+                            className="text-[10.5px] font-bold tabular-nums leading-none"
+                            style={{ color: isNow ? JUHONG : `${MEOK}AA` }}
+                          >
+                            {p.startAge}-{p.endAge}세
+                          </span>
+                          <div className="mt-1 flex items-center gap-1">
+                            <div className="flex flex-col items-center">
+                              <span
+                                className="font-serif-kr text-[22px] font-bold leading-none"
+                                style={{ color: OHENG_COLORS[p.ganOheng] }}
+                              >
+                                {p.gan.hanja}
+                              </span>
+                              <span
+                                className="mt-0.5 text-[9px] leading-none"
+                                style={{ color: `${MEOK}88` }}
+                              >
+                                {p.gan.name}·{p.ganOheng}
+                              </span>
+                            </div>
+                            <div className="flex flex-col items-center">
+                              <span
+                                className="font-serif-kr text-[22px] font-bold leading-none"
+                                style={{ color: OHENG_COLORS[p.jiOheng] }}
+                              >
+                                {p.ji.hanja}
+                              </span>
+                              <span
+                                className="mt-0.5 text-[9px] leading-none"
+                                style={{ color: `${MEOK}88` }}
+                              >
+                                {p.ji.name}·{p.jiOheng}
+                              </span>
+                            </div>
+                          </div>
+                          <span
+                            className="mt-1 rounded-full px-1.5 py-[2px] text-[9px] font-bold leading-none"
+                            style={{ background: `${badgeColor}1A`, color: badgeColor }}
+                          >
+                            {badge.label}
+                          </span>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <p
+                  className="mt-1 text-[10.5px] leading-relaxed"
+                  style={{ color: `${GALSAEK}99` }}
+                >
+                  옆으로 밀어 전체 흐름을 볼 수 있어요. 나이는 만 나이 기준입니다.
+                </p>
+
+                {/* 현재 대운 해설 */}
+                <div
+                  className="mt-3 rounded-xl px-4 py-4"
+                  style={{
+                    background: `${JUHONG}0B`,
+                    border: `1px solid ${JUHONG}33`,
+                  }}
+                >
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[12.5px] font-bold" style={{ color: JUHONG }}>
+                      지금 지나는 흐름
+                    </span>
+                    {daeun.current && (
+                      <span
+                        className="rounded-full px-2 py-[2px] text-[10px] font-bold"
+                        style={{
+                          background: `${JUHONG}16`,
+                          color: JUHONG,
+                        }}
+                      >
+                        {daeun.current.gan.name}
+                        {daeun.current.ji.name} 대운 ·{' '}
+                        {RELATION_BADGE[daeun.current.relation].term}
+                      </span>
+                    )}
+                  </div>
+                  <p
+                    className="mt-2.5 text-[13px] leading-[1.85]"
+                    style={{ color: `${MEOK}CC` }}
+                  >
+                    {daeun.currentReading}
+                  </p>
+
+                  {/* 이 시기에 어울리는 부적 */}
+                  {daeun.current && (
+                    <p
+                      className="mt-3 border-t pt-3 text-[12.5px] leading-relaxed"
+                      style={{ borderColor: `${JUHONG}22`, color: `${MEOK}AA` }}
+                    >
+                      🧧 {DAEUN_TALISMAN_SUGGESTION[daeun.current.relation].text}{' '}
+                      <Link
+                        href="/talisman"
+                        className="font-bold underline underline-offset-2"
+                        style={{ color: JUHONG }}
+                      >
+                        {DAEUN_TALISMAN_SUGGESTION[daeun.current.relation].category}{' '}
+                        부적 보러 가기
+                      </Link>
+                    </p>
+                  )}
+                </div>
+
+                <p
+                  className="mt-2.5 text-[10.5px] leading-relaxed"
+                  style={{ color: `${GALSAEK}99` }}
+                >
+                  대운은 큰 흐름을 보는 참고일 뿐, 정해진 운명이 아니에요.
+                </p>
+              </>
+            )
+          )}
+        </Section>
+
+        {/* ── 7. 삼재 ──────────────────────────────── */}
+        <Section delay={0.36}>
+          <SectionLabel index={7} title="삼재 보기" term="삼재(三災)" />
 
           <div
             className="mt-4 rounded-xl px-4 py-4"
@@ -1641,13 +1924,13 @@ export default function SajuDetailPage() {
           )}
         </Section>
 
-        {/* ── 7. 하단 고지 ─────────────────────────── */}
+        {/* ── 8. 하단 고지 ─────────────────────────── */}
         <motion.div
           className="flex items-start gap-2 rounded-xl px-4 py-3.5"
           style={{ background: `${GALSAEK}0D`, border: `1px dashed ${GALSAEK}33` }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.36 }}
+          transition={{ delay: 0.42 }}
         >
           <span className="mt-[1px] block shrink-0" style={{ color: `${GALSAEK}99` }}>
             <KnotMotif size={18} />

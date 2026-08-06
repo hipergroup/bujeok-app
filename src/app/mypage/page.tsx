@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import BottomTab from '@/components/BottomTab';
@@ -19,8 +19,11 @@ import {
   InfoMotif,
   PhoneMotif,
   BrushTabIcon,
+  DownloadMotif,
+  BoxTabIcon,
 } from '@/components/hanji/motifs';
 import AnimalMotif from '@/components/hanji/AnimalMotif';
+import { downloadBackup, restoreFromFile } from '@/lib/backup';
 
 /* ── 온보딩이 저장한 프로필 로드 ───────────────────── */
 
@@ -316,6 +319,73 @@ function ServiceInfoSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
+/* ── 데이터 불러오기 확인 모달 (한지 스타일) ─────────── */
+
+function RestoreConfirmSheet({
+  fileName,
+  onConfirm,
+  onCancel,
+}: {
+  fileName: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <motion.div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="restore-confirm-title"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      onClick={onCancel}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#132433]/70 px-6 backdrop-blur-sm"
+    >
+      <motion.div
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, y: 20, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 12 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        className="hanji-card w-full max-w-sm rounded-2xl p-6"
+      >
+        <h2
+          id="restore-confirm-title"
+          className="text-center font-serif-kr text-base font-bold text-[var(--color-meok)]"
+        >
+          이 파일의 기록으로 되찾을까요?
+        </h2>
+        <p className="mt-2 break-all text-center text-[11px] text-[var(--color-galsaek)] opacity-70">
+          {fileName}
+        </p>
+        <p className="mt-3 text-center text-xs leading-[1.8] text-[var(--color-galsaek)]">
+          지금 이 기기에 있는 내용이
+          <br />
+          파일 속 내용으로 바뀌어요.
+          <br />
+          걱정된다면 먼저 지금 데이터를 내보내 두세요.
+        </p>
+        <div className="mt-5 flex gap-2.5">
+          <button
+            onClick={onCancel}
+            className="flex-1 rounded-full py-2.5 text-[13px] font-medium text-[var(--color-galsaek)] transition active:scale-[0.98]"
+            style={{ border: '1px solid rgba(122,74,52,0.3)' }}
+          >
+            다음에 할게요
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 rounded-full bg-[var(--color-juhong)] py-2.5 text-[13px] font-bold text-[#F6EDD9] transition active:scale-[0.98]"
+          >
+            네, 되찾을게요
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 /* ══════════════════ 마이페이지 ══════════════════ */
 
 export default function MyPage() {
@@ -324,6 +394,51 @@ export default function MyPage() {
   const [streakDays, setStreakDays] = useState(1);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [ready, setReady] = useState(false);
+
+  /* ── 데이터 지키기 (백업/복원) ── */
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [backupToast, setBackupToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = (message: string, thenReload = false) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setBackupToast(message);
+    toastTimerRef.current = setTimeout(() => {
+      setBackupToast(null);
+      if (thenReload) window.location.reload();
+    }, thenReload ? 1800 : 2600);
+  };
+
+  const handleExport = () => {
+    try {
+      downloadBackup();
+      showToast('백업 파일을 내려받았어요. 안전한 곳에 보관해 주세요 🙂');
+    } catch {
+      showToast('내보내기에 실패했어요. 잠시 후 다시 시도해 주세요.');
+    }
+  };
+
+  const handleFilePicked = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    e.target.value = ''; // 같은 파일 재선택 허용
+    if (file) setPendingFile(file);
+  };
+
+  const handleRestoreConfirm = async () => {
+    const file = pendingFile;
+    setPendingFile(null);
+    if (!file) return;
+    const result = await restoreFromFile(file);
+    if (result.ok) {
+      showToast(
+        `${result.restoredKeys.length}가지 기록을 되찾았어요. 화면을 새로 단장할게요 ✨`,
+        true
+      );
+    } else {
+      showToast(result.error ?? '불러오기에 실패했어요. 다시 한번 시도해 주세요.');
+    }
+  };
 
   useEffect(() => {
     setProfile(loadProfile());
@@ -534,6 +649,40 @@ export default function MyPage() {
           />
         </motion.div>
 
+        {/* ── 데이터 지키기 (백업/복원) ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.35 }}
+          className="hanji-card rounded-2xl py-1"
+        >
+          <p className="px-4 pb-1 pt-3 text-xs font-bold text-[var(--color-galsaek)]">
+            데이터 지키기
+          </p>
+          <p className="px-4 pb-1 text-[11px] leading-[1.7] text-[var(--color-galsaek)] opacity-80">
+            부적함과 사주 정보를 파일로 보관해두면, 기기를 바꿔도 그대로 되찾을 수
+            있어요
+          </p>
+          <SettingsRow
+            icon={<DownloadMotif size={18} />}
+            label="내 데이터 내보내기"
+            onClick={handleExport}
+          />
+          <SettingsRow
+            icon={<BoxTabIcon size={18} />}
+            label="데이터 불러오기"
+            onClick={() => fileInputRef.current?.click()}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={handleFilePicked}
+            className="hidden"
+            aria-hidden="true"
+          />
+        </motion.div>
+
         {/* Safety disclaimer */}
         <p className="whitespace-pre-line text-center text-[10px] leading-[1.7] text-[var(--color-galsaek)] opacity-60">
           {SAFETY_DISCLAIMER}
@@ -547,6 +696,28 @@ export default function MyPage() {
 
       <AnimatePresence>
         {showServiceInfo && <ServiceInfoSheet onClose={() => setShowServiceInfo(false)} />}
+        {pendingFile && (
+          <RestoreConfirmSheet
+            key="restore-confirm"
+            fileName={pendingFile.name}
+            onConfirm={handleRestoreConfirm}
+            onCancel={() => setPendingFile(null)}
+          />
+        )}
+        {backupToast && (
+          <motion.div
+            key="backup-toast"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.3 }}
+            className="fixed bottom-24 left-1/2 z-50 w-[calc(100%-3rem)] max-w-sm -translate-x-1/2"
+          >
+            <div className="hanji-card rounded-xl px-4 py-3 text-center text-xs leading-[1.6] text-[var(--color-meok)] shadow-lg">
+              {backupToast}
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       <BottomTab />

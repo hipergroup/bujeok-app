@@ -379,6 +379,38 @@ export default function HomePage() {
             </div>
           )}
         </motion.section>
+
+        {/* ── 걱정 태워보내기 ── */}
+        <motion.section variants={fadeUp} className="mt-4">
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => router.push("/burn")}
+            className="hanji-card flex w-full items-center gap-3.5 rounded-xl px-5 py-4 text-left"
+            aria-label="걱정 태워보내기"
+          >
+            <span
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl"
+              style={{
+                border: "1.5px solid rgba(218,160,23,0.4)",
+                background: "rgba(218,160,23,0.08)",
+              }}
+              aria-hidden
+            >
+              🔥
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-serif-kr text-[15px] font-bold text-[var(--color-meok)]">
+                걱정 태워보내기
+              </span>
+              <span className="mt-0.5 block text-xs text-[var(--color-galsaek)]">
+                무거운 마음을 적어 태우고, 훌훌 덜어내세요.
+              </span>
+            </span>
+            <span className="text-[var(--color-juhong)]" aria-hidden>
+              →
+            </span>
+          </motion.button>
+        </motion.section>
       </motion.main>
 
       <BottomTab />
