@@ -29,7 +29,9 @@ import {
   BrushStroke,
   BrushPen,
   FlameMotif,
+  KnotMotif,
 } from "@/components/hanji/motifs";
+import { buildGiftUrl, GIFT_MESSAGE_MAX, GIFT_NAME_MAX } from "@/lib/gift";
 import { generateTalismanSVG } from "@/lib/talisman-generator";
 import { detectCrisis, SAFETY_DISCLAIMER } from "@/lib/crisis-detection";
 import {
@@ -222,6 +224,14 @@ function TalismanFlow() {
   /* reveal state */
   const [saved, setSaved] = useState(false);
   const [shareStatus, setShareStatus] = useState<ShareFormat | null>(null);
+
+  /* gift state — 부적 선물하기 (링크에 부적 데이터를 담아 전달) */
+  const [giftOpen, setGiftOpen] = useState(false);
+  const [giftFrom, setGiftFrom] = useState("");
+  const [giftMessage, setGiftMessage] = useState("");
+  const [giftStatus, setGiftStatus] = useState<"shared" | "copied" | null>(
+    null
+  );
 
   /* ── load user profile (인장 이름 + 띠 동물 기본값) ── */
   useEffect(() => {
@@ -531,6 +541,43 @@ function TalismanFlow() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [talismanName, recommended, talismanStyle, background, animalChoice, encouragement, userCtx, accent]
   );
+
+  /* 5. 부적 선물 링크 — 정적 사이트라 선물 데이터를 URL 자체에 담는다 */
+  const openGiftSheet = useCallback(() => {
+    setGiftFrom((prev) => prev || userCtx.name);
+    setGiftStatus(null);
+    setGiftOpen(true);
+  }, [userCtx.name]);
+
+  const handleGiftLink = useCallback(async () => {
+    if (!recommended) return;
+    const url = buildGiftUrl({
+      v: 1,
+      t: recommended.id,
+      m: giftMessage.trim().slice(0, GIFT_MESSAGE_MAX),
+      f: giftFrom.trim().slice(0, GIFT_NAME_MAX),
+      c: new Date().toISOString(),
+    });
+    const text = `${giftFrom.trim() || "누군가"}님이 보낸 부적 「${recommended.name}」이 도착했어요`;
+
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: "부적 선물", text, url });
+        setGiftStatus("shared");
+        return;
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") return;
+        // 공유 시트 실패 → 클립보드 복사로 폴백
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setGiftStatus("copied");
+    } catch {
+      // 클립보드도 막힌 환경 — 직접 복사할 수 있게 보여준다
+      window.prompt("링크를 길게 눌러 복사하세요", url);
+    }
+  }, [recommended, giftFrom, giftMessage]);
 
   const stepNum: 1 | 2 | 3 =
     phase === "customize" ? 2 : phase === "reveal" ? 3 : 1;
@@ -894,6 +941,21 @@ function TalismanFlow() {
                 스토리 9:16 · 정사각 1:1 — 인스타·카톡 공유에 맞는 크기예요
               </p>
 
+              {/* 부적 선물하기 — 부적은 원래 남에게 건네는 것 */}
+              {recommended && (
+                <button
+                  onClick={openGiftSheet}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-full py-3 font-serif-kr text-sm font-bold text-[var(--color-juhong)] transition-all active:scale-95"
+                  style={{
+                    border: "1.5px solid var(--color-juhong)",
+                    backgroundColor: "rgba(246,237,217,0.7)",
+                  }}
+                >
+                  <KnotMotif size={18} />
+                  소중한 사람에게 선물하기
+                </button>
+              )}
+
               <button
                 onClick={resetToCategory}
                 className="mt-1 text-center text-xs text-[var(--color-galsaek)] underline underline-offset-2 opacity-70"
@@ -921,6 +983,108 @@ function TalismanFlow() {
                   정신건강상담 1577-0199
                 </a>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── 부적 선물하기 시트 ─── */}
+      <AnimatePresence>
+        {giftOpen && (
+          <motion.div
+            key="gift-sheet"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center"
+            style={{ backgroundColor: "rgba(43,24,16,0.45)" }}
+            onClick={() => setGiftOpen(false)}
+          >
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 26, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-t-2xl px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5"
+              style={{
+                backgroundColor: "#F6EDD9",
+                borderTop: "1px solid rgba(122,74,52,0.3)",
+                boxShadow: "0 -8px 30px rgba(43,24,16,0.25)",
+              }}
+            >
+              <div className="mb-3 flex items-center justify-center gap-2">
+                <KnotMotif size={22} className="text-[var(--color-juhong)]" />
+                <h3 className="font-serif-kr text-base font-bold text-[var(--color-meok)]">
+                  부적 선물하기
+                </h3>
+              </div>
+              <p className="mb-4 text-center text-xs leading-relaxed text-[var(--color-galsaek)]">
+                부적은 원래 소중한 사람에게 건네는 것.
+                <br />
+                「{talismanName}」을 마음과 함께 보내보세요.
+              </p>
+
+              <label className="mb-1 block text-xs font-bold text-[var(--color-galsaek)]">
+                보내는 사람
+              </label>
+              <input
+                type="text"
+                value={giftFrom}
+                onChange={(e) => setGiftFrom(e.target.value)}
+                maxLength={GIFT_NAME_MAX}
+                placeholder="이름 또는 별명"
+                className="mb-3 w-full rounded-lg px-4 py-2.5 text-sm text-[var(--color-meok)] placeholder-[var(--color-galsaek)]/40 focus:outline-none"
+                style={{
+                  border: "1px solid rgba(122,74,52,0.4)",
+                  backgroundColor: "rgba(255,251,240,0.9)",
+                }}
+              />
+
+              <label className="mb-1 block text-xs font-bold text-[var(--color-galsaek)]">
+                전하고 싶은 말
+              </label>
+              <textarea
+                value={giftMessage}
+                onChange={(e) => setGiftMessage(e.target.value)}
+                maxLength={GIFT_MESSAGE_MAX}
+                rows={2}
+                placeholder="응원의 마음을 한 줄에 담아주세요"
+                className="w-full resize-none rounded-lg px-4 py-2.5 font-serif-kr text-sm text-[var(--color-meok)] placeholder-[var(--color-galsaek)]/40 focus:outline-none"
+                style={{
+                  border: "1px solid rgba(122,74,52,0.4)",
+                  backgroundColor: "rgba(255,251,240,0.9)",
+                }}
+              />
+              <p className="mb-3 text-right text-[10px] text-[var(--color-galsaek)] opacity-60">
+                {giftMessage.length}/{GIFT_MESSAGE_MAX}
+              </p>
+
+              {/* 미리보기 한 줄 */}
+              <p className="mb-4 rounded-lg px-3 py-2 text-center text-[11px] leading-relaxed text-[var(--color-galsaek)]"
+                style={{ border: "1px dashed rgba(122,74,52,0.35)" }}
+              >
+                {giftFrom.trim() || "누군가"}님이 보낸 부적 「{talismanName}」이
+                도착했어요
+              </p>
+
+              {giftStatus && (
+                <p className="mb-3 text-center text-xs font-bold text-[var(--color-ssuk)]">
+                  {giftStatus === "shared"
+                    ? "✓ 선물 링크를 보냈어요"
+                    : "✓ 링크를 복사했어요! 카톡이나 문자로 보내보세요"}
+                </p>
+              )}
+
+              <TraditionalButton onClick={handleGiftLink}>
+                선물 링크 만들기
+              </TraditionalButton>
+              <button
+                onClick={() => setGiftOpen(false)}
+                className="mt-3 w-full text-center text-xs text-[var(--color-galsaek)] underline underline-offset-2 opacity-70"
+              >
+                닫기
+              </button>
             </motion.div>
           </motion.div>
         )}
