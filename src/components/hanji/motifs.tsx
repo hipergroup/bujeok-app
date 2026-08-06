@@ -393,6 +393,19 @@ export function PhoneMotif(props: MotifProps) {
   );
 }
 
+/** 부적 걸기 (위젯에 담기 — 못에 걸린 한 장) */
+export function PinTalismanMotif(props: MotifProps) {
+  return (
+    <Svg {...props}>
+      <path d="M24 5v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="24" cy="12.5" r="2.4" fill="currentColor" />
+      <path d="M13 16h22v26H13z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M17 20h14v18H17z" stroke="currentColor" strokeWidth="1.2" opacity="0.6" />
+      <path d="M24 25v9M20.5 28.5h7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 /** 찾기 (돋보기) */
 export function SearchMotif(props: MotifProps) {
   return (

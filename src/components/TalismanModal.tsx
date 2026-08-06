@@ -6,7 +6,7 @@ import { SavedTalisman, TalismanInfo } from '@/lib/types';
 import { getEnergyByCategory } from '@/data/energies';
 import { hasWidgetBridge, pushTalismanToWidget } from '@/lib/widget-bridge';
 import TalismanThumbnail from './TalismanThumbnail';
-import { ShareMotif, DownloadMotif, TrashMotif } from './hanji/motifs';
+import { ShareMotif, DownloadMotif, TrashMotif, PinTalismanMotif } from './hanji/motifs';
 
 interface TalismanModalProps {
   talisman: (SavedTalisman | TalismanInfo) | null;
@@ -319,7 +319,7 @@ export default function TalismanModal({
                   {widgetDone ? (
                     <>✓ 위젯에 담았어요 — 홈 화면에서 확인해 보세요</>
                   ) : (
-                    <>📌 위젯에 담기</>
+                    <><PinTalismanMotif size={17} /> 위젯에 담기</>
                   )}
                 </button>
               )}
