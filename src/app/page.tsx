@@ -411,6 +411,38 @@ export default function HomePage() {
             </span>
           </motion.button>
         </motion.section>
+
+        {/* ── 두 사람의 인연 (궁합) ── */}
+        <motion.section variants={fadeUp} className="mt-4">
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => router.push("/gunghap")}
+            className="hanji-card flex w-full items-center gap-3.5 rounded-xl px-5 py-4 text-left"
+            aria-label="두 사람의 인연 보기"
+          >
+            <span
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl"
+              style={{
+                border: "1.5px solid rgba(167,43,33,0.35)",
+                background: "rgba(167,43,33,0.06)",
+              }}
+              aria-hidden
+            >
+              💕
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-serif-kr text-[15px] font-bold text-[var(--color-meok)]">
+                두 사람의 인연 보기
+              </span>
+              <span className="mt-0.5 block text-xs text-[var(--color-galsaek)]">
+                궁합을 읽고, 두 사람을 위한 부적을 받아보세요.
+              </span>
+            </span>
+            <span className="text-[var(--color-juhong)]" aria-hidden>
+              →
+            </span>
+          </motion.button>
+        </motion.section>
       </motion.main>
 
       <BottomTab />
