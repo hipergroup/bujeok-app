@@ -27,7 +27,28 @@ declare global {
         widgetBridge?: WidgetMessageHandler;
       };
     };
+    /** 네이티브가 주입: 홈 화면에 수호부 위젯이 놓여 있는지 */
+    __bujeokWidgetInstalled?: boolean;
   }
+}
+
+/** 홈 화면 위젯 설치 여부 변경 알림 (네이티브가 앱 진입마다 주입) */
+export const WIDGET_STATE_EVENT = 'bujeok-widget-state';
+
+/**
+ * 홈 화면에 위젯이 놓여 있는지.
+ * 네이티브가 알려주기 전(undefined)에는 '모름'이므로 안내를 띄우지 않는다.
+ */
+export function isWidgetInstalled(): boolean | undefined {
+  if (typeof window === 'undefined') return undefined;
+  return window.__bujeokWidgetInstalled;
+}
+
+/** 설치 여부가 갱신될 때 호출 — 해제 함수를 반환한다 */
+export function onWidgetStateChange(fn: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener(WIDGET_STATE_EVENT, fn);
+  return () => window.removeEventListener(WIDGET_STATE_EVENT, fn);
 }
 
 function blobToBase64(blob: Blob): Promise<string> {

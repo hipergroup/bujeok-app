@@ -20,6 +20,8 @@ export interface SavedTalisman extends TalismanType {
   note?: string;
   /** 직접 만든 부적의 SVG 마크업 (있으면 썸네일 대신 렌더링) */
   svg?: string;
+  /** 선물로 받은 부적의 출처 표식 — 같은 선물을 두 번 담지 않도록 */
+  giftKey?: string;
 }
 
 /** 카테고리 표시 색상 */

@@ -37,7 +37,14 @@ import {
   shareOrDownload,
   type ShareFormat,
 } from "@/lib/share-card";
-import { pushTalismanToWidget } from "@/lib/widget-bridge";
+import {
+  pushTalismanToWidget,
+  hasWidgetBridge,
+  isWidgetInstalled,
+  onWidgetStateChange,
+} from "@/lib/widget-bridge";
+import WidgetGuideSheet from "@/components/hanji/WidgetGuideSheet";
+import { createGiftLink } from "@/lib/gift-link";
 import type { SavedTalisman } from "@/lib/types";
 
 /* ───────── types ───────── */
@@ -222,6 +229,19 @@ function TalismanFlow() {
   /* reveal state */
   const [saved, setSaved] = useState(false);
   const [shareStatus, setShareStatus] = useState<ShareFormat | null>(null);
+  /** 홈 화면 위젯 안내 — 네이티브 앱에서 아직 위젯을 안 올린 경우만 */
+  const [showWidgetGuide, setShowWidgetGuide] = useState(false);
+  const [widgetMissing, setWidgetMissing] = useState(false);
+  /** 선물 링크 전달 상태 — 'shared' | 'copied' */
+  const [giftStatus, setGiftStatus] = useState<"shared" | "copied" | null>(null);
+
+  /* ── 홈 화면 위젯 설치 여부 추적 (네이티브가 알려준다) ── */
+  useEffect(() => {
+    const sync = () =>
+      setWidgetMissing(hasWidgetBridge() && isWidgetInstalled() === false);
+    sync();
+    return onWidgetStateChange(sync);
+  }, []);
 
   /* ── load user profile (인장 이름 + 띠 동물 기본값) ── */
   useEffect(() => {
@@ -500,11 +520,53 @@ function TalismanFlow() {
       existing.unshift(talisman);
       localStorage.setItem("bujeok-collection", JSON.stringify(existing));
       setSaved(true);
+      // 부적을 막 담은 순간 — 애착이 가장 높을 때 한 번만 안내한다
+      if (hasWidgetBridge() && isWidgetInstalled() === false) {
+        setTimeout(() => setShowWidgetGuide(true), 700);
+      }
     } catch {
       // storage full 등
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recommended, encouragement, talismanStyle, background, animalChoice, userCtx, accent]);
+
+  /* 4-1. 선물하기 — 부적 재료를 담은 링크를 전한다 (받는 사람 기기에서 다시 그려짐) */
+  const handleGift = useCallback(async () => {
+    if (!recommended || !selectedEnergy) return;
+    const link = createGiftLink({
+      t: recommended.id,
+      s: talismanStyle,
+      b: background,
+      c: accent,
+      ...(animalChoice ? { a: animalChoice } : {}),
+      m: encouragement,
+      ...(userCtx.name ? { f: userCtx.name } : {}),
+    });
+    const text = `${userCtx.name ? `${userCtx.name}님이 ` : ""}당신을 위해 「${talismanName}」을 보냈어요`;
+
+    try {
+      if (typeof navigator.share === "function") {
+        await navigator.share({ title: "수호부 — 부적 선물", text, url: link });
+        setGiftStatus("shared");
+      } else {
+        await navigator.clipboard.writeText(`${text}\n${link}`);
+        setGiftStatus("copied");
+      }
+      setTimeout(() => setGiftStatus(null), 2400);
+    } catch (error) {
+      // 사용자가 공유 시트를 닫은 경우는 조용히 넘어간다
+      if (!(error instanceof Error && error.name === "AbortError")) {
+        try {
+          await navigator.clipboard.writeText(`${text}\n${link}`);
+          setGiftStatus("copied");
+          setTimeout(() => setGiftStatus(null), 2400);
+        } catch {
+          // 클립보드도 막힌 환경 — 조용히 무시
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recommended, selectedEnergy, talismanStyle, background, accent, animalChoice, encouragement, userCtx, talismanName]);
 
   /* 4. 공유 — 원본/스토리(9:16)/정사각(1:1) */
   const handleShare = useCallback(
@@ -850,12 +912,18 @@ function TalismanFlow() {
               className="flex w-full max-w-xs flex-col gap-3"
             >
               {saved ? (
-                <div
-                  className="w-full rounded-lg py-3.5 text-center font-serif-kr text-base font-bold text-[var(--color-ssuk)]"
-                  style={{ border: "1px solid rgba(107,125,99,0.5)" }}
-                >
-                  ✓ 부적함에 담았습니다
-                </div>
+                widgetMissing ? (
+                  <TraditionalButton onClick={() => setShowWidgetGuide(true)}>
+                    홈 화면에 지니기
+                  </TraditionalButton>
+                ) : (
+                  <div
+                    className="w-full rounded-lg py-3.5 text-center font-serif-kr text-base font-bold text-[var(--color-ssuk)]"
+                    style={{ border: "1px solid rgba(107,125,99,0.5)" }}
+                  >
+                    ✓ 부적함에 담았습니다
+                  </div>
+                )
               ) : (
                 <TraditionalButton onClick={handleSave}>
                   부적함에 담기
@@ -894,6 +962,30 @@ function TalismanFlow() {
                 스토리 9:16 · 정사각 1:1 — 인스타·카톡 공유에 맞는 크기예요
               </p>
 
+              {/* 선물하기 — 링크를 받은 사람이 자기 부적함에 담을 수 있다 */}
+              <button
+                onClick={handleGift}
+                className="w-full rounded-lg py-3 font-serif-kr text-sm font-bold transition-all active:scale-[0.98]"
+                style={{
+                  border: giftStatus
+                    ? "1px solid rgba(107,125,99,0.6)"
+                    : "1px solid rgba(167,43,33,0.45)",
+                  backgroundColor: giftStatus
+                    ? "rgba(107,125,99,0.10)"
+                    : "rgba(167,43,33,0.07)",
+                  color: giftStatus ? "var(--color-ssuk)" : "var(--color-juhong)",
+                }}
+              >
+                {giftStatus === "shared"
+                  ? "✓ 선물을 보냈어요"
+                  : giftStatus === "copied"
+                    ? "✓ 선물 링크를 복사했어요"
+                    : "이 부적 선물하기"}
+              </button>
+              <p className="-mt-1 text-center text-[10px] text-[var(--color-galsaek)] opacity-60">
+                링크를 받은 사람도 이 부적을 자기 부적함에 담을 수 있어요
+              </p>
+
               <button
                 onClick={resetToCategory}
                 className="mt-1 text-center text-xs text-[var(--color-galsaek)] underline underline-offset-2 opacity-70"
@@ -923,6 +1015,13 @@ function TalismanFlow() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── 홈 화면 위젯 추가 안내 (부적 완성 직후) ─── */}
+      <AnimatePresence>
+        {showWidgetGuide && (
+          <WidgetGuideSheet onClose={() => setShowWidgetGuide(false)} />
         )}
       </AnimatePresence>
 

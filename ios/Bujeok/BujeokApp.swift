@@ -83,6 +83,7 @@ struct WebView: UIViewRepresentable {
         web.isInspectable = true
         // 항상 서버와 재검증(ETag 304) — 배포 직후에도 옛 캐시 페이지가 뜨지 않게
         web.load(URLRequest(url: appURL, cachePolicy: .reloadRevalidatingCacheData))
+        context.coordinator.webView = web
         return web
     }
 
@@ -90,7 +91,42 @@ struct WebView: UIViewRepresentable {
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
         let parent: WebView
-        init(_ parent: WebView) { self.parent = parent }
+        weak var webView: WKWebView?
+
+        init(_ parent: WebView) {
+            self.parent = parent
+            super.init()
+            // 위젯을 추가하고 앱으로 돌아오면 안내가 즉시 사라지도록 재확인
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(appDidBecomeActive),
+                name: UIApplication.didBecomeActiveNotification,
+                object: nil
+            )
+        }
+
+        @objc private func appDidBecomeActive() { syncWidgetState() }
+
+        /// 홈 화면에 수호부 위젯이 놓여 있는지 웹에 알려준다.
+        /// 웹은 이 값으로 "홈 화면에 지니기" 안내를 띄울지 결정한다.
+        func syncWidgetState() {
+            WidgetCenter.shared.getCurrentConfigurations { [weak self] result in
+                let installed: Bool
+                switch result {
+                case .success(let configs): installed = !configs.isEmpty
+                case .failure: installed = false
+                }
+                bridgeLog.notice("widget installed = \(installed, privacy: .public)")
+                DispatchQueue.main.async {
+                    self?.webView?.evaluateJavaScript(
+                        """
+                        window.__bujeokWidgetInstalled = \(installed);
+                        window.dispatchEvent(new Event('bujeok-widget-state'));
+                        """
+                    )
+                }
+            }
+        }
 
         /// 웹이 보낸 부적(PNG base64 + 메타)을 위젯 공유 저장소에 기록
         func userContentController(
@@ -146,6 +182,7 @@ struct WebView: UIViewRepresentable {
                     "js-probe bridgeVisible=\(String(describing: result), privacy: .public) error=\(String(describing: error), privacy: .public)"
                 )
             }
+            syncWidgetState()
         }
 
         // tel:(위기 지원 전화)·mailto: 등 웹뷰가 못 여는 스킴은 시스템으로 넘긴다
