@@ -426,14 +426,15 @@ const W = {
   balance: 8,
 } as const;
 
-/** 같은 점수일 때의 우선순위: 수호 > 건강 > 가정 > 재물 > 학업 > 기타 */
+/** 같은 점수일 때의 우선순위: 수호 > 건강 > 가정 > 연애 > 재물 > 학업 > 기타 */
 const CATEGORY_PRIORITY: Record<TalismanCategory, number> = {
   [TalismanCategory.Protection]: 0,
   [TalismanCategory.Health]: 1,
   [TalismanCategory.Family]: 2,
-  [TalismanCategory.Wealth]: 3,
-  [TalismanCategory.Study]: 4,
-  [TalismanCategory.Other]: 5,
+  [TalismanCategory.Love]: 3,
+  [TalismanCategory.Wealth]: 4,
+  [TalismanCategory.Study]: 5,
+  [TalismanCategory.Other]: 6,
 };
 
 /**

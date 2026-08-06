@@ -40,6 +40,7 @@ import {
   DAEUN_TALISMAN_SUGGESTION,
   type DaeunPillar,
 } from '@/data/daeun';
+import { getLoveSinsal } from '@/data/sinsal-love';
 
 // ─────────────────────────────────────────────
 // 한지 디자인 토큰 (globals.css의 --color-* 와 동일 값)
@@ -432,6 +433,8 @@ export default function SajuDetailPage() {
     const reading = getSajuReading(detail, oheng, animal);
     const yongsin = getYongsin(detail, oheng);
 
+    const love = getLoveSinsal(detail);
+
     const currentYear = new Date().getFullYear();
     const samjae = isSamjae(currentYear, detail.sajuYear);
 
@@ -458,6 +461,7 @@ export default function SajuDetailPage() {
       oheng,
       reading,
       yongsin,
+      love,
       currentYear,
       samjae,
       samjaeYears,
@@ -531,8 +535,10 @@ export default function SajuDetailPage() {
     );
   }
 
-  const { detail, animal, oheng, reading, yongsin, currentYear, samjae, samjaeYears } =
+  const { detail, animal, oheng, reading, yongsin, love, currentYear, samjae, samjaeYears } =
     data;
+  /** 매력 게이지 — 꽃잎 1~5장 (점수 경쟁이 아니라 결의 진하기) */
+  const charmPetals = Math.min(5, Math.max(1, Math.round(love.charmScore / 20)));
   const { birth, hourKnown, name } = profile;
   const ilgan = reading.ilgan;
   const ilganColor = OHENG_COLORS[ilgan.oheng] ?? JUHONG;
@@ -1815,9 +1821,73 @@ export default function SajuDetailPage() {
           )}
         </Section>
 
-        {/* ── 7. 삼재 ──────────────────────────────── */}
+        {/* ── 7. 내 매력의 결 — 도화·홍염 ─────────── */}
         <Section delay={0.36}>
-          <SectionLabel index={7} title="삼재 보기" term="삼재(三災)" />
+          <SectionLabel index={7} title="내 매력의 결" term="도화살(桃花煞)" />
+
+          <div
+            className="mt-4 rounded-xl px-4 py-4"
+            style={{
+              background: `${JUHONG}0D`,
+              border: `1px solid ${JUHONG}26`,
+            }}
+          >
+            <p
+              className="font-serif-kr text-[13.5px] font-bold leading-snug"
+              style={{ color: MEOK }}
+            >
+              {love.headline}
+            </p>
+
+            {/* 꽃잎 게이지 — 점수 대신 결의 진하기 */}
+            <div
+              className="mt-2 flex items-center gap-0.5"
+              aria-label={`매력의 결 ${charmPetals}/5`}
+            >
+              {[1, 2, 3, 4, 5].map((i) => (
+                <span
+                  key={i}
+                  className="text-[14px] leading-none"
+                  style={
+                    i <= charmPetals
+                      ? undefined
+                      : { opacity: 0.25, filter: 'grayscale(1)' }
+                  }
+                >
+                  🌸
+                </span>
+              ))}
+            </div>
+
+            <p
+              className="mt-2.5 text-[12px] leading-relaxed"
+              style={{ color: `${MEOK}CC` }}
+            >
+              {love.reading}
+            </p>
+
+            {love.positionNote && (
+              <p
+                className="mt-2 text-[11px] leading-relaxed"
+                style={{ color: GALSAEK }}
+              >
+                🌷 {love.positionNote}
+              </p>
+            )}
+          </div>
+
+          <p
+            className="mt-2.5 text-[10.5px] leading-relaxed"
+            style={{ color: `${GALSAEK}99` }}
+          >
+            도화살(桃花煞)·홍염살(紅豔煞)은 옛날엔 조심하라는 말로 읽혔지만,
+            지금은 사람을 끌어당기는 매력과 표현력으로 봐요.
+          </p>
+        </Section>
+
+        {/* ── 8. 삼재 ──────────────────────────────── */}
+        <Section delay={0.42}>
+          <SectionLabel index={8} title="삼재 보기" term="삼재(三災)" />
 
           <div
             className="mt-4 rounded-xl px-4 py-4"

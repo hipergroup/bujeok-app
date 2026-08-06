@@ -32,6 +32,7 @@ export const CATEGORY_COLORS: Record<TalismanCategory, string> = {
   가정: '#E76F51',
   학업: '#457B9D',
   기타: '#6C757D',
+  연애: '#C25B78', // 연지빛 — 전통 연지(臙脂) 계열의 장밋빛
 };
 
 /** 도감 탭 목록 */
@@ -45,5 +46,6 @@ export const CATEGORY_LIST: Array<{
   { label: '건강', value: TalismanCategory.Health },
   { label: '가정', value: TalismanCategory.Family },
   { label: '학업', value: TalismanCategory.Study },
+  { label: '연애', value: TalismanCategory.Love },
   { label: '기타', value: TalismanCategory.Other },
 ];
