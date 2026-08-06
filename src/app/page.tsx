@@ -17,7 +17,7 @@ import {
 } from "@/components/hanji/motifs";
 import { HOME_ENERGIES } from "@/data/energies";
 import { getSaju, getSajuDetail, getOheng, getAnimal, isSamjae } from "@/data/saju";
-import { getDailyFortune } from "@/data/fortune";
+import { getDailyFortune, type LoveFortuneDetail } from "@/data/fortune";
 import {
   getTodayTalisman,
   type SajuMatchInput,
@@ -52,6 +52,7 @@ function getTodayFortune(birthData?: BirthData) {
       overall: fortune.overall,
       luckyColor: fortune.luckyColor,
       colorReason: `부족한 ${OHENG_LABEL[weakEl]} 기운을 채워주는 색`,
+      loveDetail: fortune.loveDetail as LoveFortuneDetail | null,
     };
   }
 
@@ -71,6 +72,7 @@ function getTodayFortune(birthData?: BirthData) {
     overall: overalls[hash % overalls.length],
     luckyColor: colors[hash % colors.length],
     colorReason: null as string | null,
+    loveDetail: null as LoveFortuneDetail | null,
   };
 }
 
@@ -91,6 +93,7 @@ export default function HomePage() {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [userName, setUserName] = useState("");
   const [birthData, setBirthData] = useState<BirthData | undefined>();
+  const [loveOpen, setLoveOpen] = useState(false);
 
   useEffect(() => {
     const onboarded = localStorage.getItem("onboarding_completed");
@@ -286,6 +289,51 @@ export default function HomePage() {
               오늘의 행운색 · {fortune.luckyColor}
               {fortune.colorReason && ` — ${fortune.colorReason}`}
             </p>
+
+            {/* ── 애정운 (일진 × 일지 배우자궁) — 탭하면 근거·실천 힌트 펼침 ── */}
+            {fortune.loveDetail && (
+              <button
+                onClick={() => setLoveOpen((v) => !v)}
+                className="mt-3 w-full border-t pt-3 text-left"
+                style={{ borderColor: "rgba(122,74,52,0.15)" }}
+                aria-expanded={loveOpen}
+                aria-label="애정운 자세히 보기"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-serif-kr text-[12px] font-bold text-[var(--color-meok)]">
+                    💕 애정운
+                  </span>
+                  <span className="text-[10px] tracking-widest text-[var(--color-hwang)]">
+                    {"●".repeat(fortune.loveDetail.score)}
+                    <span className="opacity-25">
+                      {"●".repeat(5 - fortune.loveDetail.score)}
+                    </span>
+                  </span>
+                </div>
+                <p className="mt-1 text-[12.5px] leading-relaxed text-[var(--color-galsaek)]">
+                  {fortune.loveDetail.text}
+                </p>
+                {loveOpen && (
+                  <>
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--color-galsaek)] opacity-70">
+                      {fortune.loveDetail.basis}
+                    </p>
+                    <span
+                      className="mt-2 inline-block rounded-full px-2.5 py-[3px] text-[11px] font-bold text-[var(--color-juhong)]"
+                      style={{
+                        border: "1px solid rgba(167,43,33,0.3)",
+                        background: "rgba(167,43,33,0.05)",
+                      }}
+                    >
+                      {fortune.loveDetail.luckyAction}
+                    </span>
+                  </>
+                )}
+                <span className="mt-1.5 block text-right text-[10px] text-[var(--color-galsaek)] opacity-60">
+                  {loveOpen ? "접기 ↑" : "왜 이런 운세인가요? ↓"}
+                </span>
+              </button>
+            )}
           </div>
         </motion.section>
 

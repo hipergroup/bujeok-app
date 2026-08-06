@@ -3,8 +3,23 @@
 // 사주 기반 일일 운세, 행운 정보, 주문(呪文) 생성
 // ============================================================
 
-import type { SajuResult, OhengScore, Oheng } from './saju';
-import { getOheng } from './saju';
+import type { SajuResult, OhengScore, Oheng, JiJi } from './saju';
+import { getOheng, getSaju, JIJI } from './saju';
+import { getLoveSinsal } from './sinsal-love';
+
+/**
+ * 사주 기반 애정운 상세
+ * — 오늘의 일진(日辰) 지지와 내 일지(日支, 배우자궁)의 합·충 관계로 읽는다.
+ */
+export interface LoveFortuneDetail {
+  score: 1 | 2 | 3 | 4 | 5;
+  /** 근거 기반 문장 (기존 풀 문장과 결합) */
+  text: string;
+  /** 왜 이런 운세인지 — 명리 근거 한 줄 */
+  basis: string;
+  /** 오늘 실천해보면 좋은 행동 힌트 */
+  luckyAction: string;
+}
 
 /** 오늘의 운세 결과 */
 export interface DailyFortune {
@@ -19,6 +34,8 @@ export interface DailyFortune {
   luckyNumber: number;
   dailyMantra: string;
   score: 1 | 2 | 3 | 4 | 5;
+  /** 사주 기반 애정운 상세 (love 는 이 text 와 동일한 문자열을 유지) */
+  loveDetail: LoveFortuneDetail;
 }
 
 // ─── 운세 텍스트 풀 (카테고리별 20개 이상) ─────────────────────
@@ -207,6 +224,175 @@ function pickFromPool<T>(pool: T[], rng: () => number): T {
   return pool[Math.floor(rng() * pool.length)];
 }
 
+// ─── 애정운: 일진(日辰) × 일지(배우자궁) 관계 ─────────────────
+// 전통 근거:
+//  · 일지(日支) = 배우자궁 — 인연의 바탕 자리
+//  · 오늘의 일진 지지가 내 일지와 육합/삼합이면 인연이 닿기 좋은 날,
+//    충(沖)이면 감정 기복이 있는 날 (단, 절망 진술 금지 — 재해석)
+//  · 오늘 지지가 내 도화지(桃花支)와 일치하면 매력이 빛나는 날
+
+/** 지지육합 6합 — index 쌍 (자축·인해·묘술·진유·사신·오미) */
+const LOVE_YUKHAP: [number, number][] = [
+  [0, 1], [2, 11], [3, 10], [4, 9], [5, 8], [6, 7],
+];
+
+/** 삼합 4국 — index 3개 (인오술·사유축·신자진·해묘미) */
+const LOVE_SAMHAP: number[][] = [
+  [2, 6, 10],
+  [5, 9, 1],
+  [8, 0, 4],
+  [11, 3, 7],
+];
+
+/** 도화지 조견표 — 삼합 그룹 기준 (신자진→유 / 인오술→묘 / 사유축→오 / 해묘미→자) */
+const LOVE_DOHWA_TARGET: Record<string, string> = {
+  신: '유', 자: '유', 진: '유',
+  인: '묘', 오: '묘', 술: '묘',
+  사: '오', 유: '오', 축: '오',
+  해: '자', 묘: '자', 미: '자',
+};
+
+function branchIndex(b: JiJi): number {
+  return JIJI.findIndex((j) => j.name === b.name && j.hanja === b.hanja);
+}
+
+type LoveRelation = 'yukhap' | 'samhap' | 'chung' | 'none';
+
+function getLoveRelation(myDay: JiJi, todayBranch: JiJi): LoveRelation {
+  const a = branchIndex(myDay);
+  const b = branchIndex(todayBranch);
+  if (LOVE_YUKHAP.some(([x, y]) => (x === a && y === b) || (x === b && y === a)))
+    return 'yukhap';
+  if (
+    a !== b &&
+    LOVE_SAMHAP.some((g) => g.includes(a) && g.includes(b))
+  )
+    return 'samhap';
+  if ((a + 6) % 12 === b) return 'chung';
+  return 'none';
+}
+
+// 관계별 근거 문장 · 실천 힌트
+const LOVE_TEXT: Record<LoveRelation, string[]> = {
+  yukhap: [
+    '인연이 자연스럽게 가까워지는 날이에요. 마음이 가는 사람이 있다면 오늘을 놓치지 마세요.',
+    '인연이 자연스럽게 가까워지는 날이에요. 작은 대화 하나가 깊은 연결로 이어질 수 있어요.',
+  ],
+  samhap: [
+    '함께하는 자리에서 좋은 기운이 흐르는 날이에요. 사람들 속에 있을 때 인연의 문이 열립니다.',
+    '함께하는 자리에서 좋은 기운이 모이는 날이에요. 여럿이 어울리는 시간이 뜻밖의 설렘을 데려와요.',
+  ],
+  chung: [
+    '감정의 파도가 있는 날이에요. 답장을 재촉하기보다 한 호흡 쉬어가면 부드럽게 지나갑니다.',
+    '감정의 파도가 오갈 수 있는 날이에요. 말을 아끼고 들어주는 쪽을 택하면 오히려 마음이 가까워져요.',
+  ],
+  none: [
+    '잔잔하게 흐르는 하루예요.',
+    '큰 파도 없이 평온한 인연의 날이에요.',
+  ],
+};
+
+const LOVE_ACTION: Record<LoveRelation, string[]> = {
+  yukhap: ['먼저 연락해보기 좋은 날', '따뜻한 안부 한마디 건네보기'],
+  samhap: ['모임이나 함께하는 자리에 나가보기', '같이 밥 한 끼 하자고 청해보기'],
+  chung: ['말하기 전에 한 호흡 쉬어가기', '답장을 재촉하지 않고 기다려주기'],
+  none: ['좋아하는 사람의 안부를 가만히 떠올려보기', '나를 돌보는 시간 갖기'],
+};
+
+const LOVE_DOHWA_ACTION = [
+  '평소 좋아하는 옷차림으로 나서보기',
+  '사람 많은 자리에 얼굴 비춰보기',
+];
+
+/**
+ * 사주 기반 애정운 상세 산출
+ * @param saju 내 사주
+ * @param todayBranch 오늘 일진의 지지
+ * @param rng 결정적 난수 (같은 날+같은 사주 = 같은 결과)
+ */
+function computeLoveDetail(
+  saju: SajuResult,
+  todayBranch: JiJi,
+  rng: () => number
+): LoveFortuneDetail {
+  const myDay = saju.dayBranch; // 일지 = 배우자궁
+  const relation = getLoveRelation(myDay, todayBranch);
+
+  // 도화지: 년지·일지 삼합 그룹 기준 목표 지지
+  const dohwaTargets = new Set<string>([
+    LOVE_DOHWA_TARGET[saju.yearBranch.name],
+    LOVE_DOHWA_TARGET[saju.dayBranch.name],
+  ]);
+  const dohwaToday = dohwaTargets.has(todayBranch.name);
+  const natalDohwa = getLoveSinsal(saju).dohwa.present;
+
+  // ── 점수 ──
+  let score: number;
+  switch (relation) {
+    case 'yukhap':
+      score = rng() < 0.5 ? 4 : 5;
+      break;
+    case 'samhap':
+      score = 4;
+      break;
+    case 'chung':
+      score = rng() < 0.5 ? 2 : 3;
+      break;
+    default:
+      score = 3;
+  }
+  if (dohwaToday) score = Math.min(5, score + 1);
+
+  // ── 근거(basis) ──
+  const myLabel = `${myDay.name}(${myDay.hanja})`;
+  const todayLabel = `${todayBranch.name}(${todayBranch.hanja})`;
+  let basis: string;
+  switch (relation) {
+    case 'yukhap':
+      basis = `오늘의 기운 ${todayLabel}이 당신의 인연 자리(일지 ${myLabel})와 육합을 이뤘어요.`;
+      break;
+    case 'samhap':
+      basis = `오늘의 기운 ${todayLabel}이 당신의 인연 자리(일지 ${myLabel})와 삼합으로 뭉치는 날이에요.`;
+      break;
+    case 'chung':
+      basis = `오늘의 기운 ${todayLabel}이 당신의 인연 자리(일지 ${myLabel})와 마주 보는 충(沖)의 자리예요. 부딪힘은 마음을 여는 힘이기도 합니다.`;
+      break;
+    default:
+      basis = `오늘의 기운 ${todayLabel}이 당신의 인연 자리(일지 ${myLabel})와 무리 없이 어우러지는 날이에요.`;
+  }
+  if (dohwaToday) {
+    basis += ' 오늘 지지가 당신의 도화(桃花) 자리와 겹쳐 매력이 한층 빛나요.';
+  }
+
+  // ── 본문(text) — 근거 기반 문장 + (중립일 때) 기존 풀 문장 결합 ──
+  let text = pickFromPool(LOVE_TEXT[relation], rng);
+  if (dohwaToday) {
+    text = `오늘은 당신의 매력이 평소보다 빛나는 날이에요. ${text}`;
+  }
+  if (relation === 'none') {
+    text = `${text} ${pickFromPool(LOVE_FORTUNES, rng)}`;
+  }
+
+  // ── 실천 힌트 ──
+  // 도화가 든 날은 매력을 살리는 행동을, 그 외엔 관계별 힌트를 권한다.
+  // 사주에 도화살이 있으면(타고난 매력) 적극적인 첫 번째 힌트를 우선.
+  let luckyAction: string;
+  if (dohwaToday && relation !== 'chung') {
+    luckyAction = pickFromPool(LOVE_DOHWA_ACTION, rng);
+  } else if (natalDohwa && relation !== 'chung') {
+    luckyAction = LOVE_ACTION[relation][0];
+  } else {
+    luckyAction = pickFromPool(LOVE_ACTION[relation], rng);
+  }
+
+  return {
+    score: score as 1 | 2 | 3 | 4 | 5,
+    text,
+    basis,
+    luckyAction,
+  };
+}
+
 // ─── 지배 오행 결정 ─────────────────────────────────────────
 function getDominantOheng(score: OhengScore): Oheng {
   const entries = Object.entries(score) as [Oheng, number][];
@@ -257,9 +443,18 @@ export function getDailyFortune(
   // 운세 텍스트 선택
   const overall = pickFromPool(OVERALL_FORTUNES, rng);
   const money = pickFromPool(MONEY_FORTUNES, rng);
-  const love = pickFromPool(LOVE_FORTUNES, rng);
+  // 기존 rng 흐름 유지를 위해 한 번 소비 (다른 항목의 결정성 보존)
+  pickFromPool(LOVE_FORTUNES, rng);
   const health = pickFromPool(HEALTH_FORTUNES, rng);
   const study = pickFromPool(STUDY_FORTUNES, rng);
+
+  // ── 애정운: 오늘의 일진(日辰) × 내 일지(배우자궁) ──
+  // 별도 시드 rng — 같은 날+같은 사주면 항상 같은 결과
+  const [ty, tm, td] = dateStr.split('-').map(Number);
+  const todaySaju = getSaju(ty, tm, td, 12);
+  const loveRng = seededRandom(hashSeed(dateStr, sajuKey + '::love'));
+  const loveDetail = computeLoveDetail(saju, todaySaju.dayBranch, loveRng);
+  const love = loveDetail.text;
 
   // 행운의 색상: 부족한 오행 기반
   const colorPool = LUCKY_COLORS[weakEl];
@@ -302,5 +497,6 @@ export function getDailyFortune(
     luckyNumber,
     dailyMantra,
     score,
+    loveDetail,
   };
 }

@@ -20,6 +20,7 @@ import {
   type GunghapResult,
   type GunghapAspectKind,
   type GunghapGrade,
+  type RelationType,
 } from '@/data/gunghap';
 
 // ─── 한지 디자인 토큰 (globals.css --color-* 와 동일) ────────
@@ -40,7 +41,17 @@ const ASPECT_ICON: Record<GunghapAspectKind, string> = {
   'ilgan-oheng': '☯️',
   'yongsin-complement': '🧩',
   animal: '🐾',
+  'dohwa-spark': '🌸',
 };
+
+/** 관계 유형 선택 칩 — 저장하지 않고 화면 상태로만 사용 */
+const RELATION_CHIPS: { value: RelationType; label: string }[] = [
+  { value: '연인', label: '연인' },
+  { value: '썸', label: '썸·짝사랑' },
+  { value: '부부', label: '부부' },
+  { value: '친구', label: '친구' },
+  { value: '동료', label: '동료·파트너' },
+];
 
 const GRADE_COLOR: Record<GunghapGrade, string> = {
   천생연분: JUHONG,
@@ -299,6 +310,7 @@ export default function GunghapPage() {
   const [editingA, setEditingA] = useState(false);
   const [formA, setFormA] = useState<BirthForm>(EMPTY_FORM);
   const [formB, setFormB] = useState<BirthForm>({ ...EMPTY_FORM, year: 1995 });
+  const [relation, setRelation] = useState<RelationType>('연인');
   const [result, setResult] = useState<GunghapResult | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
 
@@ -339,6 +351,7 @@ export default function GunghapPage() {
           hour: formB.hour < 0 ? 12 : formB.hour,
         },
       },
+      relation,
     });
     setResult(r);
     // 결과로 부드럽게 스크롤
@@ -429,6 +442,41 @@ export default function GunghapPage() {
           <h2 className="mb-2 font-serif-kr text-[14px] font-bold" style={{ color: MEOK }}>
             상대의 사주
           </h2>
+
+          {/* 관계 유형 선택 — 해석의 언어가 달라져요 */}
+          <div className="mb-3">
+            <FieldLabel>어떤 사이인가요?</FieldLabel>
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="관계 유형 선택">
+              {RELATION_CHIPS.map((chip) => {
+                const active = relation === chip.value;
+                return (
+                  <button
+                    key={chip.value}
+                    type="button"
+                    onClick={() => setRelation(chip.value)}
+                    aria-pressed={active}
+                    className="rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors"
+                    style={
+                      active
+                        ? {
+                            color: '#fff',
+                            background: JUHONG,
+                            border: `1px solid ${JUHONG}`,
+                          }
+                        : {
+                            color: GALSAEK,
+                            background: 'rgba(255,255,255,0.35)',
+                            border: '1px solid rgba(122,74,52,0.30)',
+                          }
+                    }
+                  >
+                    {chip.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <BirthFields form={formB} onChange={setFormB} namePlaceholder="상대 이름" />
           <p className="mt-2.5 text-[10.5px] leading-relaxed" style={{ color: `${GALSAEK}88` }}>
             상대방의 생년월일은 저장되지 않고, 이 화면에서만 사용돼요.
@@ -463,6 +511,17 @@ export default function GunghapPage() {
               {/* 점수 */}
               <section className="hanji-card rounded-2xl px-4 py-6">
                 <ScoreCircle score={result.score} grade={result.grade} />
+                {result.aspects.some((a) => a.kind === 'dohwa-spark') && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.1 }}
+                    className="mt-3 text-center text-[11.5px]"
+                    style={{ color: `${GALSAEK}BB` }}
+                  >
+                    두 분의 매력 궁합도 함께 보았어요 🌸
+                  </motion.p>
+                )}
               </section>
 
               {/* 인연의 결 (aspects) */}

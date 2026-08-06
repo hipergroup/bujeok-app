@@ -26,6 +26,7 @@ import {
 } from './saju';
 import { getYongsin, SAENG, GEUK } from './yongsin';
 import { OHENG_INFO } from './saju-interpretation';
+import { getLoveSinsal } from './sinsal-love';
 import { getTalismanById, TALISMANS, type TalismanType } from './talismans';
 
 // ─── 입력/출력 타입 ─────────────────────────────────────────
@@ -40,6 +41,12 @@ export interface GunghapInput {
   b: GunghapPerson;
 }
 
+/**
+ * 관계 유형 — 해석의 언어와 부적 추천이 달라진다.
+ * (relation 미지정 시 기존과 동일한 중립(부부에 가까운) 해석)
+ */
+export type RelationType = '연인' | '썸' | '부부' | '친구' | '동료';
+
 export type GunghapAspectKind =
   | 'ilgan-oheng'
   | 'ji-yukhap'
@@ -47,7 +54,8 @@ export type GunghapAspectKind =
   | 'ji-chung'
   | 'cheongan-hap'
   | 'yongsin-complement'
-  | 'animal';
+  | 'animal'
+  | 'dohwa-spark';
 
 export interface GunghapAspect {
   kind: GunghapAspectKind;
@@ -219,9 +227,15 @@ function gradeOf(score: number): GunghapGrade {
  * 점수 철학: 기본 60점에서 합(合)이 더하고 충(沖)이 조금 덜어내되,
  * 충의 해석은 언제나 "그만큼 서로를 바꾸는 힘"으로 긍정 재해석한다.
  * 최종 점수는 50~99 사이 — 인연에 낙제점은 없다.
+ *
+ * relation 에 따라 해석의 언어와 부적 추천이 달라진다 (미지정 시 기존과 동일).
  */
-export function getGunghap(input: GunghapInput): GunghapResult {
-  const { a, b } = input;
+export function getGunghap(
+  input: GunghapInput & { relation?: RelationType }
+): GunghapResult {
+  const { a, b, relation } = input;
+  const isRomance = relation === '연인' || relation === '썸';
+  const isFriend = relation === '친구' || relation === '동료';
   const sajuA = getSaju(a.birth.year, a.birth.month, a.birth.day, a.birth.hour);
   const sajuB = getSaju(b.birth.year, b.birth.month, b.birth.day, b.birth.hour);
   const nameA = personLabel(a, '나');
@@ -280,13 +294,23 @@ export function getGunghap(input: GunghapInput): GunghapResult {
   const dayYukhap = isYukhap(sajuA.dayBranch, sajuB.dayBranch);
   const daySamhap = findSamhap(sajuA.dayBranch, sajuB.dayBranch);
   const dayChung = isChung(sajuA.dayBranch, sajuB.dayBranch);
+  // 일지 자리의 이름 — 관계 유형에 따라 부르는 말이 달라진다
+  const iljiName = isRomance
+    ? '마음을 내어주는 자리'
+    : isFriend
+      ? '가장 가까운 사람의 자리'
+      : '곁을 지키는 사람의 자리';
   if (dayYukhap) {
     score += 10;
     aspects.push({
       kind: 'ji-yukhap',
       score: 10,
-      title: '배우자 자리가 꼭 맞물리는 육합',
-      detail: `${sajuA.dayBranch.name}(${sajuA.dayBranch.hanja})와 ${sajuB.dayBranch.name}(${sajuB.dayBranch.hanja})는 1:1로 꼭 맞물리는 육합(六合)이에요. 일지는 곁을 지키는 사람의 자리 — 그 자리가 서로를 향해 있으니, 함께 있을 때 가장 편안한 인연입니다.`,
+      title: isRomance
+        ? '마음 자리가 꼭 맞물리는 육합'
+        : isFriend
+          ? '속 자리가 꼭 맞물리는 육합'
+          : '배우자 자리가 꼭 맞물리는 육합',
+      detail: `${sajuA.dayBranch.name}(${sajuA.dayBranch.hanja})와 ${sajuB.dayBranch.name}(${sajuB.dayBranch.hanja})는 1:1로 꼭 맞물리는 육합(六合)이에요. 일지는 ${iljiName} — 그 자리가 서로를 향해 있으니, 함께 있을 때 가장 편안한 인연입니다.`,
     });
   } else if (daySamhap) {
     score += 9;
@@ -303,7 +327,10 @@ export function getGunghap(input: GunghapInput): GunghapResult {
       kind: 'ji-chung',
       score: -6,
       title: '부딪히며 서로를 여는 자리',
-      detail: `${sajuA.dayBranch.name}(${sajuA.dayBranch.hanja})와 ${sajuB.dayBranch.name}(${sajuB.dayBranch.hanja})는 정면으로 마주 보는 충(沖)이에요. 부딪힐 수 있지만 그만큼 서로를 바꾸는 힘이 강한 인연 — 명리에서 충은 '막힌 것을 여는 힘'이기도 해요. 서로의 닫힌 문을 열어주는 사이입니다.`,
+      detail:
+        relation === '연인'
+          ? `${sajuA.dayBranch.name}(${sajuA.dayBranch.hanja})와 ${sajuB.dayBranch.name}(${sajuB.dayBranch.hanja})는 정면으로 마주 보는 충(沖)이에요. 부딪힐 때 서로를 가장 크게 바꾸는 인연 — 싸운 뒤가 더 깊어지는 사이입니다. 명리에서 충은 '막힌 것을 여는 힘'이기도 하니, 다툼을 두려워하지 않아도 돼요.`
+          : `${sajuA.dayBranch.name}(${sajuA.dayBranch.hanja})와 ${sajuB.dayBranch.name}(${sajuB.dayBranch.hanja})는 정면으로 마주 보는 충(沖)이에요. 부딪힐 수 있지만 그만큼 서로를 바꾸는 힘이 강한 인연 — 명리에서 충은 '막힌 것을 여는 힘'이기도 해요. 서로의 닫힌 문을 열어주는 사이입니다.`,
     });
   }
 
@@ -379,6 +406,30 @@ export function getGunghap(input: GunghapInput): GunghapResult {
     });
   }
 
+  // ── 6. 도화 매력 (연인·썸 모드 전용) — 도화살이 만드는 끌림 ──
+  if (isRomance) {
+    const dohwaA = getLoveSinsal(sajuA).dohwa.present;
+    const dohwaB = getLoveSinsal(sajuB).dohwa.present;
+    if (dohwaA && dohwaB) {
+      score += 6;
+      aspects.push({
+        kind: 'dohwa-spark',
+        score: 6,
+        title: '눈이 자주 마주치는 인연',
+        detail: `두 사람 모두 사주에 도화(桃花)의 매력을 지니고 있어요. 서로가 서로에게 눈이 가는, 자연스럽게 시선이 오가는 짝입니다. 표현력이 좋은 두 사람이라 마음이 오가는 속도도 빠른 편이에요.`,
+      });
+    } else if (dohwaA || dohwaB) {
+      const who = dohwaA ? nameA : nameB;
+      score += 4;
+      aspects.push({
+        kind: 'dohwa-spark',
+        score: 4,
+        title: '서로에게 끌리는 매력이 있는 사이',
+        detail: `${who}의 사주에 사람을 끌어당기는 도화(桃花)의 기운이 담겨 있어요. 함께 있으면 상대의 시선이 자연스럽게 머무는 — 두 사람 사이에 은근한 끌림을 만들어주는 매력입니다.`,
+      });
+    }
+  }
+
   // ── 마무리: 점수·등급·정렬 ──
   score = Math.max(50, Math.min(99, Math.round(score)));
   const grade = gradeOf(score);
@@ -388,10 +439,10 @@ export function getGunghap(input: GunghapInput): GunghapResult {
   const topAspects = sorted.slice(0, 6);
 
   // ── 요약 문단 ──
-  const summary = buildSummary(grade, topAspects, hasChung, nameA, nameB);
+  const summary = buildSummary(grade, topAspects, hasChung, nameA, nameB, relation);
 
   // ── 두 사람을 위한 부적 ──
-  const sharedTalisman = pickSharedTalisman(hasChung, complementOheng);
+  const sharedTalisman = pickSharedTalisman(hasChung, complementOheng, relation);
 
   return { score, grade, aspects: topAspects, summary, sharedTalisman };
 }
@@ -403,25 +454,81 @@ function buildSummary(
   aspects: GunghapAspect[],
   hasChung: boolean,
   nameA: string,
-  nameB: string
+  nameB: string,
+  relation?: RelationType
 ): string {
   const best = aspects.find((a) => a.score > 0);
-  const opening: Record<GunghapGrade, string> = {
+
+  // 관계 유형별 여는 문단
+  // 기본(미지정·부부): 기존 문장 유지
+  const openingDefault: Record<GunghapGrade, string> = {
     천생연분: `${wa(nameA)} ${nameB}의 여덟 글자는 여러 자리에서 서로를 향해 맞물려 있어요. 옛사람들이 '하늘이 맺어준 짝'이라 부르던 모양에 가깝습니다.`,
     '서로 밝혀주는 사이': `${wa(nameA)} ${nameB}의 사주는 서로의 좋은 면을 끌어내는 방향으로 흐르고 있어요. 함께 있을 때 각자 혼자일 때보다 조금 더 밝아지는 인연입니다.`,
     '맞춰가는 재미': `${wa(nameA)} ${nameB}는 닮은 구석과 다른 구석을 골고루 지닌 짝이에요. 처음부터 완성된 그림이 아니라, 맞춰갈수록 그림이 좋아지는 인연입니다.`,
     '다름이 동력': `${wa(nameA)} ${nameB}는 결이 꽤 다른 두 사람이에요. 하지만 명리에서 다름은 끝이 아니라 동력 — 서로 다른 결이라 배울 게 많고, 그만큼 함께 넓어질 수 있는 사이입니다.`,
   };
+  // 연인 — 연애의 언어로
+  const openingLover: Record<GunghapGrade, string> = {
+    천생연분: `${wa(nameA)} ${nameB}의 여덟 글자는 여러 자리에서 서로를 향해 맞물려 있어요. 사랑이 애쓰지 않아도 흐르는, 옛사람들이 '하늘이 맺어준 짝'이라 부르던 모양에 가깝습니다.`,
+    '서로 밝혀주는 사이': `${wa(nameA)} ${nameB}의 사주는 서로의 좋은 면을 끌어내는 방향으로 흐르고 있어요. 곁에 있을 때 서로가 조금 더 예뻐지고 다정해지는 연애의 결입니다.`,
+    '맞춰가는 재미': `${wa(nameA)} ${nameB}는 닮은 구석과 다른 구석을 골고루 지닌 연인이에요. 처음부터 완성된 사랑이 아니라, 서로를 알아갈수록 더 깊어지는 연애입니다.`,
+    '다름이 동력': `${wa(nameA)} ${nameB}는 결이 꽤 다른 두 사람이에요. 하지만 사랑에서 다름은 끝이 아니라 동력 — 서로 다른 만큼 배울 게 많고, 함께 넓어질 수 있는 연애입니다.`,
+  };
+  // 썸 — 앞날을 여는 언어. 단, 결과를 약속하는 말은 쓰지 않는다.
+  const openingSsum: Record<GunghapGrade, string> = {
+    천생연분: `${wa(nameA)} ${nameB}의 여덟 글자는 여러 자리에서 서로를 향해 맞물려 있어요. 이 인연이 어떻게 피어날지 — 마음을 전하기 좋은 결이 여럿 보입니다.`,
+    '서로 밝혀주는 사이': `${wa(nameA)} ${nameB}의 사주는 서로의 좋은 면을 끌어내는 방향으로 흐르고 있어요. 이 인연이 어떻게 피어날지, 천천히 물들어가기 좋은 인연입니다.`,
+    '맞춰가는 재미': `${wa(nameA)} ${nameB}는 닮은 구석과 다른 구석을 골고루 지닌 두 사람이에요. 서두르지 않고 알아갈수록 결이 맞춰지는 — 천천히 물들어가기 좋은 인연입니다.`,
+    '다름이 동력': `${wa(nameA)} ${nameB}는 결이 꽤 다른 두 사람이에요. 다른 만큼 서로가 궁금해지는 법 — 이 인연이 어떻게 피어날지는 두 사람이 나누는 대화에 달려 있어요.`,
+  };
+  // 친구·동료 — 우정·협력의 언어. 연애의 틀은 쓰지 않는다.
+  const openingFriend: Record<GunghapGrade, string> = {
+    천생연분: `${wa(nameA)} ${nameB}의 여덟 글자는 여러 자리에서 서로를 향해 맞물려 있어요. 오래 곁에 두어도 편한, 서로에게 힘이 되는 짝꿍의 모양입니다.`,
+    '서로 밝혀주는 사이': `${wa(nameA)} ${nameB}의 사주는 서로의 좋은 면을 끌어내는 방향으로 흐르고 있어요. 함께 있을 때 각자 혼자일 때보다 더 잘 되는, 서로를 밀어주는 사이입니다.`,
+    '맞춰가는 재미': `${wa(nameA)} ${nameB}는 닮은 구석과 다른 구석을 골고루 지닌 두 사람이에요. 서로의 방식을 알아갈수록 손발이 잘 맞아가는 사이입니다.`,
+    '다름이 동력': `${wa(nameA)} ${nameB}는 결이 꽤 다른 두 사람이에요. 하지만 함께 일하고 어울리는 사이에서 다름은 곧 서로의 빈틈을 채우는 힘 — 역할이 자연스럽게 나뉘는 조합입니다.`,
+  };
+
+  const opening =
+    relation === '연인'
+      ? openingLover
+      : relation === '썸'
+        ? openingSsum
+        : relation === '친구' || relation === '동료'
+          ? openingFriend
+          : openingDefault;
+
   let text = opening[grade];
   if (best) {
     text += ` 특히 「${best.title}」의 기운이 두 사람을 이어주는 가장 큰 힘이에요.`;
   }
+
+  // 닫는 문장 — 관계 유형별
   if (hasChung) {
-    text +=
-      ' 부딪히는 자리도 있지만, 충(沖)은 막힌 것을 여는 힘이기도 해요. 부딪힘을 미워하지 말고 대화의 문으로 삼으면, 그 자리가 오히려 두 사람을 가장 깊이 이어주는 통로가 됩니다.';
+    if (relation === '연인') {
+      text +=
+        ' 부딪히는 자리도 있지만, 두 사람은 부딪힐 때 서로를 가장 크게 바꾸는 인연 — 싸운 뒤가 더 깊어지는 사이예요. 다툼을 끝이 아니라 서로를 알아가는 문으로 삼으면 됩니다.';
+    } else if (relation === '썸') {
+      text +=
+        ' 결이 어긋나 보이는 자리도 있지만, 그건 서로가 그만큼 다른 세계를 지녔다는 뜻이에요. 서두르지 말고 대화로 그 다름을 구경하는 것— 지금은 그게 마음을 전하기 좋은 길입니다.';
+    } else if (relation === '친구' || relation === '동료') {
+      text +=
+        ' 부딪히는 자리도 있지만, 충(沖)은 막힌 것을 여는 힘이기도 해요. 의견이 갈릴 때 피하지 않고 터놓고 이야기하면, 그 자리가 오히려 두 사람의 신뢰를 가장 단단하게 만드는 계기가 됩니다.';
+    } else {
+      text +=
+        ' 부딪히는 자리도 있지만, 충(沖)은 막힌 것을 여는 힘이기도 해요. 부딪힘을 미워하지 말고 대화의 문으로 삼으면, 그 자리가 오히려 두 사람을 가장 깊이 이어주는 통로가 됩니다.';
+    }
   } else {
-    text +=
-      ' 서로의 속도를 존중하며 걸어가면, 시간이 지날수록 더 잘 맞물리는 인연이 될 거예요.';
+    if (relation === '썸') {
+      text +=
+        ' 억지로 서두르지 않아도 괜찮은 결이에요. 서로의 속도를 살피며 한 걸음씩 다가가기 — 천천히 물들어가기 좋은 인연입니다.';
+    } else if (relation === '친구' || relation === '동료') {
+      text +=
+        ' 서로의 방식을 존중하며 지내면, 시간이 지날수록 더 든든해지는 사이가 될 거예요.';
+    } else {
+      text +=
+        ' 서로의 속도를 존중하며 걸어가면, 시간이 지날수록 더 잘 맞물리는 인연이 될 거예요.';
+    }
   }
   return text;
 }
@@ -430,8 +537,64 @@ function buildSummary(
 
 function pickSharedTalisman(
   hasChung: boolean,
-  complementOheng: Oheng | null
+  complementOheng: Oheng | null,
+  relation?: RelationType
 ): { talisman: TalismanType; reason: string } {
+  // ── 연인 — 충이 있으면 화합부(love-04), 아니면 애정부(love-02) ──
+  if (relation === '연인') {
+    if (hasChung) {
+      const t = getTalismanById('love-04') ?? TALISMANS[0]; // 화합부
+      return {
+        talisman: t,
+        reason:
+          '두 사람 사이에 부딪히는 자리(충)가 있어요. 부딪힐 때 서로를 가장 크게 바꾸는 인연 — 싸운 뒤가 더 깊어지는 사이니, 그 부딪힘이 다치지 않고 화해로 흐르도록 연인의 화합을 비는 부적을 함께 지녀보세요.',
+      };
+    }
+    const t = getTalismanById('love-02') ?? TALISMANS[0]; // 애정부
+    return {
+      talisman: t,
+      reason:
+        '두 사람 사이에 흐르는 애정의 기운이 식지 않고 더 도타워지도록, 예로부터 연인이 함께 지니던 애정의 부적을 권해드려요. 서로를 아끼는 마음이 오래 가는 온기가 되기를 비는 부적입니다.',
+    };
+  }
+
+  // ── 썸 — 인연부(love-01) 또는 애정부(love-02). 결과를 약속하지 않는 언어로 ──
+  if (relation === '썸') {
+    if (hasChung) {
+      const t = getTalismanById('love-02') ?? TALISMANS[0]; // 애정부
+      return {
+        talisman: t,
+        reason:
+          '아직 서로를 알아가는 사이 — 결이 어긋나 보이는 자리가 있는 만큼, 마음이 부드럽게 오가도록 돕는 애정의 부적을 곁에 두어 보세요. 마음을 전하기 좋은 결을 만들어주는 부적입니다.',
+      };
+    }
+    const t = getTalismanById('love-01') ?? TALISMANS[0]; // 인연부
+    return {
+      talisman: t,
+      reason:
+        '이 인연이 어떻게 피어날지는 아무도 미리 말할 수 없지만, 좋은 인연의 실이 끊기지 않고 이어지기를 비는 마음은 담을 수 있어요. 천천히 물들어가기 좋은 이 인연에, 예로부터 월하노인에게 빌던 인연의 부적을 권해드립니다.',
+    };
+  }
+
+  // ── 친구·동료 — 우정·협력의 부적. 연애의 틀은 쓰지 않는다 ──
+  if (relation === '친구' || relation === '동료') {
+    if (hasChung) {
+      const t = getTalismanById('family-06') ?? TALISMANS[0]; // 구설방지부
+      return {
+        talisman: t,
+        reason:
+          '두 사람 사이에 부딪히는 자리(충)가 있어요. 솔직한 대화는 좋지만 오해나 말이 어긋나는 일은 막아야겠지요. 구설과 오해를 막아주는 부적을 함께 지니며, 서로에 대한 믿음을 지켜보세요.',
+      };
+    }
+    const t = getTalismanById('family-02') ?? TALISMANS[0]; // 화목부
+    return {
+      talisman: t,
+      reason:
+        '화목한 기운은 모든 좋은 인연의 바탕이 됩니다. 오래 곁에 두고 싶은 사이일수록 서로의 평안을 빌어주는 법 — 두 사람이 함께 지니기 좋은 화목의 부적을 권해드려요.',
+    };
+  }
+
+  // ── 기본(미지정·부부) — 기존 동작 유지 ──
   // 1) 충이 있으면 — 화합의 부적으로 부딪힘을 감싼다
   if (hasChung) {
     const t = getTalismanById('family-01') ?? TALISMANS[0]; // 부부화합부

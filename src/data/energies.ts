@@ -102,6 +102,16 @@ export const ENERGIES: Energy[] = [
     category: TalismanCategory.Wealth,
     motif: 'flame',
   },
+  {
+    id: 'yeonae',
+    paper: 'hwangji',
+    title: '인연의 기운',
+    subtitle: '설레는 마음과 좋은 인연',
+    hanja: '因緣',
+    color: '#C25B78',
+    category: TalismanCategory.Love,
+    motif: 'knot',
+  },
 ];
 
 /** 홈 그리드에 보여줄 6종 */
