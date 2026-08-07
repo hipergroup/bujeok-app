@@ -697,7 +697,7 @@ function StepBirthInfo({
         transition={{ delay: 0.7 }}
       >
         <div className="flex items-center justify-center gap-2" style={{ color: `${GOLD}77` }}>
-          <AnimalMotif animal={animal.name} size={30} />
+          <AnimalMotif animal={animal.name} size={26} line />
           <span className="text-sm">{sajuYear}년 {animal.name}띠</span>
         </div>
         {sajuYear !== info.year && (
@@ -838,7 +838,7 @@ function StepSajuResult({
             animate={{ rotate: [0, -5, 5, 0] }}
             transition={{ duration: 2, delay: 1, repeat: Infinity, repeatDelay: 4 }}
           >
-            <AnimalMotif animal={reading.animal.animal || animal.name} size={76} />
+            <AnimalMotif animal={reading.animal.animal || animal.name} size={128} />
           </motion.span>
           <span
             className="mt-2 inline-block rounded-full px-3 py-1 text-xs font-bold"

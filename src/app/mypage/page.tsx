@@ -685,11 +685,8 @@ export default function MyPage() {
           ) : (
             <>
               <div className="flex items-center gap-4">
-                <div
-                  className="flex h-14 w-14 items-center justify-center rounded-full text-[var(--color-juhong)]"
-                  style={{ border: '1.5px solid rgba(167,43,33,0.35)' }}
-                >
-                  <AnimalMotif animal={profile?.animal} size={36} />
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center text-[var(--color-juhong)]">
+                  <AnimalMotif animal={profile?.animal} size={64} />
                 </div>
                 <div className="flex-1">
                   <h2 className="font-serif-kr text-lg font-bold text-[var(--color-meok)]">
