@@ -82,6 +82,73 @@ function loadProfile(): Profile | null {
   return null;
 }
 
+/* ── 마음 상태 (loveStatus) ─────────────────────────
+ * user_profile.loveStatus 저장 계약: 'single' | 'crush' | 'dating' | 'married' | 'private'
+ * 다른 화면(운세/홈)에서 읽으므로 값·키를 바꾸지 말 것. */
+
+type LoveStatus = 'single' | 'crush' | 'dating' | 'married' | 'private';
+
+const LOVE_STATUS_OPTIONS: {
+  value: LoveStatus;
+  emoji: string;
+  label: string;
+  desc: string;
+}[] = [
+  { value: 'single', emoji: '🌱', label: '솔로', desc: '좋은 인연을 기다려요' },
+  { value: 'crush', emoji: '🌸', label: '짝사랑·썸', desc: '마음에 둔 사람이 있어요' },
+  { value: 'dating', emoji: '💕', label: '연애 중', desc: '연인과 함께하고 있어요' },
+  { value: 'married', emoji: '🏡', label: '기혼', desc: '배우자와 함께해요' },
+  { value: 'private', emoji: '🔒', label: '비공개', desc: '말하지 않을래요' },
+];
+
+function isLoveStatus(v: unknown): v is LoveStatus {
+  return (
+    typeof v === 'string' &&
+    LOVE_STATUS_OPTIONS.some((o) => o.value === v)
+  );
+}
+
+function loveStatusLabel(v: LoveStatus | null): string {
+  return LOVE_STATUS_OPTIONS.find((o) => o.value === v)?.label ?? '미설정';
+}
+
+function loadLoveStatus(): LoveStatus | null {
+  try {
+    for (const key of ['user_profile', 'bujeok-user']) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const obj = JSON.parse(raw);
+      if (isLoveStatus(obj?.loveStatus)) return obj.loveStatus;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+/** 기존 필드는 그대로 두고 loveStatus 만 병합 저장 (saju의 gender 저장 방식과 동일) */
+function saveLoveStatus(value: LoveStatus) {
+  try {
+    for (const key of ['user_profile', 'bujeok-user']) {
+      const raw = localStorage.getItem(key);
+      if (!raw) {
+        // 온보딩 전이라도 선택은 존중해 보관 (다른 화면은 값이 없으면 무시)
+        if (key === 'user_profile') {
+          localStorage.setItem(key, JSON.stringify({ loveStatus: value }));
+        }
+        continue;
+      }
+      const obj = JSON.parse(raw);
+      if (obj && typeof obj === 'object') {
+        obj.loveStatus = value;
+        localStorage.setItem(key, JSON.stringify(obj));
+      }
+    }
+  } catch {
+    // ignore
+  }
+}
+
 /* ── 연속 방문 계산 (방문일 기록 기반) ─────────────── */
 
 function trackVisitStreak(): number {
@@ -386,6 +453,98 @@ function RestoreConfirmSheet({
   );
 }
 
+/* ── 마음 상태 선택 바텀시트 (한지 스타일) ──────────── */
+
+function LoveStatusSheet({
+  current,
+  onSelect,
+  onClose,
+}: {
+  current: LoveStatus | null;
+  onSelect: (v: LoveStatus) => void;
+  onClose: () => void;
+}) {
+  return (
+    <motion.div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="love-status-title"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#132433]/70 backdrop-blur-sm sm:items-center"
+    >
+      <motion.div
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 16 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        className="hanji-card w-full max-w-md rounded-t-3xl px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 sm:rounded-2xl"
+      >
+        <h2
+          id="love-status-title"
+          className="text-center font-serif-kr text-base font-bold text-[var(--color-meok)]"
+        >
+          지금 마음은 어떤가요?
+        </h2>
+        <p className="mt-1.5 text-center text-[11.5px] leading-[1.7] text-[var(--color-galsaek)] opacity-80">
+          애정운을 당신에게 맞게 전해드려요 · 나만 볼 수 있어요
+        </p>
+
+        <div className="mt-5 grid grid-cols-2 gap-2.5">
+          {LOVE_STATUS_OPTIONS.map((opt) => {
+            const selected = current === opt.value;
+            const fullWidth = opt.value === 'private';
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onSelect(opt.value)}
+                className={`flex flex-col items-center gap-1 rounded-2xl px-3 py-4 text-center transition active:scale-[0.98] ${
+                  fullWidth ? 'col-span-2' : ''
+                }`}
+                style={{
+                  background: selected
+                    ? 'rgba(167,43,33,0.08)'
+                    : 'rgba(122,74,52,0.04)',
+                  border: `1.5px solid ${
+                    selected ? 'rgba(167,43,33,0.4)' : 'rgba(122,74,52,0.15)'
+                  }`,
+                }}
+              >
+                <span className="text-xl leading-none">{opt.emoji}</span>
+                <span
+                  className={`font-serif-kr text-[14px] font-bold leading-tight ${
+                    selected
+                      ? 'text-[var(--color-juhong)]'
+                      : 'text-[var(--color-meok)]'
+                  }`}
+                >
+                  {opt.label}
+                </span>
+                <span className="text-[10.5px] leading-snug text-[var(--color-galsaek)] opacity-80">
+                  {opt.desc}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          onClick={onClose}
+          className="mt-5 w-full rounded-full py-2.5 text-[13px] font-medium text-[var(--color-galsaek)] transition active:scale-[0.98]"
+          style={{ border: '1px solid rgba(122,74,52,0.3)' }}
+        >
+          닫기
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 /* ══════════════════ 마이페이지 ══════════════════ */
 
 export default function MyPage() {
@@ -394,6 +553,16 @@ export default function MyPage() {
   const [streakDays, setStreakDays] = useState(1);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [ready, setReady] = useState(false);
+
+  /* ── 마음 상태 ── */
+  const [loveStatus, setLoveStatus] = useState<LoveStatus | null>(null);
+  const [showLoveSheet, setShowLoveSheet] = useState(false);
+
+  const handleLoveStatusSelect = (v: LoveStatus) => {
+    saveLoveStatus(v); // 기존 프로필 필드 보존 병합 저장
+    setLoveStatus(v);
+    setShowLoveSheet(false);
+  };
 
   /* ── 데이터 지키기 (백업/복원) ── */
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -442,6 +611,7 @@ export default function MyPage() {
 
   useEffect(() => {
     setProfile(loadProfile());
+    setLoveStatus(loadLoveStatus());
     setStreakDays(trackVisitStreak());
     try {
       const stored = localStorage.getItem('bujeok-collection');
@@ -634,6 +804,20 @@ export default function MyPage() {
         >
           <SettingsRow icon="🔮" label="내 사주 풀이" href="/saju" />
           <SettingsRow icon="💕" label="두 사람의 인연" href="/gunghap" />
+          {/* 마음 상태 — 현재 값 표시 + 탭하면 시트로 수정 */}
+          <button
+            onClick={() => setShowLoveSheet(true)}
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-[var(--color-meok)] transition hover:bg-[rgba(122,74,52,0.06)]"
+          >
+            <span className="flex h-5 w-5 items-center justify-center opacity-80">
+              💗
+            </span>
+            <span className="flex-1 text-sm">마음 상태</span>
+            <span className="text-xs text-[var(--color-galsaek)] opacity-80">
+              {loveStatusLabel(loveStatus)}
+            </span>
+            <span className="text-xs text-[var(--color-galsaek)] opacity-50">›</span>
+          </button>
           <SettingsRow icon={<BookMotif size={18} />} label="부적 도감" href="/encyclopedia" />
           <SettingsRow icon="📚" label="사주 용어 사전" href="/glossary" />
           <SettingsRow icon={<BrushTabIcon size={18} />} label="사주 정보 수정" href="/onboarding" />
@@ -697,6 +881,14 @@ export default function MyPage() {
 
       <AnimatePresence>
         {showServiceInfo && <ServiceInfoSheet onClose={() => setShowServiceInfo(false)} />}
+        {showLoveSheet && (
+          <LoveStatusSheet
+            key="love-status-sheet"
+            current={loveStatus}
+            onSelect={handleLoveStatusSelect}
+            onClose={() => setShowLoveSheet(false)}
+          />
+        )}
         {pendingFile && (
           <RestoreConfirmSheet
             key="restore-confirm"

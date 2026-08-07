@@ -7,6 +7,9 @@ import type { SajuResult, OhengScore, Oheng, JiJi } from './saju';
 import { getOheng, getSaju, JIJI } from './saju';
 import { getLoveSinsal } from './sinsal-love';
 
+/** 관계 상태 — 애정운 조언 맞춤용 (user_profile.loveStatus) */
+export type LoveStatus = 'single' | 'crush' | 'dating' | 'married' | 'private';
+
 /**
  * 사주 기반 애정운 상세
  * — 오늘의 일진(日辰) 지지와 내 일지(日支, 배우자궁)의 합·충 관계로 읽는다.
@@ -304,17 +307,58 @@ const LOVE_DOHWA_ACTION = [
   '사람 많은 자리에 얼굴 비춰보기',
 ];
 
+// ── 관계 상태별 실천 힌트 (private/미설정은 기존 중립 문구 유지) ──
+// 사주 근거(육합·삼합·충·도화) 판정은 동일 — 조언 어조만 상태에 맞춘다.
+type LoveTone = 'good' | 'chung' | 'none';
+
+const STATUS_LOVE_ACTION: Record<
+  Exclude<LoveStatus, 'private'>,
+  Record<LoveTone, string[]>
+> = {
+  single: {
+    good: ['새로운 사람들 속에 나가보기 좋은 날', '모임·약속을 만들어보세요'],
+    chung: ['서두르지 않아도 괜찮은 날 — 나를 돌보는 시간'],
+    none: ['일상 속 작은 설렘을 놓치지 마세요'],
+  },
+  crush: {
+    good: ['먼저 말 걸어보기 좋은 날', '가벼운 안부 한 마디부터'],
+    chung: ['고백은 오늘 말고 마음만 차분히'],
+    none: ['자연스러운 자리에서 눈인사부터'],
+  },
+  dating: {
+    good: ['연인에게 먼저 연락해보기 좋은 날'],
+    chung: ['말 한마디 조심 — 다툴 날엔 먼저 안아주기'],
+    none: ['소소한 데이트가 기억에 남는 날'],
+  },
+  married: {
+    good: ['배우자와 따뜻한 대화 나누기 좋은 날'],
+    chung: ['서로의 하루를 물어봐 주세요'],
+    none: ['감사 표현 한 번이 복을 부릅니다'],
+  },
+};
+
+function relationTone(relation: LoveRelation): LoveTone {
+  if (relation === 'yukhap' || relation === 'samhap') return 'good';
+  if (relation === 'chung') return 'chung';
+  return 'none';
+}
+
 /**
  * 사주 기반 애정운 상세 산출
  * @param saju 내 사주
  * @param todayBranch 오늘 일진의 지지
  * @param rng 결정적 난수 (같은 날+같은 사주 = 같은 결과)
+ * @param loveStatus 관계 상태 — 조언 어조 맞춤 (미설정/private 은 중립 문구)
  */
 function computeLoveDetail(
   saju: SajuResult,
   todayBranch: JiJi,
-  rng: () => number
+  rng: () => number,
+  loveStatus?: LoveStatus
 ): LoveFortuneDetail {
+  // private/미설정은 기존 중립 로직 그대로
+  const status =
+    loveStatus && loveStatus !== 'private' ? loveStatus : undefined;
   const myDay = saju.dayBranch; // 일지 = 배우자궁
   const relation = getLoveRelation(myDay, todayBranch);
 
@@ -367,7 +411,11 @@ function computeLoveDetail(
   // ── 본문(text) — 근거 기반 문장 + (중립일 때) 기존 풀 문장 결합 ──
   let text = pickFromPool(LOVE_TEXT[relation], rng);
   if (dohwaToday) {
-    text = `오늘은 당신의 매력이 평소보다 빛나는 날이에요. ${text}`;
+    // 솔로는 도화일 문구를 첫 만남 어조로
+    text =
+      status === 'single'
+        ? `오늘 만나는 사람이 당신을 오래 기억할 거예요. ${text}`
+        : `오늘은 당신의 매력이 평소보다 빛나는 날이에요. ${text}`;
   }
   if (relation === 'none') {
     text = `${text} ${pickFromPool(LOVE_FORTUNES, rng)}`;
@@ -383,6 +431,13 @@ function computeLoveDetail(
     luckyAction = LOVE_ACTION[relation][0];
   } else {
     luckyAction = pickFromPool(LOVE_ACTION[relation], rng);
+  }
+
+  // 관계 상태가 설정돼 있으면 실천 힌트를 상태 맞춤 문구로 교체.
+  // (기존 rng 소비 순서는 그대로 유지 — 점수·근거·본문 결정성 보존)
+  if (status) {
+    const pool = STATUS_LOVE_ACTION[status][relationTone(relation)];
+    luckyAction = pool.length === 1 ? pool[0] : pickFromPool(pool, rng);
   }
 
   return {
@@ -410,10 +465,12 @@ function getWeakOheng(score: OhengScore): Oheng {
  * 일일 운세 생성
  * @param saju 사주팔자 결과
  * @param date 날짜 (Date 객체 또는 YYYY-MM-DD 문자열)
+ * @param options.loveStatus 관계 상태 — 애정운 조언 어조 맞춤 (선택)
  */
 export function getDailyFortune(
   saju: SajuResult,
-  date: Date | string
+  date: Date | string,
+  options?: { loveStatus?: LoveStatus }
 ): DailyFortune {
   const dateStr =
     typeof date === 'string'
@@ -453,7 +510,12 @@ export function getDailyFortune(
   const [ty, tm, td] = dateStr.split('-').map(Number);
   const todaySaju = getSaju(ty, tm, td, 12);
   const loveRng = seededRandom(hashSeed(dateStr, sajuKey + '::love'));
-  const loveDetail = computeLoveDetail(saju, todaySaju.dayBranch, loveRng);
+  const loveDetail = computeLoveDetail(
+    saju,
+    todaySaju.dayBranch,
+    loveRng,
+    options?.loveStatus
+  );
   const love = loveDetail.text;
 
   // 행운의 색상: 부족한 오행 기반
