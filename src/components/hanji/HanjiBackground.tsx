@@ -30,8 +30,8 @@ export default function HanjiBackground({
         style={{
           backgroundImage: `url(${hanjiPaper.src})`,
           backgroundSize: 'cover',
-          // 종이의 낙관·구름이 헤더와 겹치지 않도록 헤더 높이만큼 내려서 깐다
-          backgroundPosition: 'center calc(env(safe-area-inset-top) + 3.25rem)',
+          // 화면 맨 위부터 꽉 차게 — 종이의 윗부분(구름·낙관)이 잘리지 않는다
+          backgroundPosition: 'center top',
           backgroundRepeat: 'no-repeat',
         }}
       />
