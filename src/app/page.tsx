@@ -17,7 +17,11 @@ import {
 } from "@/components/hanji/motifs";
 import { HOME_ENERGIES } from "@/data/energies";
 import { getSaju, getSajuDetail, getOheng, getAnimal, isSamjae } from "@/data/saju";
-import { getDailyFortune, type LoveFortuneDetail } from "@/data/fortune";
+import {
+  getDailyFortune,
+  type LoveFortuneDetail,
+  type LoveStatus,
+} from "@/data/fortune";
 import {
   getTodayTalisman,
   type SajuMatchInput,
@@ -39,10 +43,43 @@ interface BirthData {
   hour: number;
 }
 
-function getTodayFortune(birthData?: BirthData) {
+/* ── 관계 상태 (애정운 맞춤) ── */
+const LOVE_STATUS_OPTIONS: { value: LoveStatus; label: string }[] = [
+  { value: "single", label: "솔로" },
+  { value: "crush", label: "짝사랑·썸" },
+  { value: "dating", label: "연애 중" },
+  { value: "married", label: "기혼" },
+  { value: "private", label: "비공개" },
+];
+
+function loveStatusLabel(s: LoveStatus): string {
+  return LOVE_STATUS_OPTIONS.find((o) => o.value === s)?.label ?? "비공개";
+}
+
+function parseLoveStatus(v: unknown): LoveStatus | undefined {
+  return LOVE_STATUS_OPTIONS.some((o) => o.value === v)
+    ? (v as LoveStatus)
+    : undefined;
+}
+
+/** user_profile 에 loveStatus 만 병합 저장 (기존 필드 보존 — saju 페이지의 gender 저장 패턴) */
+function saveLoveStatusToProfile(status: LoveStatus) {
+  try {
+    const raw = localStorage.getItem("user_profile");
+    const obj = raw ? JSON.parse(raw) : {};
+    if (obj && typeof obj === "object") {
+      obj.loveStatus = status;
+      localStorage.setItem("user_profile", JSON.stringify(obj));
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function getTodayFortune(birthData?: BirthData, loveStatus?: LoveStatus) {
   if (birthData) {
     const saju = getSaju(birthData.year, birthData.month, birthData.day, birthData.hour);
-    const fortune = getDailyFortune(saju, new Date());
+    const fortune = getDailyFortune(saju, new Date(), { loveStatus });
     const oheng = getOheng(saju);
     const weakEl = (Object.entries(oheng) as [string, number][]).sort(
       (a, b) => a[1] - b[1]
@@ -94,6 +131,8 @@ export default function HomePage() {
   const [userName, setUserName] = useState("");
   const [birthData, setBirthData] = useState<BirthData | undefined>();
   const [loveOpen, setLoveOpen] = useState(false);
+  const [loveStatus, setLoveStatus] = useState<LoveStatus | undefined>();
+  const [statusPickerOpen, setStatusPickerOpen] = useState(false);
 
   useEffect(() => {
     const onboarded = localStorage.getItem("onboarding_completed");
@@ -136,6 +175,16 @@ export default function HomePage() {
     } catch {
       setUserName("수호자");
     }
+
+    // 관계 상태 — user_profile.loveStatus (계약 키)
+    try {
+      const profile = localStorage.getItem("user_profile");
+      if (profile) {
+        setLoveStatus(parseLoveStatus(JSON.parse(profile).loveStatus));
+      }
+    } catch {
+      // ignore
+    }
     setReady(true);
   }, []);
 
@@ -173,7 +222,13 @@ export default function HomePage() {
     return <OnboardingPage />;
   }
 
-  const fortune = getTodayFortune(birthData);
+  const fortune = getTodayFortune(birthData, loveStatus);
+
+  const pickLoveStatus = (s: LoveStatus) => {
+    saveLoveStatusToProfile(s);
+    setLoveStatus(s); // state 변경 → 운세 즉시 재계산
+    setStatusPickerOpen(false);
+  };
 
   return (
     <HanjiBackground decorated>
@@ -327,6 +382,58 @@ export default function HomePage() {
                     >
                       {fortune.loveDetail.luckyAction}
                     </span>
+
+                    {/* ── 관계 상태 — 맞춤 조언 (탭 전파 차단: 카드 접힘 방지) ── */}
+                    {loveStatus && !statusPickerOpen ? (
+                      <span className="mt-2 flex items-center gap-1.5 text-[10px] text-[var(--color-galsaek)] opacity-70">
+                        {loveStatusLabel(loveStatus)} 기준 조언
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className="underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setStatusPickerOpen(true);
+                          }}
+                        >
+                          변경
+                        </span>
+                      </span>
+                    ) : (
+                      <span
+                        className="mt-2 block"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span className="block text-[10px] text-[var(--color-galsaek)] opacity-70">
+                          맞춤 조언을 위해 알려주세요 (나만 볼 수 있어요)
+                        </span>
+                        <span className="mt-1.5 flex flex-wrap gap-1.5">
+                          {LOVE_STATUS_OPTIONS.map((o) => (
+                            <span
+                              key={o.value}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => pickLoveStatus(o.value)}
+                              className="rounded-full px-2 py-[2px] text-[10.5px] font-bold"
+                              style={
+                                loveStatus === o.value
+                                  ? {
+                                      border: "1px solid rgba(167,43,33,0.4)",
+                                      background: "rgba(167,43,33,0.08)",
+                                      color: "var(--color-juhong)",
+                                    }
+                                  : {
+                                      border: "1px solid rgba(122,74,52,0.25)",
+                                      color: "var(--color-galsaek)",
+                                    }
+                              }
+                            >
+                              {o.label}
+                            </span>
+                          ))}
+                        </span>
+                      </span>
+                    )}
                   </>
                 )}
                 <span className="mt-1.5 block text-right text-[10px] text-[var(--color-galsaek)] opacity-60">
