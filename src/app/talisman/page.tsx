@@ -6,6 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   DIALOGUE_FLOWS,
   extractKeywords,
+  pickQuestion,
+  getOptionReaction,
+  getFreeTextReaction,
+  getGreeting,
   type DialogueFlow,
 } from "@/data/dialogues";
 import {
@@ -229,6 +233,53 @@ function TalismanFlow() {
   const [recommended, setRecommended] = useState<TalismanType | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  /* ── 봇 말풍선 시퀀서 ──
+     여러 말풍선을 실제 대화처럼 "타이핑 → 잠깐 쉼 → 다음 말"의
+     리듬으로 차례차례 띄운다. 타이핑 시간은 글 길이에 비례. */
+  const botTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  /** 봇이 말하는 중에는 사용자 입력을 받지 않는다 (대화 꼬임 방지) */
+  const botBusyRef = useRef(false);
+  const clearBotTimers = useCallback(() => {
+    botTimersRef.current.forEach(clearTimeout);
+    botTimersRef.current = [];
+    botBusyRef.current = false;
+  }, []);
+  useEffect(() => clearBotTimers, [clearBotTimers]);
+
+  const queueBot = useCallback(
+    (
+      items: { id: string; text: string; options?: DialogueOption[] }[],
+      after?: () => void
+    ) => {
+      botBusyRef.current = true;
+      let t = 350; // 첫 타이핑 시작까지 잠깐 숨 고르기
+      items.forEach((item, i) => {
+        const typingMs = Math.min(600 + item.text.length * 26, 2400);
+        if (i === 0) {
+          botTimersRef.current.push(
+            setTimeout(() => setIsTyping(true), t)
+          );
+        }
+        t += typingMs;
+        const isLast = i === items.length - 1;
+        botTimersRef.current.push(
+          setTimeout(() => {
+            setMessages((prev) => [...prev, { ...item, isBot: true }]);
+            if (isLast) setIsTyping(false);
+          }, t)
+        );
+        if (!isLast) t += 500; // 말풍선 사이의 쉼
+      });
+      botTimersRef.current.push(
+        setTimeout(() => {
+          botBusyRef.current = false;
+          after?.();
+        }, t + 50)
+      );
+    },
+    []
+  );
+
   /* crisis-support state
      ⚠️ 사용자가 입력한 문장은 로그·저장·전송하지 않습니다.
         모달이 열려 있는 동안에만 ref 에 잠시 보관했다가 대화에 반영합니다. */
@@ -335,28 +386,34 @@ function TalismanFlow() {
   /* ──────── phase handlers ──────── */
 
   /* 1. energy(마음) 선택 → chat */
-  const handleEnergySelect = useCallback((energy: Energy) => {
-    setSelectedEnergy(energy);
-    setBackground(energy.paper); // 시안: 기운별 색지 기본 적용 (한지/남색/쑥/황금)
-    setPhase("chat");
-    setResponses({});
-    setRecommended(null);
-    const flow = DIALOGUE_FLOWS.find((f) => f.category === energy.category);
-    if (!flow) return;
-    const firstStep = flow.steps[0];
+  const handleEnergySelect = useCallback(
+    (energy: Energy) => {
+      setSelectedEnergy(energy);
+      setBackground(energy.paper); // 시안: 기운별 색지 기본 적용 (한지/남색/쑥/황금)
+      setPhase("chat");
+      setResponses({});
+      setRecommended(null);
+      const flow = DIALOGUE_FLOWS.find((f) => f.category === energy.category);
+      if (!flow) return;
+      const firstStep = flow.steps[0];
 
-    setIsTyping(true);
-    setTimeout(() => {
-      setIsTyping(false);
+      clearBotTimers();
+      setMessages([]);
+      const { name } = loadUserContext();
       const opts: DialogueOption[] | undefined = firstStep.options?.map(
         (o) => ({ label: o, value: o })
       );
-      setMessages([
-        { id: `bot-0`, text: firstStep.question, isBot: true, options: opts },
-      ]);
-      setCurrentStep(0);
-    }, 1200);
-  }, []);
+      /* 인사 → 첫 질문, 두 말풍선으로 나눠서 */
+      queueBot(
+        [
+          { id: "greet-0", text: getGreeting(energy.category, name) },
+          { id: "bot-0", text: pickQuestion(firstStep), options: opts },
+        ],
+        () => setCurrentStep(0)
+      );
+    },
+    [queueBot, clearBotTimers]
+  );
 
   /* 홈에서 ?energy= 파라미터로 진입하면 해당 마음으로 바로 상담 시작 */
   const autoStarted = useRef(false);
@@ -389,6 +446,7 @@ function TalismanFlow() {
   const advanceChat = useCallback(
     (userText: string) => {
       if (!dialogue) return;
+      if (botBusyRef.current) return; // 봇이 말하는 중이면 무시
 
       const step = dialogue.steps[currentStep];
       const nextIdx = currentStep + 1;
@@ -404,53 +462,66 @@ function TalismanFlow() {
       };
       setMessages((prev) => [...prev, userMsg]);
 
+      /* 답변에 대한 공감 한마디 — 선택지면 준비된 리액션,
+         직접 입력이면 감정을 읽고 맞춤 반응 */
+      const wasOption = !!step.options?.includes(userText);
+      const reaction = wasOption
+        ? getOptionReaction(step, userText)
+        : getFreeTextReaction(userText);
+
       // step.next === null means this is the last step
       if (step.next === null) {
-        // 대화 응답 → 키워드 → 43종 중 맞춤 부적 추천
+        // 대화 응답 → 키워드 → 47종 중 맞춤 부적 추천
         const kws = extractKeywords(dialogue, newResponses);
         const rec = supportiveModeRef.current
           ? SUPPORTIVE_TALISMAN_TYPE
           : getTalismanRecommendation(dialogue.category, kws);
         setRecommended(rec);
 
-        setIsTyping(true);
-        setTimeout(() => {
-          setIsTyping(false);
-          const resultMsg: ChatMessage = {
+        const { name } = loadUserContext();
+        const who = name ? `${name}님` : "당신";
+        const seq: { id: string; text: string }[] = [];
+        if (reaction) seq.push({ id: `react-${nextIdx}`, text: reaction });
+        if (supportiveModeRef.current) {
+          seq.push({
+            id: "result-intro",
+            text: `이야기 나눠보니, 오늘 ${who}께 꼭 필요한 부적이 떠올랐어요.`,
+          });
+          seq.push({
             id: "result",
-            text: supportiveModeRef.current
-              ? `당신의 마음을 가만히 담아봤어요\n\n「${SUPPORTIVE_TALISMAN.name}」\n\n${SUPPORTIVE_TALISMAN.description}`
-              : `당신에게 어울리는 부적을 찾았어요\n\n「${rec.name} (${rec.hanja})」\n\n${rec.description}`,
-            isBot: true,
-          };
-          setMessages((prev) => [...prev, resultMsg]);
-          setChatDone(true);
-        }, 1500);
+            text: `「${SUPPORTIVE_TALISMAN.name}」\n\n${SUPPORTIVE_TALISMAN.description}`,
+          });
+        } else {
+          seq.push({
+            id: "result-intro",
+            text: `이야기 나눠보니 ${who}의 마음이 어디를 향하는지 알 것 같아요. 딱 맞는 부적이 있어요.`,
+          });
+          seq.push({
+            id: "result",
+            text: `「${rec.name} (${rec.hanja})」\n\n${rec.description}`,
+          });
+        }
+        queueBot(seq, () => setChatDone(true));
         return;
       }
 
       const nextStep = dialogue.steps[nextIdx];
       if (!nextStep) return;
 
-      setIsTyping(true);
-      setTimeout(() => {
-        setIsTyping(false);
-        const opts: DialogueOption[] | undefined = nextStep.options?.map(
-          (o) => ({ label: o, value: o })
-        );
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `bot-${nextIdx}`,
-            text: nextStep.question,
-            isBot: true,
-            options: opts,
-          },
-        ]);
-        setCurrentStep(nextIdx);
-      }, 1200);
+      const opts: DialogueOption[] | undefined = nextStep.options?.map(
+        (o) => ({ label: o, value: o })
+      );
+      const seq: { id: string; text: string; options?: DialogueOption[] }[] =
+        [];
+      if (reaction) seq.push({ id: `react-${nextIdx}`, text: reaction });
+      seq.push({
+        id: `bot-${nextIdx}`,
+        text: pickQuestion(nextStep),
+        options: opts,
+      });
+      queueBot(seq, () => setCurrentStep(nextIdx));
     },
-    [dialogue, currentStep, responses]
+    [dialogue, currentStep, responses, queueBot]
   );
 
   const handleOptionSelect = useCallback(
@@ -507,6 +578,7 @@ function TalismanFlow() {
 
   /* 상담 초기화 후 카테고리로 */
   const resetToCategory = useCallback(() => {
+    clearBotTimers();
     setPhase("category");
     setMessages([]);
     setCurrentStep(0);
@@ -520,7 +592,7 @@ function TalismanFlow() {
     supportiveModeRef.current = false;
     setEncouragement("");
     setSaved(false);
-  }, []);
+  }, [clearBotTimers]);
 
   /* 3. save to 부적함 (bujeok-collection) */
   const handleSave = useCallback(() => {
