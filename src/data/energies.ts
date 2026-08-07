@@ -42,6 +42,16 @@ export const ENERGIES: Energy[] = [
     motif: 'jangseung',
   },
   {
+    id: 'yeonae',
+    paper: 'hwangji',
+    title: '인연의 기운',
+    subtitle: '설레는 마음과 좋은 인연',
+    hanja: '因緣',
+    color: '#C25B78',
+    category: TalismanCategory.Love,
+    motif: 'knot',
+  },
+  {
     id: 'maeum',
     paper: 'namsaekji',
     title: '마음 안정',
@@ -52,13 +62,13 @@ export const ENERGIES: Energy[] = [
     motif: 'lotus',
   },
   {
-    id: 'sowon',
-    paper: 'hwangji',
-    title: '소원 성취',
-    subtitle: '바라는 일 이루기',
-    hanja: '所願',
+    id: 'jaebok',
+    paper: 'geumji',
+    title: '재복 기원',
+    subtitle: '재물과 복 불러오기',
+    hanja: '財福',
     color: '#DAA017',
-    category: TalismanCategory.Other,
+    category: TalismanCategory.Wealth,
     motif: 'flame',
   },
   {
@@ -70,6 +80,16 @@ export const ENERGIES: Energy[] = [
     color: '#1F3E63',
     category: TalismanCategory.Health,
     motif: 'mountain',
+  },
+  {
+    id: 'sowon',
+    paper: 'hwangji',
+    title: '소원 성취',
+    subtitle: '바라는 일 이루기',
+    hanja: '所願',
+    color: '#DAA017',
+    category: TalismanCategory.Other,
+    motif: 'flame',
   },
   {
     id: 'gajeong',
@@ -91,31 +111,11 @@ export const ENERGIES: Energy[] = [
     category: TalismanCategory.Study,
     motif: 'cloud',
   },
-  // 홈 6칸 그리드 밖 — 기운 선택기·부적함 필터에서만 노출 (기존 재물 기능 보존)
-  {
-    id: 'jaebok',
-    paper: 'geumji',
-    title: '재복 기원',
-    subtitle: '재물과 복 불러오기',
-    hanja: '財福',
-    color: '#DAA017',
-    category: TalismanCategory.Wealth,
-    motif: 'flame',
-  },
-  {
-    id: 'yeonae',
-    paper: 'hwangji',
-    title: '인연의 기운',
-    subtitle: '설레는 마음과 좋은 인연',
-    hanja: '因緣',
-    color: '#C25B78',
-    category: TalismanCategory.Love,
-    motif: 'knot',
-  },
 ];
 
 /** 홈 그리드에 보여줄 6종 */
-export const HOME_ENERGIES = ENERGIES.slice(0, 6);
+// 홈 그리드: 전 카테고리 노출 (2열 × 4행) — 연애·재물이 빠져 있던 문제 수정
+export const HOME_ENERGIES = ENERGIES;
 
 export function getEnergyById(id: string): Energy | undefined {
   return ENERGIES.find((e) => e.id === id);
