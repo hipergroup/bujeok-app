@@ -127,6 +127,20 @@ const SUPPORTIVE_TALISMAN_TYPE: TalismanType =
   TALISMANS.find((t) => t.category === TalismanCategory.Health) ??
   TALISMANS[0];
 
+/** 부적을 간직하는 두 가지 모습 — 담긴 바람은 같고 표현만 다르다 */
+const STYLE_OPTIONS = [
+  {
+    value: "traditional",
+    label: "전통 부적",
+    desc: "전통 문양과 상징을 담은 본래의 모습",
+  },
+  {
+    value: "modern",
+    label: "감성 부적",
+    desc: "같은 바람을 일상에 어울리게 풀어낸 모습",
+  },
+] as const;
+
 /* ───────── helpers ───────── */
 
 /** 온보딩에서 저장한 사용자 정보 → 이름·띠 동물 */
@@ -832,30 +846,63 @@ function TalismanFlow() {
               <BrushStroke width={100} />
             </div>
 
-            {/* 화풍 */}
+            {/* 같은 마음, 다른 모습 — 전통 부적 / 감성 부적 */}
             <div className="mb-6">
-              <label className="mb-1.5 block text-xs font-bold text-[var(--color-galsaek)]">
-                화풍
-              </label>
-              <div className="flex gap-1.5">
-                {(["traditional", "modern"] as const).map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setTalismanStyle(s)}
-                    className={`flex-1 rounded-lg py-2 text-xs transition-colors ${
-                      talismanStyle === s
-                        ? "bg-[var(--color-juhong)] font-bold text-[#F6EDD9]"
-                        : "text-[var(--color-galsaek)]"
-                    }`}
-                    style={
-                      talismanStyle !== s
-                        ? { border: "1px solid rgba(122,74,52,0.35)" }
-                        : undefined
-                    }
-                  >
-                    {s === "traditional" ? "전통" : "현대"}
-                  </button>
-                ))}
+              <p className="text-center font-brush text-[13px] text-[var(--color-galsaek)]">
+                같은 마음, 다른 모습
+              </p>
+              <h3 className="mt-1 text-center font-serif-kr text-[16px] font-bold text-[var(--color-meok)]">
+                어떤 모습으로 간직할까요?
+              </h3>
+              <p className="mb-3.5 mt-2 text-center text-[11px] leading-relaxed text-[var(--color-galsaek)] opacity-85">
+                전통 부적과 감성 부적은 담고 있는 바람은 같아요.
+                <br />
+                전통의 모습 그대로 간직하거나, 일상에
+                <br />
+                자연스럽게 어울리는 모습으로 간직해 보세요.
+              </p>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                {STYLE_OPTIONS.map(({ value, label, desc }) => {
+                  const active = talismanStyle === value;
+                  return (
+                    <motion.button
+                      key={value}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => setTalismanStyle(value)}
+                      className="hanji-card relative rounded-xl px-3 pb-3.5 pt-4 text-center transition-colors"
+                      style={{
+                        borderColor: active
+                          ? "var(--color-juhong)"
+                          : "rgba(122,74,52,0.35)",
+                        backgroundColor: active
+                          ? "rgba(167,43,33,0.06)"
+                          : undefined,
+                      }}
+                    >
+                      <span
+                        className="pointer-events-none absolute inset-[4px] rounded-lg"
+                        style={{
+                          border: active
+                            ? "1px solid rgba(167,43,33,0.28)"
+                            : "1px solid rgba(122,74,52,0.14)",
+                        }}
+                      />
+                      <span
+                        className={`block font-serif-kr text-[15px] font-bold ${
+                          active
+                            ? "text-[var(--color-juhong)]"
+                            : "text-[var(--color-meok)]"
+                        }`}
+                      >
+                        {label}
+                      </span>
+                      <span className="mt-1.5 block text-[11px] leading-relaxed text-[var(--color-galsaek)] opacity-80">
+                        {desc}
+                      </span>
+                    </motion.button>
+                  );
+                })}
               </div>
             </div>
 
