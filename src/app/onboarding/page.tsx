@@ -1617,7 +1617,7 @@ function StepTalismanGift({
           id: 'hosinbu-gift',
           type: 'hosinbu',
           name: '호신부 (護身符)',
-          description: '몸과 마음을 보호하는 부적',
+          description: '몸을 보호하기 위해 늘 지니는 부적',
           receivedAt: now,
           isGift: true,
         },
@@ -1805,7 +1805,15 @@ function StepTalismanGift({
           호신부 (護身符)
         </p>
         <p className="mt-1 text-xs" style={{ color: `${GOLD}77` }}>
-          몸과 마음을 보호하여 재앙을 막아주는 부적
+          몸을 보호하기 위해 늘 지니는 부적
+        </p>
+        <p
+          className="mx-auto mt-3 max-w-[17rem] text-xs leading-relaxed"
+          style={{ color: `${GOLD}66` }}
+        >
+          예로부터 길 떠나는 이에게 쥐여주던 부적입니다.
+          <br />
+          부모가 군대 가는 자식에게 손수 써서 주기도 했습니다.
         </p>
       </motion.div>
 
