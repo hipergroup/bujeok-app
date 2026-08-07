@@ -307,6 +307,73 @@ function SettingsRow({
   );
 }
 
+/* ── 데이터 초기화 확인 모달 ────────────── */
+
+function ResetConfirmSheet({
+  onConfirm,
+  onClose,
+}: {
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <motion.div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reset-confirm-title"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#132433]/75 backdrop-blur-md sm:items-center"
+    >
+      <motion.div
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 16 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full max-w-md rounded-t-3xl border border-[#e6ded3] bg-[#fbf8f4] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 sm:rounded-3xl"
+      >
+        <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-red-900/8 text-red-800">
+          <TrashMotif size={22} />
+        </div>
+        <h2
+          id="reset-confirm-title"
+          className="text-center text-[17px] font-semibold text-[#2b3d4e]"
+        >
+          모든 데이터를 초기화할까요?
+        </h2>
+        <p className="mt-3 text-center text-[13px] leading-[1.9] text-[#5a6b7a]">
+          사주 정보 · 부적함 · 도감 수집 기록이 모두 사라져요.
+          <br />
+          <b className="text-red-800">이 작업은 되돌릴 수 없어요.</b>
+        </p>
+        <p className="mt-3 rounded-xl bg-[#f2ede6] px-4 py-2.5 text-center text-[11.5px] leading-[1.7] text-[#8d8275]">
+          소중한 기록은 초기화 전에
+          <br />
+          「데이터 지키기 → 내보내기」로 백업해 두세요.
+        </p>
+        <div className="mt-6 flex flex-col gap-2.5">
+          <button
+            onClick={onConfirm}
+            className="w-full rounded-full bg-red-800 py-3 text-[13.5px] font-semibold text-[#F6EDD9] transition-all duration-200 hover:bg-red-900 active:scale-[0.98]"
+          >
+            초기화할게요
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full rounded-full border border-[#dcd5cb] py-3 text-[13.5px] font-medium text-[#6f7f8d] transition-all duration-200 hover:bg-[#f2ede6] active:scale-[0.98]"
+          >
+            취소
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 /* ── 서비스 안내 (안전 고지 + 상담 전화) ────────────── */
 
 function ServiceInfoSheet({ onClose }: { onClose: () => void }) {
@@ -549,6 +616,7 @@ function LoveStatusSheet({
 
 export default function MyPage() {
   const [showServiceInfo, setShowServiceInfo] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [collectedCount, setCollectedCount] = useState(0);
   const [streakDays, setStreakDays] = useState(1);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -648,10 +716,12 @@ export default function MyPage() {
   }, [saju]);
 
   const handleDataReset = () => {
-    if (window.confirm('모든 데이터를 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
-      localStorage.clear();
-      window.location.reload();
-    }
+    setShowResetConfirm(true);
+  };
+
+  const confirmDataReset = () => {
+    localStorage.clear();
+    window.location.reload();
   };
 
   return (
@@ -878,6 +948,12 @@ export default function MyPage() {
 
       <AnimatePresence>
         {showServiceInfo && <ServiceInfoSheet onClose={() => setShowServiceInfo(false)} />}
+        {showResetConfirm && (
+          <ResetConfirmSheet
+            onConfirm={confirmDataReset}
+            onClose={() => setShowResetConfirm(false)}
+          />
+        )}
         {showLoveSheet && (
           <LoveStatusSheet
             key="love-status-sheet"
