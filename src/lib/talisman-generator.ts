@@ -17,6 +17,8 @@ export interface TalismanParams {
   mantra: string; // 주문(하단)
   userName?: string; // 인장 이름
   symbols?: string[]; // 사용할 심볼 목록
+  /** 그려진 부적 그림 경로 — 있으면 이 그림을 바탕으로 쓰고 문구·낙관만 얹는다 */
+  assetUrl?: string;
 }
 
 // ─── 색상 팔레트 ────────────────────────────────────────────
@@ -368,9 +370,80 @@ function sealStamp(x: number, y: number, name: string, color: string): string {
 /**
  * 부적 SVG 마크업 생성
  */
+/**
+ * 그려진 부적 그림 위에 사용자의 기원 문구와 낙관을 얹는다.
+ * 그림 자체가 이미 완성된 작품이므로 테두리·제목·문양은 다시 그리지 않는다.
+ *
+ * 문구는 어떤 그림 위에서도 읽히도록 한지색 외곽선(paint-order)을 두른다.
+ * 위치는 그림 아래쪽 여백을 가정한다 — 실제 그림을 보고 조정할 수 있다.
+ */
+function generateFromAsset(
+  W: number,
+  H: number,
+  params: TalismanParams
+): string {
+  const { assetUrl, message, userName } = params;
+  const SEAL_RED = '#A72B21';
+  const HANJI = '#F2E6CC';
+
+  // 기원 문구 — 아래쪽에 한지 띠를 깔고 그 위에 쓴다.
+  // 그림마다 여백이 다르므로, 어떤 그림 위에서도 읽히도록 띠를 둔다.
+  const lines = message ? wrapText(message, 12).slice(0, 2) : [];
+  const lineH = 24;
+  const bandH = lines.length ? 26 + lines.length * lineH : 0;
+  const bandY = H - bandH - 14;
+
+  const band = lines.length
+    ? `<rect x="18" y="${bandY}" width="${W - 36}" height="${bandH}" rx="6"
+         fill="${HANJI}" opacity="0.9"/>
+       <rect x="18" y="${bandY}" width="${W - 36}" height="${bandH}" rx="6"
+         fill="none" stroke="${SEAL_RED}" stroke-width="1" opacity="0.45"/>`
+    : '';
+
+  const messageText = lines
+    .map(
+      (line, i) =>
+        `<text x="${W / 2 - 12}" y="${bandY + 30 + i * lineH}" text-anchor="middle" font-size="17"` +
+        ` fill="#2E2E2E" font-family="'Gowun Batang', 'AppleMyungjo', serif">` +
+        `${escapeXml(line)}</text>`
+    )
+    .join('');
+
+  // 낙관 — 문구 띠 오른쪽 끝에 찍는다
+  const sealName =
+    userName && userName.trim().length >= 2 && userName.trim().length <= 3
+      ? userName.trim()
+      : null;
+  const sealText = sealName
+    ? `<text x="0" y="4" text-anchor="middle" font-size="11" font-weight="bold" fill="${HANJI}" font-family="serif">${escapeXml(sealName)}</text>`
+    : `<text x="0" y="-2" text-anchor="middle" font-size="9.5" font-weight="bold" fill="${HANJI}" font-family="serif">수호</text>
+       <text x="0" y="10" text-anchor="middle" font-size="9.5" font-weight="bold" fill="${HANJI}" font-family="serif">부</text>`;
+  const seal = lines.length
+    ? `<g transform="translate(${W - 46}, ${bandY + bandH / 2})">
+         <rect x="-15" y="-15" width="30" height="30" rx="4" fill="${SEAL_RED}"/>
+         <rect x="-11.5" y="-11.5" width="23" height="23" rx="3" fill="none" stroke="${HANJI}" stroke-width="1" opacity="0.9"/>
+         ${sealText}
+       </g>`
+    : '';
+
+  // 그림은 잘리지 않게 온전히 담고(meet), 남는 여백은 한지색으로 채운다
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+  <rect width="${W}" height="${H}" fill="${HANJI}"/>
+  <image href="${escapeXml(assetUrl ?? '')}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid meet"/>
+  ${band}
+  ${messageText}
+  ${seal}
+</svg>`;
+}
+
 export function generateTalismanSVG(params: TalismanParams): string {
   const W = 360;
   const H = 560;
+
+  // 그려진 부적 그림이 있으면 그 그림을 그대로 쓴다
+  if (params.assetUrl) {
+    return generateFromAsset(W, H, params);
+  }
 
   const preset = getPreset(params.background);
 

@@ -33,6 +33,7 @@ import {
 } from "@/components/hanji/motifs";
 import { buildGiftUrl, GIFT_MESSAGE_MAX, GIFT_NAME_MAX } from "@/lib/gift";
 import { generateTalismanSVG } from "@/lib/talisman-generator";
+import { getTalismanAsset } from "@/data/talisman-assets";
 import { detectCrisis, SAFETY_DISCLAIMER } from "@/lib/crisis-detection";
 import {
   composeShareImage,

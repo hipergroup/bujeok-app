@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useMemo } from "react";
 import { generateTalismanSVG } from "@/lib/talisman-generator";
+import { getTalismanAsset } from "@/data/talisman-assets";
 
 type TalismanPreviewProps = {
   type: string;
@@ -63,6 +64,11 @@ export default function TalismanPreview({
         title: title || "부적",
         hanja,
         mantra: mantra || "",
+        // 그려진 부적 그림이 있으면 그 위에 문구를 얹는다
+        assetUrl: getTalismanAsset(
+          title,
+          style === "traditional" ? "traditional" : "emotional"
+        ),
       }),
     [type, style, message, userName, background, bgColor, accent, animal, symbols, title, hanja, mantra]
   );

@@ -16,6 +16,34 @@ function withSize(svg: string, w: number, h: number): string {
   return svg.replace(/<svg([^>]*?)>/, `<svg$1 width="${w}" height="${h}">`);
 }
 
+/**
+ * SVG 안의 외부 이미지 참조를 data URI 로 바꾼다.
+ * <img>로 불러온 SVG는 보안상 외부 리소스를 가져오지 못해,
+ * 그림 부적을 캔버스로 합성하려면 그림을 SVG 안에 심어야 한다.
+ */
+async function inlineExternalImages(svg: string): Promise<string> {
+  const refs = [...svg.matchAll(/href="((?:\/|https?:)[^"]+)"/g)].map((m) => m[1]);
+  if (refs.length === 0) return svg;
+
+  let result = svg;
+  for (const url of new Set(refs)) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('이미지 인라인 실패'));
+        res.blob().then((b) => reader.readAsDataURL(b), reject);
+      });
+      result = result.split(`href="${url}"`).join(`href="${dataUrl}"`);
+    } catch {
+      // 못 가져온 그림은 그대로 둔다 (해당 부분만 비어 보임)
+    }
+  }
+  return result;
+}
+
 /** SVG 문자열을 이미지 엘리먼트로 로드 */
 function svgToImage(svg: string, w: number, h: number): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -128,10 +156,11 @@ interface CardText {
 
 /** 포맷별 카드 합성 → PNG Blob */
 export async function composeShareImage(
-  svg: string,
+  rawSvg: string,
   format: ShareFormat,
   text: CardText
 ): Promise<Blob> {
+  const svg = await inlineExternalImages(rawSvg);
   // 원본: 장식 없이 부적만 고해상도로
   if (format === 'original') {
     const scale = 3;
