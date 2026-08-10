@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import BottomTab from '@/components/BottomTab';
 import YongsinCabinet from '@/components/YongsinCabinet';
 import HanjiBackground from '@/components/hanji/HanjiBackground';
@@ -36,6 +36,7 @@ import {
 } from '@/data/yongsin';
 import {
   getDaeun,
+  getPillarReading,
   RELATION_BADGE,
   DAEUN_TALISMAN_SUGGESTION,
   type DaeunPillar,
@@ -408,6 +409,8 @@ export default function SajuDetailPage() {
   const [cabinetDone, setCabinetDone] = useState(false);
   /** 성별 — 대운(大運) 방향 판정용. 프로필에 없으면 UI에서 한 번 묻고 저장 */
   const [gender, setGender] = useState<'M' | 'F' | null>(null);
+  /** 대운 타임라인에서 탭한 기둥 — 나이대별 해설 표시용 */
+  const [selectedDaeunIdx, setSelectedDaeunIdx] = useState<number | null>(null);
 
   useEffect(() => {
     const p = loadSajuProfile();
@@ -1675,6 +1678,7 @@ export default function SajuDetailPage() {
                   <div className="flex w-max gap-2">
                     {daeun.pillars.map((p: DaeunPillar, i: number) => {
                       const isNow = daeun.current?.index === p.index;
+                      const isSelected = selectedDaeunIdx === p.index;
                       const badge = RELATION_BADGE[p.relation];
                       const badgeColor =
                         p.relation === 'yongsin'
@@ -1687,10 +1691,35 @@ export default function SajuDetailPage() {
                       return (
                         <motion.div
                           key={p.index}
-                          className="relative flex w-[86px] shrink-0 flex-col items-center gap-1 rounded-xl px-1.5 pb-2.5 pt-3"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() =>
+                            setSelectedDaeunIdx(
+                              selectedDaeunIdx === p.index ? null : p.index
+                            )
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setSelectedDaeunIdx(
+                                selectedDaeunIdx === p.index ? null : p.index
+                              );
+                            }
+                          }}
+                          className="relative flex w-[86px] shrink-0 cursor-pointer flex-col items-center gap-1 rounded-xl px-1.5 pb-2.5 pt-3 transition-transform active:scale-95"
                           style={{
-                            background: isNow ? `${JUHONG}0E` : `${GALSAEK}0A`,
-                            border: `1.5px solid ${isNow ? JUHONG : `${GALSAEK}26`}`,
+                            background: isSelected
+                              ? `${NAMSAEK}12`
+                              : isNow
+                                ? `${JUHONG}0E`
+                                : `${GALSAEK}0A`,
+                            border: `1.5px solid ${
+                              isSelected
+                                ? NAMSAEK
+                                : isNow
+                                  ? JUHONG
+                                  : `${GALSAEK}26`
+                            }`,
                           }}
                           initial={{ opacity: 0, x: 12 }}
                           animate={{ opacity: 1, x: 0 }}
@@ -1755,8 +1784,69 @@ export default function SajuDetailPage() {
                   className="mt-1 text-[10.5px] leading-relaxed"
                   style={{ color: `${GALSAEK}99` }}
                 >
-                  옆으로 밀어 전체 흐름을 볼 수 있어요. 나이는 만 나이 기준입니다.
+                  칸을 누르면 그 나이대의 흐름을 볼 수 있어요. 옆으로 밀면 전체
+                  흐름이 보입니다. 나이는 만 나이 기준입니다.
                 </p>
+
+                {/* 탭한 나이대의 해설 */}
+                <AnimatePresence mode="wait">
+                  {selectedDaeunIdx !== null &&
+                    (() => {
+                      const p = daeun.pillars.find(
+                        (x: DaeunPillar) => x.index === selectedDaeunIdx
+                      );
+                      if (!p) return null;
+                      const reading = getPillarReading(p, daeun.age);
+                      const isNowPillar = daeun.current?.index === p.index;
+                      return (
+                        <motion.div
+                          key={p.index}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -6 }}
+                          transition={{ duration: 0.25 }}
+                          className="mt-2.5 rounded-xl px-4 py-3.5"
+                          style={{
+                            background: `${NAMSAEK}0A`,
+                            border: `1px solid ${NAMSAEK}30`,
+                          }}
+                        >
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span
+                              className="text-[12px] font-bold"
+                              style={{ color: NAMSAEK }}
+                            >
+                              {reading.stageLabel}의 흐름
+                            </span>
+                            <span
+                              className="rounded-full px-2 py-[2px] text-[10px] font-bold"
+                              style={{
+                                background: `${NAMSAEK}14`,
+                                color: NAMSAEK,
+                              }}
+                            >
+                              만 {p.startAge}–{p.endAge}세 ·{' '}
+                              {RELATION_BADGE[p.relation].label}
+                            </span>
+                            {isNowPillar && (
+                              <span
+                                className="rounded-full px-2 py-[2px] text-[10px] font-bold"
+                                style={{ background: JUHONG, color: HANJI }}
+                              >
+                                지금
+                              </span>
+                            )}
+                          </div>
+                          <p
+                            className="mt-2 text-[12.5px] leading-[1.85]"
+                            style={{ color: `${MEOK}CC` }}
+                          >
+                            {reading.text}
+                          </p>
+                        </motion.div>
+                      );
+                    })()}
+                </AnimatePresence>
 
                 {/* 현재 대운 해설 */}
                 <div

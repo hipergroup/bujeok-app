@@ -67,6 +67,8 @@ export interface DaeunResult {
   current: DaeunPillar | null;
   /** 현재 대운 해설 문단 */
   currentReading: string;
+  /** 현재 만 나이 — 나이대별 해설의 시제(과거/지금/미래) 판정용 */
+  age: number;
 }
 
 // ─── 관계별 문구 ────────────────────────────────────────────
@@ -115,6 +117,125 @@ export const DAEUN_TALISMAN_SUGGESTION: Record<
     text: '흐름이 잔잔할 때는 몸과 마음을 돌보는 건강 부적이 좋은 벗이 돼요.',
   },
 };
+
+// ─── 나이대별 해설 ──────────────────────────────────────────
+//
+// 각 대운 기둥을 "인생 단계(나이대) × 들어오는 기운 × 시제(과거/지금/미래)"로
+// 풀어 쓴다. 겁주지 않고, 단정하지 않는다.
+
+/** 나이대(인생 단계) 테마 — 기둥의 중간 나이로 판정 */
+function lifeStageOf(midAge: number): { label: string; theme: string } {
+  if (midAge < 10)
+    return {
+      label: '유년기',
+      theme: '세상을 처음 배우며 몸과 마음의 바탕이 만들어지는 나이대예요.',
+    };
+  if (midAge < 20)
+    return {
+      label: '10대',
+      theme: '배움과 자아가 함께 자라는 나이대 — 나답게 크는 것이 가장 큰 공부예요.',
+    };
+  if (midAge < 30)
+    return {
+      label: '20대',
+      theme: '도전과 인연의 나이대 — 길을 넓게 열어두고 이것저것 부딪혀보기 좋아요.',
+    };
+  if (midAge < 40)
+    return {
+      label: '30대',
+      theme: '기반을 다지는 나이대 — 일과 관계 모두 뿌리를 내리는 때예요.',
+    };
+  if (midAge < 50)
+    return {
+      label: '40대',
+      theme: '책임이 커지고 그동안 심어둔 것들이 열매를 맺기 시작하는 나이대예요.',
+    };
+  if (midAge < 60)
+    return {
+      label: '50대',
+      theme: '거두고 정리하는 나이대 — 건강과 마음의 균형이 점점 중요해져요.',
+    };
+  if (midAge < 70)
+    return {
+      label: '60대',
+      theme: '지혜를 나누는 나이대 — 쌓아온 것이 주변을 비추기 시작해요.',
+    };
+  return {
+    label: '70대 이후',
+    theme: '평안을 누리는 나이대 — 몸을 아끼고 마음을 넉넉히 두면 좋아요.',
+  };
+}
+
+/** 지지 오행이 실어오는 계절감 */
+const OHENG_FLAVOR: Record<Oheng, string> = {
+  목: '푸른 나무처럼 새로 뻗어나가는',
+  화: '햇살처럼 활짝 피어나는',
+  토: '땅처럼 든든하게 다지는',
+  금: '열매를 거두듯 여물고 정리하는',
+  수: '물처럼 스미고 고요히 흐르는',
+};
+
+/** 관계 × 시제별 마무리 문장 */
+const RELATION_TENSE: Record<
+  DaeunPillar['relation'],
+  { past: string; now: string; future: string }
+> = {
+  yongsin: {
+    past: '필요한 기운이 함께했던 구간이라, 그때 겪고 이룬 것들이 지금의 자산이 되어 있을 거예요.',
+    now: '필요한 기운이 들어오는 중이라 새로운 시도에 힘이 실려요. 마음이 가는 일이 있다면 미루지 않아도 좋아요.',
+    future: '필요한 기운이 들어오는 구간이라 새로운 시도에 힘이 실릴 거예요. 이때를 위해 미리 씨앗을 심어두면 좋아요.',
+  },
+  huisin: {
+    past: '뒤에서 밀어주는 기운이 함께했던 구간이에요. 꾸준히 해온 것들이 이 시기에 빛을 봤을 거예요.',
+    now: '뒤에서 밀어주는 기운이 함께하는 중이에요. 쌓아온 것을 믿고 한 걸음씩 나아가기 좋아요.',
+    future: '뒤에서 밀어주는 기운이 함께하는 구간이라, 그때까지 쌓아둔 것이 빛을 보기 쉬워요.',
+  },
+  gisin: {
+    past: '속도를 늦추고 다지는 구간이었어요. 힘들게 느꼈다면 그만큼 단단해진 시기이기도 해요.',
+    now: '속도를 조금 늦추고 다지기 좋은 때예요. 무리한 확장보다 지금 가진 것을 지키는 쪽이 결이 맞아요.',
+    future: '속도를 늦추고 다지는 구간이에요. 미리 겁낼 일은 아니고, 크게 벌리기보다 내실을 쌓는 시기로 삼으면 충분해요.',
+  },
+  neutral: {
+    past: '큰 파도 없이 흘러간 구간이에요. 평범해 보여도 그 잔잔함이 바탕을 만들어줬을 거예요.',
+    now: '큰 파도 없이 흘러가는 중이라, 평소의 리듬을 지키는 것만으로 충분해요.',
+    future: '큰 파도 없이 잔잔하게 흐르는 구간이에요. 일상의 리듬을 지키며 차분히 보내기 좋아요.',
+  },
+};
+
+/** 대운 한 기둥의 나이대별 해설 */
+export function getPillarReading(
+  pillar: DaeunPillar,
+  currentAge: number
+): { stageLabel: string; text: string } {
+  const mid = pillar.startAge + 4.5;
+  const stage = lifeStageOf(mid);
+
+  const tense: 'past' | 'now' | 'future' =
+    currentAge > pillar.endAge
+      ? 'past'
+      : currentAge < pillar.startAge
+        ? 'future'
+        : 'now';
+
+  const ganji = `${pillar.gan.name}${pillar.ji.name}(${pillar.gan.hanja}${pillar.ji.hanja})`;
+  const flavor = OHENG_FLAVOR[pillar.jiOheng];
+
+  const opener =
+    tense === 'past'
+      ? `만 ${pillar.startAge}세부터 ${pillar.endAge}세까지 지나온 ${ganji} 대운이에요.`
+      : tense === 'now'
+        ? `지금 지나고 있는 만 ${pillar.startAge}세~${pillar.endAge}세의 ${ganji} 대운이에요.`
+        : `만 ${pillar.startAge}세부터 ${pillar.endAge}세까지 이어질 ${ganji} 대운이에요.`;
+
+  const text = [
+    opener,
+    stage.theme,
+    `이 구간에는 ${flavor} ${pillar.jiOheng} 기운이 환경처럼 깔려요.`,
+    RELATION_TENSE[pillar.relation][tense],
+  ].join(' ');
+
+  return { stageLabel: stage.label, text };
+}
 
 // ─── 내부 유틸 ──────────────────────────────────────────────
 
@@ -302,5 +423,5 @@ export function getDaeun(input: {
     currentReading = parts.join(' ');
   }
 
-  return { direction, daeunSu, pillars, current, currentReading };
+  return { direction, daeunSu, pillars, current, currentReading, age };
 }
