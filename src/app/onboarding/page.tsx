@@ -24,10 +24,7 @@ import {
 import hosinbuGift from '../../../public/talismans/hosinbu-gift.png';
 import hanjiBg from '../../../public/brand/hanji-bg.jpg';
 import wordmarkMark from '../../../public/brand/wordmark-mark.png';
-import norigaeImg from '../../../public/brand/norigae.png';
 import cloudTrigramImg from '../../../public/brand/cloud-trigram.png';
-import jangseungImg from '../../../public/brand/jangseung.png';
-import ropeImg from '../../../public/brand/rope.png';
 import dividerImg from '../../../public/brand/divider.png';
 
 // 만세력(24절기) 기반 정확한 사주 모듈
@@ -465,42 +462,7 @@ function StepWelcome({
           style={{ top: 30, right: -46, width: 295 }}
         />
 
-        {/* 장승 (오른쪽 아래) */}
-        <Image
-          src={jangseungImg}
-          alt=""
-          priority
-          className="pointer-events-none absolute h-auto select-none"
-          style={{ bottom: 124, right: 0, width: 220, opacity: 0.9 }}
-        />
-
-        {/* 오방색 노리개 + 밧줄 — 회전축은 밧줄 최상단(프레임 밖) */}
-        <div
-          className="pointer-events-none absolute select-none"
-          style={{
-            left: -30,
-            top: 78,
-            width: 215,
-            transformOrigin: '100px -78px',
-            animation: 'sway 6.5s ease-in-out infinite',
-          }}
-        >
-          {/* 밧줄 — 꼬임 1주기 타일, repeat-y 전용(늘리면 이음매 보임) */}
-          <div
-            className="absolute"
-            style={{
-              left: '45.2%',
-              width: '2.2%',
-              top: -84,
-              height: 86,
-              background: `url(${ropeImg.src}) center top / 100% auto repeat-y`,
-              filter: 'brightness(.95) saturate(1.05) hue-rotate(-4deg)',
-            }}
-          />
-          <Image src={norigaeImg} alt="" priority className="block h-auto w-full" />
-        </div>
-
-        {/* 본문 — 워드마크가 노리개 위에 오도록 z-10 */}
+        {/* 본문 */}
         <div
           className="relative z-10 flex flex-1 flex-col items-center justify-center"
           style={{ animation: 'inkin .7s ease both' }}
@@ -2059,6 +2021,28 @@ export default function OnboardingPage() {
     setDirection(1);
     setStep((s) => Math.min(s + 1, totalSteps - 1));
   }, []);
+
+  // 웰컴(0단계)은 고정 화면 — 실기기 iOS 사파리는 내용이 화면에 맞아도
+  // 러버밴드 바운스·툴바 접기 스크롤이 생기므로 body 자체를 고정해 차단한다.
+  useEffect(() => {
+    if (step !== 0) return;
+    const html = document.documentElement.style;
+    const body = document.body.style;
+    html.overflow = 'hidden';
+    html.overscrollBehavior = 'none';
+    body.position = 'fixed';
+    body.inset = '0';
+    body.width = '100%';
+    body.overflow = 'hidden';
+    return () => {
+      html.overflow = '';
+      html.overscrollBehavior = '';
+      body.position = '';
+      body.inset = '';
+      body.width = '';
+      body.overflow = '';
+    };
+  }, [step]);
 
   // window.location.href = '/'는 GitHub Pages(basePath) 밖으로 나가 404가 난다.
   // 홈(/)에 임베드된 경우엔 같은 경로라 replace가 무반응이므로 reload로 홈을 다시 그린다.
