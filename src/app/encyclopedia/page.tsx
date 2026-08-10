@@ -9,6 +9,7 @@ import TalismanModal from '@/components/TalismanModal';
 import TalismanThumbnail from '@/components/TalismanThumbnail';
 import HanjiBackground from '@/components/hanji/HanjiBackground';
 import TraditionalHeader from '@/components/hanji/TraditionalHeader';
+import CollectionSegment from '@/components/hanji/CollectionSegment';
 import { BackIcon, SearchMotif } from '@/components/hanji/motifs';
 import { getEnergyByCategory } from '@/data/energies';
 import { TalismanInfo, TalismanCategory, CATEGORY_LIST } from '@/lib/types';
@@ -65,6 +66,8 @@ export default function EncyclopediaPage() {
         }
         title="부적 도감"
       />
+
+      <CollectionSegment />
 
       <div className="mx-auto w-full max-w-md flex-1 px-5 pb-28">
         {/* 수집 진행도 */}

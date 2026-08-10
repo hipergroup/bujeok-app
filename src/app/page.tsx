@@ -13,7 +13,6 @@ import {
   BellIcon,
   SealLogo,
   BrushStroke,
-  KnotMotif,
 } from "@/components/hanji/motifs";
 import { HOME_ENERGIES } from "@/data/energies";
 import { getSaju, getSajuDetail, getOheng, getAnimal, isSamjae } from "@/data/saju";
@@ -350,10 +349,10 @@ export default function HomePage() {
           </motion.section>
         )}
 
-        {/* ── 마음 카테고리 2열 ── */}
+        {/* ── 마음 카테고리 (대표 4개 + 전체 보기) ── */}
         <motion.section variants={fadeUp} className="mb-6">
           <div className="grid grid-cols-2 gap-3">
-            {HOME_ENERGIES.map((energy) => (
+            {HOME_ENERGIES.slice(0, 4).map((energy) => (
               <TalismanCategoryCard
                 key={energy.id}
                 energy={energy}
@@ -361,36 +360,13 @@ export default function HomePage() {
               />
             ))}
           </div>
-        </motion.section>
-
-        {/* ── 나만의 부적 만들기 CTA ── */}
-        <motion.section variants={fadeUp} className="mb-6">
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => router.push("/talisman")}
-            className="hanji-card relative flex w-full items-center gap-4 rounded-xl px-5 py-5 text-left"
-            style={{ borderColor: "rgba(167, 43, 33, 0.5)" }}
+          <Link
+            href="/talisman"
+            className="mt-2.5 flex items-center justify-center gap-1 rounded-full py-2 text-[12px] font-bold text-[var(--color-galsaek)] transition-colors hover:text-[var(--color-juhong)]"
+            style={{ border: '1px dashed rgba(122,74,52,0.35)' }}
           >
-            <span
-              className="pointer-events-none absolute inset-[4px] rounded-lg"
-              style={{ border: "1px solid rgba(167, 43, 33, 0.25)" }}
-            />
-            <span
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[var(--color-juhong)]"
-              style={{ border: "1.5px solid rgba(167,43,33,0.4)" }}
-            >
-              <KnotMotif size={30} />
-            </span>
-            <span className="flex-1">
-              <span className="block font-serif-kr text-lg font-bold text-[var(--color-juhong)]">
-                나만의 부적 만들기
-              </span>
-              <span className="mt-0.5 block text-xs text-[var(--color-galsaek)]">
-                마음을 담아 부적을 직접 만들어 보세요.
-              </span>
-            </span>
-            <span className="text-[var(--color-juhong)]">→</span>
-          </motion.button>
+            건강·소원·가정·학업 — 모든 마음 보기 <span aria-hidden>→</span>
+          </Link>
         </motion.section>
 
         {/* ── 오늘의 운세 (사주 기반) ── */}
@@ -608,68 +584,55 @@ export default function HomePage() {
           )}
         </motion.section>
 
-        {/* ── 걱정 태워보내기 ── */}
-        <motion.section variants={fadeUp} className="mt-4">
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => router.push("/burn")}
-            className="hanji-card flex w-full items-center gap-3.5 rounded-xl px-5 py-4 text-left"
-            aria-label="걱정 태워보내기"
-          >
-            <span
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl"
-              style={{
-                border: "1.5px solid rgba(218,160,23,0.4)",
-                background: "rgba(218,160,23,0.08)",
-              }}
-              aria-hidden
-            >
-              🔥
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-serif-kr text-[15px] font-bold text-[var(--color-meok)]">
-                걱정 태워보내기
-              </span>
-              <span className="mt-0.5 block text-xs text-[var(--color-galsaek)]">
-                무거운 마음을 적어 태우고, 훌훌 덜어내세요.
-              </span>
-            </span>
-            <span className="text-[var(--color-juhong)]" aria-hidden>
-              →
-            </span>
-          </motion.button>
-        </motion.section>
-
-        {/* ── 두 사람의 인연 (궁합) ── */}
-        <motion.section variants={fadeUp} className="mt-4">
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => router.push("/gunghap")}
-            className="hanji-card flex w-full items-center gap-3.5 rounded-xl px-5 py-4 text-left"
-            aria-label="두 사람의 인연 보기"
-          >
-            <span
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl"
-              style={{
-                border: "1.5px solid rgba(167,43,33,0.35)",
-                background: "rgba(167,43,33,0.06)",
-              }}
-              aria-hidden
-            >
-              💕
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-serif-kr text-[15px] font-bold text-[var(--color-meok)]">
-                두 사람의 인연 보기
-              </span>
-              <span className="mt-0.5 block text-xs text-[var(--color-galsaek)]">
-                궁합을 읽고, 두 사람을 위한 부적을 받아보세요.
-              </span>
-            </span>
-            <span className="text-[var(--color-juhong)]" aria-hidden>
-              →
-            </span>
-          </motion.button>
+        {/* ── 바로가기 — 운세 도구 모음 ── */}
+        <motion.section variants={fadeUp} className="mt-5">
+          <h2 className="mb-2 px-0.5 font-serif-kr text-sm font-bold text-[var(--color-meok)]">
+            더 깊이 보기
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              {
+                href: "/saju",
+                emoji: "🔮",
+                title: "내 사주 풀이",
+                desc: "타고난 결 읽기",
+              },
+              {
+                href: "/days",
+                emoji: "📅",
+                title: "좋은 날 고르기",
+                desc: "이사·계약·고백 택일",
+              },
+              {
+                href: "/gunghap",
+                emoji: "💕",
+                title: "두 사람의 인연",
+                desc: "궁합 보기",
+              },
+              {
+                href: "/burn",
+                emoji: "🔥",
+                title: "걱정 태워보내기",
+                desc: "마음 덜어내기",
+              },
+            ].map((s) => (
+              <Link
+                key={s.href}
+                href={s.href}
+                className="hanji-card flex flex-col items-start gap-1.5 rounded-xl px-4 py-3.5 transition-transform active:scale-[0.97]"
+              >
+                <span className="text-xl leading-none" aria-hidden>
+                  {s.emoji}
+                </span>
+                <span className="font-serif-kr text-[13.5px] font-bold leading-tight text-[var(--color-meok)]">
+                  {s.title}
+                </span>
+                <span className="text-[11px] leading-tight text-[var(--color-galsaek)] opacity-80">
+                  {s.desc}
+                </span>
+              </Link>
+            ))}
+          </div>
         </motion.section>
       </motion.main>
 

@@ -9,6 +9,7 @@ import TalismanModal from '@/components/TalismanModal';
 import HanjiBackground from '@/components/hanji/HanjiBackground';
 import TraditionalHeader from '@/components/hanji/TraditionalHeader';
 import TraditionalButton from '@/components/hanji/TraditionalButton';
+import CollectionSegment from '@/components/hanji/CollectionSegment';
 import { BackIcon, GearIcon } from '@/components/hanji/motifs';
 import { SavedTalisman } from '@/lib/types';
 import { ENERGIES } from '@/data/energies';
@@ -77,6 +78,8 @@ export default function CollectionPage() {
           </button>
         }
       />
+
+      <CollectionSegment />
 
       <div className="mx-auto w-full max-w-md flex-1 px-5 pb-32">
         <p className="mb-4 text-center text-xs text-[var(--color-galsaek)]">

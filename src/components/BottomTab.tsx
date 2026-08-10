@@ -5,17 +5,33 @@ import { usePathname } from 'next/navigation';
 import {
   HomeTabIcon,
   BrushTabIcon,
-  CalendarTabIcon,
+  FortuneTabIcon,
   BoxTabIcon,
   PersonTabIcon,
 } from './hanji/motifs';
 
 const tabs = [
-  { href: '/', label: '홈', Icon: HomeTabIcon },
-  { href: '/talisman', label: '부적 만들기', Icon: BrushTabIcon },
-  { href: '/days', label: '좋은 날', Icon: CalendarTabIcon },
-  { href: '/collection', label: '부적함', Icon: BoxTabIcon },
-  { href: '/mypage', label: '마이', Icon: PersonTabIcon },
+  { href: '/', label: '홈', Icon: HomeTabIcon, group: ['/'] },
+  {
+    href: '/talisman',
+    label: '부적 만들기',
+    Icon: BrushTabIcon,
+    group: ['/talisman'],
+  },
+  {
+    href: '/unse',
+    label: '운세',
+    Icon: FortuneTabIcon,
+    // 운세 허브 아래 딸린 화면들에서도 탭이 켜져 있게
+    group: ['/unse', '/saju', '/gunghap', '/days', '/glossary'],
+  },
+  {
+    href: '/collection',
+    label: '부적함',
+    Icon: BoxTabIcon,
+    group: ['/collection', '/encyclopedia'],
+  },
+  { href: '/mypage', label: '마이', Icon: PersonTabIcon, group: ['/mypage'] },
 ];
 
 export default function BottomTab() {
@@ -27,9 +43,10 @@ export default function BottomTab() {
       style={{ borderTop: '1px solid rgba(122, 74, 52, 0.35)' }}
     >
       <div className="mx-auto flex max-w-lg items-center justify-around py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]">
-        {tabs.map(({ href, label, Icon }) => {
-          const isActive =
-            href === '/' ? pathname === '/' : pathname.startsWith(href);
+        {tabs.map(({ href, label, Icon, group }) => {
+          const isActive = group.some((g) =>
+            g === '/' ? pathname === '/' : pathname.startsWith(g)
+          );
           return (
             <Link
               key={href}

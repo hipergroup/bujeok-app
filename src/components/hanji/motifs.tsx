@@ -319,6 +319,23 @@ export function PersonTabIcon(props: MotifProps) {
   );
 }
 
+export function FortuneTabIcon(props: MotifProps) {
+  return (
+    <Svg {...props}>
+      {/* 태극 — 운세 */}
+      <circle cx="24" cy="24" r="16" stroke="currentColor" strokeWidth="2" />
+      <path
+        d="M24 8a8 8 0 0 1 0 16 8 8 0 0 0 0 16"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        fill="none"
+      />
+      <circle cx="24" cy="16" r="1.8" fill="currentColor" />
+      <circle cx="24" cy="32" r="1.8" fill="currentColor" />
+    </Svg>
+  );
+}
+
 /* ══ 기본 이모지 대체 문양 (전통풍 선 아이콘) ══ */
 
 /** 두루마리 (받은 부적) */
