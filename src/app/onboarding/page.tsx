@@ -445,7 +445,7 @@ function StepWelcome({
 
   return (
     <div
-      className="relative flex min-h-dvh w-full flex-col overflow-hidden"
+      className="relative flex h-full w-full flex-col overflow-hidden"
       style={{
         // background-position 22% 92%는 배경 무늬(구름·낙관)를 피해 평평한 결만 보이는 값
         background: `#F2E7CE url(${hanjiBg.src}) 22% 92% / 190% auto no-repeat`,
@@ -2072,7 +2072,18 @@ export default function OnboardingPage() {
 
   return (
     <div
-      className="hanji-surface relative flex min-h-dvh flex-col overflow-x-hidden text-[var(--color-meok)]"
+      className={`hanji-surface relative flex flex-col overflow-x-hidden text-[var(--color-meok)] ${
+        step === 0 ? 'overflow-y-hidden' : 'min-h-dvh'
+      }`}
+      style={
+        // 웰컴은 스크롤 없는 고정 화면 — body의 safe-area 패딩을 뺀 정확한 뷰포트 높이
+        step === 0
+          ? {
+              height:
+                'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
+            }
+          : undefined
+      }
     >
       {/* Progress bar — hidden on step 0 (welcome) */}
       {step > 0 && <ProgressBar step={step} total={totalSteps} />}
@@ -2086,7 +2097,7 @@ export default function OnboardingPage() {
           animate="center"
           exit="exit"
           transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
-          className="flex min-h-dvh flex-col"
+          className={`flex flex-col ${step === 0 ? 'h-full' : 'min-h-dvh'}`}
         >
           {step === 0 && <StepWelcome onNext={goNext} totalSteps={totalSteps} />}
           {step === 1 && (

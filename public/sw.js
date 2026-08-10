@@ -2,7 +2,7 @@
  * 정적 자산(해시된 청크·폰트·이미지): 캐시 우선
  * 페이지(HTML): 네트워크 우선, 실패 시 캐시 (배포는 즉시 반영, 오프라인은 마지막 화면)
  */
-const CACHE = 'suhobu-v1';
+const CACHE = 'suhobu-v2'; // 웰컴 리디자인 배포 — 구버전 자산 캐시 전량 폐기
 
 self.addEventListener('install', () => {
   self.skipWaiting();
