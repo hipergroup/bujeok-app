@@ -26,8 +26,6 @@ import {
   type SajuMatchInput,
   type SajuTalismanMatch,
 } from "@/data/saju-talisman-match";
-import { getDailyWord, type DailyWord } from "@/data/daily-word";
-import type { SavedTalisman } from "@/lib/types";
 // 첫 실행 사용자 대부분이 온보딩을 보므로 별도 청크 분리(추가 왕복) 대신 함께 번들
 import OnboardingPage from "./onboarding/page";
 
@@ -134,9 +132,6 @@ export default function HomePage() {
   const [loveOpen, setLoveOpen] = useState(false);
   const [loveStatus, setLoveStatus] = useState<LoveStatus | undefined>();
   const [statusPickerOpen, setStatusPickerOpen] = useState(false);
-  /** 매일 부적의 한 마디 + 연속 방문 */
-  const [dailyWord, setDailyWord] = useState<DailyWord | null>(null);
-  const [visitStreak, setVisitStreak] = useState(0);
 
   useEffect(() => {
     const onboarded = localStorage.getItem("onboarding_completed");
@@ -190,17 +185,7 @@ export default function HomePage() {
       // ignore
     }
 
-    // 매일 부적의 한 마디 — 부적함에서 하나가 오늘의 말을 건넨다
-    try {
-      const collection: SavedTalisman[] = JSON.parse(
-        localStorage.getItem("bujeok-collection") || "[]"
-      );
-      setDailyWord(getDailyWord(collection));
-    } catch {
-      setDailyWord(getDailyWord([]));
-    }
-
-    // 연속 방문 (mypage 와 같은 방문 기록 키를 공유)
+    // 방문 기록 — 마이페이지 연속 방문 스트릭과 같은 키를 공유
     try {
       const key = "bujeok-visit-log";
       const today = new Date();
@@ -208,15 +193,7 @@ export default function HomePage() {
         `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       const log: string[] = JSON.parse(localStorage.getItem(key) || "[]");
       if (!log.includes(dateStr(today))) log.push(dateStr(today));
-      const trimmed = log.slice(-60);
-      localStorage.setItem(key, JSON.stringify(trimmed));
-      let streak = 0;
-      const cursor = new Date(today);
-      while (trimmed.includes(dateStr(cursor))) {
-        streak += 1;
-        cursor.setDate(cursor.getDate() - 1);
-      }
-      setVisitStreak(streak);
+      localStorage.setItem(key, JSON.stringify(log.slice(-60)));
     } catch {
       // ignore
     }
@@ -312,65 +289,8 @@ export default function HomePage() {
           </p>
         </motion.section>
 
-        {/* ── 매일 부적의 한 마디 ── */}
-        {dailyWord && (
-          <motion.section variants={fadeUp} className="mb-6">
-            <Link
-              href={dailyWord.talismanName ? "/collection" : "/talisman"}
-              className="hanji-card block rounded-2xl px-5 py-4 transition-transform active:scale-[0.98]"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold tracking-wide text-[var(--color-juhong)]">
-                  {dailyWord.talismanName
-                    ? `「${dailyWord.talismanName}」의 한 마디`
-                    : "오늘의 한 마디"}
-                </span>
-                {visitStreak > 1 && (
-                  <span
-                    className="rounded-full px-2 py-[2px] text-[10px] font-bold"
-                    style={{
-                      background: "rgba(167,43,33,0.08)",
-                      color: "var(--color-juhong)",
-                    }}
-                  >
-                    🔥 {visitStreak}일째 함께
-                  </span>
-                )}
-              </div>
-              <p className="mt-2 font-serif-kr text-[15px] leading-[1.8] text-[var(--color-meok)]">
-                &ldquo;{dailyWord.message}&rdquo;
-              </p>
-              <p className="mt-1.5 text-[10.5px] text-[var(--color-galsaek)] opacity-70">
-                {dailyWord.talismanName
-                  ? "매일 아침, 부적함의 부적이 번갈아 말을 건네요"
-                  : "부적을 만들면 내 부적이 매일 한 마디씩 건네요"}
-              </p>
-            </Link>
-          </motion.section>
-        )}
-
-        {/* ── 마음 카테고리 (대표 4개 + 전체 보기) ── */}
-        <motion.section variants={fadeUp} className="mb-6">
-          <div className="grid grid-cols-2 gap-3">
-            {HOME_ENERGIES.slice(0, 4).map((energy) => (
-              <TalismanCategoryCard
-                key={energy.id}
-                energy={energy}
-                onClick={() => router.push(`/talisman?energy=${energy.id}`)}
-              />
-            ))}
-          </div>
-          <Link
-            href="/talisman"
-            className="mt-2.5 flex items-center justify-center gap-1 rounded-full py-2 text-[12px] font-bold text-[var(--color-galsaek)] transition-colors hover:text-[var(--color-juhong)]"
-            style={{ border: '1px dashed rgba(122,74,52,0.35)' }}
-          >
-            건강·소원·가정·학업 — 모든 마음 보기 <span aria-hidden>→</span>
-          </Link>
-        </motion.section>
-
         {/* ── 오늘의 운세 (사주 기반) ── */}
-        <motion.section variants={fadeUp}>
+        <motion.section variants={fadeUp} className="mb-6">
           <div className="hanji-card rounded-xl px-5 py-4">
             <div className="mb-1.5 flex items-center justify-between">
               <span className="font-serif-kr text-sm font-bold text-[var(--color-meok)]">
@@ -492,6 +412,27 @@ export default function HomePage() {
             )}
           </div>
         </motion.section>
+
+        {/* ── 마음 카테고리 (대표 4개 + 전체 보기) ── */}
+        <motion.section variants={fadeUp} className="mb-6">
+          <div className="grid grid-cols-2 gap-3">
+            {HOME_ENERGIES.slice(0, 4).map((energy) => (
+              <TalismanCategoryCard
+                key={energy.id}
+                energy={energy}
+                onClick={() => router.push(`/talisman?energy=${energy.id}`)}
+              />
+            ))}
+          </div>
+          <Link
+            href="/talisman"
+            className="mt-2.5 flex items-center justify-center gap-1 rounded-full py-2 text-[12px] font-bold text-[var(--color-galsaek)] transition-colors hover:text-[var(--color-juhong)]"
+            style={{ border: '1px dashed rgba(122,74,52,0.35)' }}
+          >
+            건강·소원·가정·학업 — 모든 마음 보기 <span aria-hidden>→</span>
+          </Link>
+        </motion.section>
+
 
         {/* ── 오늘 당신에게 필요한 부적 (사주 기반 추천) ── */}
         <motion.section variants={fadeUp} className="mt-4">
