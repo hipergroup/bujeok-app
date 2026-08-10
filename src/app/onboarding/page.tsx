@@ -441,13 +441,16 @@ function StepWelcome({
   ];
 
   return (
-    <div
-      className="relative flex h-full w-full flex-col overflow-hidden"
-      style={{
-        // background-position 22% 92%는 배경 무늬(구름·낙관)를 피해 평평한 결만 보이는 값
-        background: `#F2E7CE url(${hanjiBg.src}) 22% 92% / 190% auto no-repeat`,
-      }}
-    >
+    <div className="relative flex h-full w-full flex-col overflow-hidden">
+      {/* 한지 배경 — body의 safe-area 패딩(노치·홈바 띠) 바깥까지 뷰포트 전체를 덮는다.
+          background-position 22% 92%는 배경 무늬(구름·낙관)를 피해 평평한 결만 보이는 값 */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0"
+        style={{
+          background: `#F2E7CE url(${hanjiBg.src}) 22% 92% / 190% auto no-repeat`,
+        }}
+      />
       {/* 프레임 — 390 기준 절대 좌표의 기준면 */}
       <div
         className="relative mx-auto flex w-full max-w-[430px] flex-1 flex-col"
