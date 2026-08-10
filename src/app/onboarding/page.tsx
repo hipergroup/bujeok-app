@@ -22,7 +22,13 @@ import {
   pushTalismanToWidget,
 } from '@/lib/widget-bridge';
 import hosinbuGift from '../../../public/talismans/hosinbu-gift.png';
-import wordmarkFull from '../../../public/brand/wordmark.png';
+import hanjiBg from '../../../public/brand/hanji-bg.jpg';
+import wordmarkMark from '../../../public/brand/wordmark-mark.png';
+import norigaeImg from '../../../public/brand/norigae.png';
+import cloudTrigramImg from '../../../public/brand/cloud-trigram.png';
+import jangseungImg from '../../../public/brand/jangseung.png';
+import ropeImg from '../../../public/brand/rope.png';
+import dividerImg from '../../../public/brand/divider.png';
 
 // 만세력(24절기) 기반 정확한 사주 모듈
 import {
@@ -53,7 +59,7 @@ import { saveProfile } from '@/lib/store';
 const GOLD = '#A72B21'; // 주홍 (포인트)
 const GOLD_LIGHT = '#C4544A';
 const GOLD_DARK = '#8A231B';
-const BG_DARK = '#F2E6CC'; // 한지 바탕
+const BG_DARK = '#F2E7CE'; // 한지 바탕
 const BG_CARD = '#F6EDD9';
 
 /**
@@ -423,79 +429,161 @@ function HosinbuTalisman() {
 // Step 1: Welcome
 // ─────────────────────────────────────────────
 
-function StepWelcome({ onNext }: { onNext: () => void }) {
+function StepWelcome({
+  onNext,
+  totalSteps,
+}: {
+  onNext: () => void;
+  totalSteps: number;
+}) {
+  // 壹·貳·參 = 1·2·3의 갖은자(격식체 숫자)
   const features = [
-    {
-      Motif: MountainMotif,
-      color: '#1F3E63',
-      text: '만세력 기반 정확한 사주 풀이',
-    },
-    {
-      Motif: KnotMotif,
-      color: '#A72B21',
-      text: '마음을 담아 만드는 나만의 부적',
-    },
-    {
-      Motif: LotusMotif,
-      color: '#6B7D63',
-      text: '오늘의 마음을 나누는 다정한 상담',
-    },
+    { hanja: '壹', text: '만세력 기반 정확한 사주 풀이' },
+    { hanja: '貳', text: '마음을 담아 만드는 나만의 부적' },
+    { hanja: '參', text: '오늘의 마음을 나누는 다정한 상담' },
   ];
 
   return (
-    <motion.div
-      className="flex min-h-full flex-col items-center justify-center px-6 py-[max(3rem,env(safe-area-inset-top))]"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.8 }}
+    <div
+      className="relative flex min-h-dvh w-full flex-col overflow-hidden"
+      style={{
+        // background-position 22% 92%는 배경 무늬(구름·낙관)를 피해 평평한 결만 보이는 값
+        background: `#F2E7CE url(${hanjiBg.src}) 22% 92% / 190% auto no-repeat`,
+      }}
     >
-      <FloatingParticles count={24} />
-
-      {/* 붓글씨 워드마크 (수호부 + 守護符印 낙관 + 태그라인) */}
-      <motion.div
-        className="relative z-10 mb-10 flex w-full flex-col items-center"
-        initial={{ y: -24, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+      {/* 프레임 — 390 기준 절대 좌표의 기준면 */}
+      <div
+        className="relative mx-auto flex w-full max-w-[430px] flex-1 flex-col"
+        style={{ padding: '64px 30px 34px' }}
       >
+        {/* 구름·팔괘 (오른쪽 위) */}
         <Image
-          src={wordmarkFull}
-          alt="수호부 — 오늘의 마음을 지키는 부적"
+          src={cloudTrigramImg}
+          alt=""
           priority
-          className="w-[82%] max-w-[330px]"
+          className="pointer-events-none absolute h-auto select-none"
+          style={{ top: 30, right: -46, width: 295 }}
         />
-      </motion.div>
 
-      {/* Features */}
-      <div className="relative z-10 mb-12 flex w-full max-w-xs flex-col gap-3">
-        {features.map((f, i) => (
-          <motion.div
-            key={i}
-            className="hanji-card flex items-center gap-4 rounded-xl px-5 py-4"
-            initial={{ x: -32, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.7 + i * 0.15, ease: [0.16, 1, 0.3, 1] }}
+        {/* 장승 (오른쪽 아래) */}
+        <Image
+          src={jangseungImg}
+          alt=""
+          priority
+          className="pointer-events-none absolute h-auto select-none"
+          style={{ bottom: 124, right: 0, width: 220, opacity: 0.9 }}
+        />
+
+        {/* 오방색 노리개 + 밧줄 — 회전축은 밧줄 최상단(프레임 밖) */}
+        <div
+          className="pointer-events-none absolute select-none"
+          style={{
+            left: -30,
+            top: 78,
+            width: 215,
+            transformOrigin: '100px -78px',
+            animation: 'sway 6.5s ease-in-out infinite',
+          }}
+        >
+          {/* 밧줄 — 꼬임 1주기 타일, repeat-y 전용(늘리면 이음매 보임) */}
+          <div
+            className="absolute"
+            style={{
+              left: '45.2%',
+              width: '2.2%',
+              top: -84,
+              height: 86,
+              background: `url(${ropeImg.src}) center top / 100% auto repeat-y`,
+              filter: 'brightness(.95) saturate(1.05) hue-rotate(-4deg)',
+            }}
+          />
+          <Image src={norigaeImg} alt="" priority className="block h-auto w-full" />
+        </div>
+
+        {/* 본문 — 워드마크가 노리개 위에 오도록 z-10 */}
+        <div
+          className="relative z-10 flex flex-1 flex-col items-center justify-center"
+          style={{ animation: 'inkin .7s ease both' }}
+        >
+          <Image
+            src={wordmarkMark}
+            alt="수호부"
+            priority
+            className="block h-auto"
+            style={{ width: 248 }}
+          />
+          <p
+            style={{
+              marginTop: 22,
+              fontSize: 14,
+              color: 'rgba(46, 46, 46, 0.55)',
+              letterSpacing: '.04em',
+            }}
           >
-            <span style={{ color: f.color }}>
-              <f.Motif size={26} />
-            </span>
-            <span className="font-serif-kr text-sm font-medium text-[var(--color-meok)]">
-              {f.text}
-            </span>
-          </motion.div>
-        ))}
-      </div>
+            오늘의 마음을 지키는 부적
+          </p>
+          <Image
+            src={dividerImg}
+            alt=""
+            priority
+            className="block h-auto"
+            style={{ width: 250, marginTop: 20, opacity: 0.85 }}
+          />
 
-      {/* CTA Button */}
-      <motion.div
-        className="relative z-10 w-full max-w-xs"
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, delay: 1.2 }}
-      >
-        <TraditionalButton onClick={onNext}>시작하기</TraditionalButton>
-      </motion.div>
-    </motion.div>
+          {/* 소개 3줄 */}
+          <div
+            className="flex w-full flex-col"
+            style={{ marginTop: 54, paddingLeft: 34, gap: 14 }}
+          >
+            {features.map((f) => (
+              <div
+                key={f.hanja}
+                className="flex items-center text-left"
+                style={{ gap: 12 }}
+              >
+                <span
+                  className="font-brush flex-none text-center"
+                  style={{ fontSize: 16, color: '#7A4A34', width: 20 }}
+                >
+                  {f.hanja}
+                </span>
+                <span
+                  className="flex-none"
+                  style={{ width: 1, height: 16, background: 'rgba(122, 74, 52, 0.35)' }}
+                />
+                <span
+                  style={{
+                    fontSize: 13.5,
+                    color: 'rgba(46, 46, 46, 0.72)',
+                    letterSpacing: '-.02em',
+                  }}
+                >
+                  {f.text}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CTA + 페이지 인디케이터 */}
+        <div className="relative z-10" style={{ marginTop: 24 }}>
+          <TraditionalButton onClick={onNext}>시작하기</TraditionalButton>
+          <div className="flex justify-center" style={{ gap: 5, marginTop: 16 }}>
+            {Array.from({ length: totalSteps }, (_, i) => (
+              <span
+                key={i}
+                className="transition-all duration-300"
+                style={{
+                  width: i === 0 ? 18 : 5,
+                  height: 5,
+                  background: i === 0 ? '#A72B21' : 'rgba(122, 74, 52, 0.3)',
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -2000,7 +2088,7 @@ export default function OnboardingPage() {
           transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
           className="flex min-h-dvh flex-col"
         >
-          {step === 0 && <StepWelcome onNext={goNext} />}
+          {step === 0 && <StepWelcome onNext={goNext} totalSteps={totalSteps} />}
           {step === 1 && (
             <StepBirthInfo
               info={birthInfo}

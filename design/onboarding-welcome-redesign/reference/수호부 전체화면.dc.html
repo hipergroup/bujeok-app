@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Song+Myung&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#211b14;font-family:"Gowun Batang",serif}
+a{color:#C9A227}a:hover{color:#e0bb44}
+.bez{padding:9px;background:#2b2620;border-radius:44px;box-shadow:0 0 0 1px rgba(255,255,255,.08),0 18px 44px rgba(0,0,0,.5)}
+</style></helmet>
+
+<div style="padding:48px 52px 60px">
+  <div style="font-family:'Song Myung',serif;font-size:26px;color:#EFE3C8;letter-spacing:.04em">수호부 — 전체 화면</div>
+  <div style="margin-top:10px;font-size:13px;color:rgba(239,227,200,.45);line-height:1.7">15개 화면 전부. 각 프레임은 실제로 동작하니 그대로 눌러 넘겨도 됩니다.</div>
+
+  <div style="margin-top:44px;display:grid;grid-template-columns:repeat(5,408px);width:max-content;gap:44px 34px">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:9px"><span style="font:600 10px ui-monospace,Menlo,monospace;background:rgba(255,255,255,.12);color:#EFE3C8;padding:3px 7px;border-radius:4px">01</span><span style="font-size:13px;color:#EFE3C8">온보딩 · 웰컴</span></div>
+      <div class="bez"><dc-import name="수호부 화면" start="onboard" hint-size="390px,844px"></dc-import></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:9px"><span style="font:600 10px ui-monospace,Menlo,monospace;background:rgba(255,255,255,.12);color:#EFE3C8;padding:3px 7px;border-radius:4px">02</span><span style="font-size:13px;color:#EFE3C8">온보딩 · 생년월일시</span></div>
+      <div class="bez"><dc-import name="수호부 화면" start="birth" hint-size="390px,844px"></dc-import></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:9px"><span style="font:600 10px ui-monospace,Menlo,monospace;background:rgba(255,255,255,.12);color:#EFE3C8;padding:3px 7px;border-radius:4px">03</span><span style="font-size:13px;color:#EFE3C8">온보딩 · 사주 풀이</span></div>
+      <div class="bez"><dc-import name="수호부 화면" start="saju" hint-size="390px,844px"></dc-import></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:9px"><span style="font:600 10px ui-monospace,Menlo,monospace;background:rgba(255,255,255,.12);color:#EFE3C8;padding:3px 7px;border-radius:4px">04</span><span style="font-size:13px;color:#EFE3C8">온보딩 · 첫 부적 선물</span></div>
+      <div class="bez"><dc-import name="수호부 화면" start="gift" hint-size="390px,844px"></dc-import></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:9px"><span style="font:600 10px ui-monospace,Menlo,monospace;background:#A72B21;color:#FBF3E0;padding:3px 7px;border-radius:4px">05</span><span style="font-size:13px;color:#EFE3C8">홈</span></div>
+      <div class="bez"><dc-import name="수호부 화면" start="home" hint-size="390px,844px"></dc-import></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:9px"><span style="font:600 10px ui-monospace,Menlo,monospace;background:rgba(255,255,255,.12);color:#EFE3C8;padding:3px 7px;border-radius:4px">06</span><span style="font-size:13px;color:#EFE3C8">부적 만들기 · 기운 선택</span></div>
+      <div class="bez"><dc-import name="수호부 화면" start="energy" hint-size="390px,844px"></dc-import></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:9px"><span style="font:600 10px ui-monospace,Menlo,monospace;background:rgba(255,255,255,.12);color:#EFE3C8;padding:3px 7px;border-radius:4px">07</span><span style="font-size:13px;color:#EFE3C8">부적 만들기 · 상담</span></div>
+      <div class="bez"><dc-import name="수호부 화면" start="chat" hint-size="390px,844px"></dc-import></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:9px"><span style="font:600 10px ui-monospace,Menlo,monospace;background:rgba(255,255,255,.12);color:#EFE3C8;padding:3px 7px;border-radius:4px">08</span><span style="font-size:13px;color:#EFE3C8">부적 만들기 · 꾸미기</span></div>
+      <div class="bez"><dc-import name="수호부 화면" start="custom" hint-size="390px,844px"></dc-import></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:9px"><span style="font:600 10px ui-monospace,Menlo,monospace;background:#A72B21;color:#FBF3E0;padding:3px 7px;border-radius:4px">09</span><span style="font-size:13px;color:#EFE3C8">부적 완성 · 리빌</span></div>
+      <div class="bez"><dc-import name="수호부 화면" start="reveal" hint-size="390px,844px"></dc-import></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:9px"><span style="font:600 10px ui-monospace,Menlo,monospace;background:rgba(255,255,255,.12);color:#EFE3C8;padding:3px 7px;border-radius:4px">10</span><span style="font-size:13px;color:#EFE3C8">선물·공유 시트</span></div>
+      <div class="bez"><dc-import name="수호부 화면" start="share" hint-size="390px,844px"></dc-import></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:9px"><span style="font:600 10px ui-monospace,Menlo,monospace;background:#A72B21;color:#FBF3E0;padding:3px 7px;border-radius:4px">11</span><span style="font-size:13px;color:#EFE3C8">내 부적함</span></div>
+      <div class="bez"><dc-import name="수호부 화면" start="coll" hint-size="390px,844px"></dc-import></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:9px"><span style="font:600 10px ui-monospace,Menlo,monospace;background:rgba(255,255,255,.12);color:#EFE3C8;padding:3px 7px;border-radius:4px">12</span><span style="font-size:13px;color:#EFE3C8">부적 상세</span></div>
+      <div class="bez"><dc-import name="수호부 화면" start="detail" hint-size="390px,844px"></dc-import></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:9px"><span style="font:600 10px ui-monospace,Menlo,monospace;background:rgba(255,255,255,.12);color:#EFE3C8;padding:3px 7px;border-radius:4px">13</span><span style="font-size:13px;color:#EFE3C8">부적 도감 43종</span></div>
+      <div class="bez"><dc-import name="수호부 화면" start="enc" hint-size="390px,844px"></dc-import></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:9px"><span style="font:600 10px ui-monospace,Menlo,monospace;background:rgba(255,255,255,.12);color:#EFE3C8;padding:3px 7px;border-radius:4px">14</span><span style="font-size:13px;color:#EFE3C8">마이페이지</span></div>
+      <div class="bez"><dc-import name="수호부 화면" start="my" hint-size="390px,844px"></dc-import></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:9px"><span style="font:600 10px ui-monospace,Menlo,monospace;background:rgba(255,255,255,.12);color:#EFE3C8;padding:3px 7px;border-radius:4px">15</span><span style="font-size:13px;color:#EFE3C8">홈 화면 위젯 · 낡아감</span></div>
+      <div class="bez"><dc-import name="수호부 화면" start="widget" hint-size="390px,844px"></dc-import></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -8,7 +8,7 @@
  * 그 기운이 피어오른다.
  *
  * 팔레트는 한지 디자인 시스템(globals.css 한지 토큰)만 사용한다.
- *  - 갈색 #7A4A34 / 베이지 #DCC9A5 / 한지 #F2E6CC / 먹 #2E2E2E / 황 #DAA017
+ *  - 갈색 #7A4A34 / 베이지 #DCC9A5 / 한지 #F2E7CE / 먹 #2E2E2E / 황 #DAA017
  *  - 다크테마 색(#0a0a1a, #D4A853)은 쓰지 않는다.
  *
  * 순수 SVG + framer-motion 만 사용 (외부 애니메이션 라이브러리 없음).
@@ -32,7 +32,7 @@ const GALSAEK_DARK = '#5E3826'; // 그늘진 나무
 const GALSAEK_DEEP = '#3B2317'; // 서랍 안쪽 (가장 어두운 곳)
 const BEIGE = '#DCC9A5'; // 서랍 앞면
 const BEIGE_DARK = '#C9B48D'; // 서랍 앞면 아래쪽
-const HANJI = '#F2E6CC'; // 라벨 한지
+const HANJI = '#F2E7CE'; // 라벨 한지
 const MEOK = '#2E2E2E'; // 먹 (한자)
 const HWANG = '#DAA017'; // 황동 손잡이
 

@@ -3,7 +3,8 @@
 import { motion } from 'framer-motion';
 
 /**
- * 주홍 CTA 버튼 — 종이 라벨처럼 보이는 베이지 이중 테두리
+ * 주홍 CTA 버튼 — 인주 바탕에 먹선 테두리, 안쪽 한지색 실선(box-shadow).
+ * 한지 디자인 언어: 카드·버튼 모두 각지게(border-radius: 0).
  */
 export default function TraditionalButton({
   children,
@@ -18,28 +19,26 @@ export default function TraditionalButton({
   variant?: 'primary' | 'ghost';
   className?: string;
 }) {
+  const style =
+    variant === 'primary'
+      ? {
+          border: '1px solid var(--color-juhong-deep)',
+          boxShadow:
+            'inset 0 0 0 1px rgba(247, 233, 207, 0.35), 0 8px 22px rgba(167, 43, 33, 0.25)',
+        }
+      : { border: '1px solid rgba(122, 74, 52, 0.3)' };
   const base =
     variant === 'primary'
-      ? 'bg-[var(--color-juhong)] text-[#F6EDD9] shadow-[0_2px_8px_rgba(167,43,33,0.35)]'
-      : 'bg-transparent text-[var(--color-galsaek)]';
+      ? 'bg-[var(--color-juhong)] text-[var(--color-juhong-tint)]'
+      : 'bg-transparent text-[rgba(46,46,46,0.6)]';
   return (
     <motion.button
       whileTap={disabled ? undefined : { scale: 0.97 }}
       onClick={onClick}
       disabled={disabled}
-      className={`relative w-full rounded-lg px-6 py-3.5 font-serif-kr text-base font-bold tracking-wider transition-colors disabled:opacity-50 ${base} ${className}`}
-      style={{ border: '1px solid rgba(220, 201, 165, 0.9)' }}
+      className={`w-full p-[17px] text-center font-serif-kr text-[16px] tracking-[.08em] transition-colors disabled:opacity-50 ${base} ${className}`}
+      style={style}
     >
-      {/* 안쪽 얇은 라벨 선 */}
-      <span
-        className="pointer-events-none absolute inset-[3px] rounded-md"
-        style={{
-          border:
-            variant === 'primary'
-              ? '1px solid rgba(242, 230, 204, 0.45)'
-              : '1px solid rgba(122, 74, 52, 0.3)',
-        }}
-      />
       {children}
     </motion.button>
   );

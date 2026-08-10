@@ -44,15 +44,15 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
   {
     id: 'hwangji',
     label: '한지',
-    swatch: '#F2E6CC',
-    trad: { bg: '#F2E6CC', ink: '#A72B21', text: '#2E2E2E' },
+    swatch: '#F2E7CE',
+    trad: { bg: '#F2E7CE', ink: '#A72B21', text: '#2E2E2E' },
     modern: { bg1: '#F5EAD5', bg2: '#F5D5C8', ink: '#AA6B3F', accent: '#D4914F' },
   },
   {
     id: 'hongji',
     label: '홍지',
     swatch: '#B93A32',
-    trad: { bg: '#B93A32', ink: '#F2E6CC', text: '#FFF3D6' },
+    trad: { bg: '#B93A32', ink: '#F2E7CE', text: '#FFF3D6' },
     modern: { bg1: '#F5D5D5', bg2: '#F5C8D5', ink: '#A03A3A', accent: '#D46F6F' },
   },
   {
@@ -73,15 +73,15 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
     id: 'namsaekji',
     label: '남색',
     swatch: '#1F3E63',
-    trad: { bg: '#1F3E63', ink: '#DAA017', text: '#F2E6CC' },
+    trad: { bg: '#1F3E63', ink: '#DAA017', text: '#F2E7CE' },
     modern: { bg1: '#2A4A73', bg2: '#1F3E63', ink: '#E8D9B0', accent: '#DAA017' },
   },
   {
     id: 'ssukji',
     label: '쑥색',
     swatch: '#6B7D63',
-    trad: { bg: '#6B7D63', ink: '#F2E6CC', text: '#FBF6E8' },
-    modern: { bg1: '#7C8E74', bg2: '#6B7D63', ink: '#F2E6CC', accent: '#DCC9A5' },
+    trad: { bg: '#6B7D63', ink: '#F2E7CE', text: '#FBF6E8' },
+    modern: { bg1: '#7C8E74', bg2: '#6B7D63', ink: '#F2E7CE', accent: '#DCC9A5' },
   },
   {
     id: 'geumji',
@@ -384,7 +384,7 @@ function generateFromAsset(
 ): string {
   const { assetUrl, message, userName } = params;
   const SEAL_RED = '#A72B21';
-  const HANJI = '#F2E6CC';
+  const HANJI = '#F2E7CE';
 
   // 기원 문구 — 아래쪽에 한지 띠를 깔고 그 위에 쓴다.
   // 그림마다 여백이 다르므로, 어떤 그림 위에서도 읽히도록 띠를 둔다.
@@ -464,8 +464,8 @@ function generateTraditional(
 ): string {
   const { bgColor, animal, title, hanja, message, mantra, userName } = params;
 
-  const trad = preset?.trad ?? { bg: '#F2E6CC', ink: '#A72B21', text: '#2E2E2E' };
-  const bg = trad.bg || bgColor || '#F2E6CC';
+  const trad = preset?.trad ?? { bg: '#F2E7CE', ink: '#A72B21', text: '#2E2E2E' };
+  const bg = trad.bg || bgColor || '#F2E7CE';
   // 밝은 종이(한지·백지)에서만 기운색이 테두리·문양을 결정.
   // 색지(남색·쑥·황금·홍·심야)는 종이에 맞는 잉크색이 우선 (시안: 남색지+금테).
   const isLightPaper = !preset || LIGHT_PAPERS.has(preset.id);
@@ -519,13 +519,13 @@ function generateTraditional(
       ? userName.trim()
       : null;
   const sealText = sealName
-    ? `<text x="0" y="5" text-anchor="middle" font-size="12" font-weight="bold" fill="#F2E6CC" font-family="serif">${escapeXml(sealName)}</text>`
-    : `<text x="0" y="-2" text-anchor="middle" font-size="11" font-weight="bold" fill="#F2E6CC" font-family="serif">수호</text>
-       <text x="0" y="12" text-anchor="middle" font-size="11" font-weight="bold" fill="#F2E6CC" font-family="serif">부</text>`;
+    ? `<text x="0" y="5" text-anchor="middle" font-size="12" font-weight="bold" fill="#F2E7CE" font-family="serif">${escapeXml(sealName)}</text>`
+    : `<text x="0" y="-2" text-anchor="middle" font-size="11" font-weight="bold" fill="#F2E7CE" font-family="serif">수호</text>
+       <text x="0" y="12" text-anchor="middle" font-size="11" font-weight="bold" fill="#F2E7CE" font-family="serif">부</text>`;
   const seal = `
     <g transform="translate(${W / 2}, ${H - 54})">
       <rect x="-19" y="-19" width="38" height="38" rx="4" fill="${SEAL_RED}"/>
-      <rect x="-14.5" y="-14.5" width="29" height="29" rx="3" fill="none" stroke="#F2E6CC" stroke-width="1.2" opacity="0.9"/>
+      <rect x="-14.5" y="-14.5" width="29" height="29" rx="3" fill="none" stroke="#F2E7CE" stroke-width="1.2" opacity="0.9"/>
       ${sealText}
     </g>
   `;

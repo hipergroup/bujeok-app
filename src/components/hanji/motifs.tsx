@@ -125,18 +125,18 @@ export function SealLogo({
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" className={className} aria-hidden>
       <rect x="3" y="3" width="42" height="42" rx="6" fill="#A72B21" />
-      <rect x="6.5" y="6.5" width="35" height="35" rx="4" fill="none" stroke="#F2E6CC" strokeWidth="1.4" opacity="0.9" />
+      <rect x="6.5" y="6.5" width="35" height="35" rx="4" fill="none" stroke="#F2E7CE" strokeWidth="1.4" opacity="0.9" />
       {chars.length === 3 ? (
         <>
-          <text x="24" y="20" textAnchor="middle" fontSize="13" fontWeight="700" fill="#F2E6CC" fontFamily="var(--font-brush), serif">
+          <text x="24" y="20" textAnchor="middle" fontSize="13" fontWeight="700" fill="#F2E7CE" fontFamily="var(--font-brush), serif">
             {chars[0]}{chars[1]}
           </text>
-          <text x="24" y="37" textAnchor="middle" fontSize="13" fontWeight="700" fill="#F2E6CC" fontFamily="var(--font-brush), serif">
+          <text x="24" y="37" textAnchor="middle" fontSize="13" fontWeight="700" fill="#F2E7CE" fontFamily="var(--font-brush), serif">
             {chars[2]}
           </text>
         </>
       ) : (
-        <text x="24" y="30" textAnchor="middle" fontSize="15" fontWeight="700" fill="#F2E6CC" fontFamily="var(--font-brush), serif">
+        <text x="24" y="30" textAnchor="middle" fontSize="15" fontWeight="700" fill="#F2E7CE" fontFamily="var(--font-brush), serif">
           {text}
         </text>
       )}

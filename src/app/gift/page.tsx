@@ -189,12 +189,12 @@ function GiftReceive() {
                     className="pointer-events-none absolute inset-3 rounded-lg"
                     style={{ border: '1px dashed rgba(242,230,204,0.5)' }}
                   />
-                  <CornerMotif className="absolute left-4 top-4 text-[#F2E6CC] opacity-60" size={22} />
-                  <CornerMotif className="absolute right-4 top-4 rotate-90 text-[#F2E6CC] opacity-60" size={22} />
-                  <CornerMotif className="absolute bottom-4 left-4 -rotate-90 text-[#F2E6CC] opacity-60" size={22} />
-                  <CornerMotif className="absolute bottom-4 right-4 rotate-180 text-[#F2E6CC] opacity-60" size={22} />
+                  <CornerMotif className="absolute left-4 top-4 text-[#F2E7CE] opacity-60" size={22} />
+                  <CornerMotif className="absolute right-4 top-4 rotate-90 text-[#F2E7CE] opacity-60" size={22} />
+                  <CornerMotif className="absolute bottom-4 left-4 -rotate-90 text-[#F2E7CE] opacity-60" size={22} />
+                  <CornerMotif className="absolute bottom-4 right-4 rotate-180 text-[#F2E7CE] opacity-60" size={22} />
 
-                  <KnotMotif size={64} className="text-[#F2E6CC]" />
+                  <KnotMotif size={64} className="text-[#F2E7CE]" />
                   <span className="mt-4 font-serif-kr text-lg font-bold tracking-widest text-[#F6EDD9]">
                     福
                   </span>

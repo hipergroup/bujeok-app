@@ -7,13 +7,17 @@
 @theme inline {
   /* ── 수호부 한지 팔레트 (라이트 전통 테마) ── */
   --color-juhong: #A72B21;      /* 주홍·인주 */
+  --color-juhong-deep: #7E1D16; /* 인주 진한 테두리 (CTA) */
+  --color-juhong-tint: #FBF3E0; /* 인주 위 밝은 글자 (CTA) */
   --color-hwang: #DAA017;       /* 겨자·황 */
+  --color-hwangto: #8F6B14;     /* 황토 금 — 보조 강조 */
   --color-namsaek: #1F3E63;     /* 짙은 남 */
   --color-ssuk: #6B7D63;        /* 쑥·세이지 */
   --color-meok: #2E2E2E;        /* 먹 */
-  --color-hanji: #F2E6CC;       /* 한지 배경 */
+  --color-hanji: #F2E7CE;       /* 한지 배경 */
   --color-galsaek: #7A4A34;     /* 짙은 갈색 선 */
   --color-beige: #DCC9A5;       /* 보조 베이지 */
+  --color-paper-card: #FDFAF0;  /* 부적 종이 */
 
   --color-gold: #D4A853;
   --color-gold-light: #E8C97A;
@@ -52,8 +56,9 @@ html {
 }
 
 body {
-  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic",
-    -apple-system, BlinkMacSystemFont, sans-serif;
+  /* 본문·UI 기본 서체 — 고운바탕 명조 (한지 디자인 언어) */
+  font-family: var(--font-serif-kr), "Gowun Batang", "Nanum Myeongjo",
+    "Apple SD Gothic Neo", "AppleMyungjo", serif;
   /* 한지색 — 스크롤 바운스·하단 틈에서 다크 배경이 비치지 않게 (구 다크 그라데이션 제거) */
   background: var(--color-hanji);
   color: var(--color-meok);
@@ -152,6 +157,18 @@ button {
   100% {
     background-position: 200% 200%;
   }
+}
+
+/* ── 노리개 흔들림 — 회전축(밧줄 최상단)은 요소의 transform-origin에서 지정 ── */
+@keyframes sway {
+  0%, 100% { transform: rotate(-1.6deg); }
+  50%      { transform: rotate(1.6deg); }
+}
+
+/* ── 먹이 스며들듯 등장 ── */
+@keyframes inkin {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
 }
 
 /* ── Glow Pulse ────────────────────────── */

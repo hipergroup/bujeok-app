@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Song+Myung&display=swap" rel="stylesheet">
+<style>
+.sh-ph *::-webkit-scrollbar,.sh-ph::-webkit-scrollbar{display:none;width:0;height:0}
+.sh-ph *,.sh-ph{scrollbar-width:none;-ms-overflow-style:none}
+@keyframes inkin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes seal{0%{opacity:0;transform:scale(2.4) rotate(-14deg)}60%{opacity:1;transform:scale(.94) rotate(2deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes sway{0%,100%{transform:rotate(-1.6deg)}50%{transform:rotate(1.6deg)}}
+</style></helmet>
+
+<div class="sh-ph" style="width:390px;height:844px;border-radius:38px;overflow:hidden;position:relative;background:#F2E7CE url('public/brand/hanji-bg.jpg') 22% 92%/190% auto no-repeat;font-family:'Gowun Batang',serif">
+
+<sc-if value="{{ isOnboard }}" hint-placeholder-val="{{ true }}">
+<div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:64px 30px 34px;box-sizing:border-box">
+
+  <sc-if value="{{ ob0 }}" hint-placeholder-val="{{ true }}">
+  <img src="uploads/%E1%84%89%E1%85%AE%E1%84%92%E1%85%A9%E1%84%87%E1%85%AE_%E1%84%8B%E1%85%A9%E1%84%85%E1%85%B3%E1%86%AB%E1%84%8D%E1%85%A9%E1%86%A8%20%E1%84%89%E1%85%A1%E1%86%BC%E1%84%83%E1%85%A1%E1%86%AB.png" alt="" style="{{ cloudStyle }}">
+  <img src="uploads/%E1%84%89%E1%85%AE%E1%84%92%E1%85%A9%E1%84%87%E1%85%AE%20%E1%84%8B%E1%85%A9%E1%84%85%E1%85%B3%E1%86%AB%E1%84%8D%E1%85%A9%E1%86%A8%20%E1%84%8B%E1%85%A1%E1%84%85%E1%85%A2%20.png" alt="" style="{{ jangseungStyle }}">
+  <div style="{{ norigaeStyle }}">
+    <div style="{{ norigaeCord }}"></div>
+    <img src="uploads/%E1%84%8B%E1%85%A9%E1%84%87%E1%85%A1%E1%86%BC%E1%84%89%E1%85%A2%E1%86%A8%20%E1%84%8C%E1%85%A1%E1%86%BC%E1%84%89%E1%85%B5%E1%86%A8.png" alt="" style="width:100%;height:auto;display:block">
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;animation:inkin .7s ease both">
+    <img src="public/brand/wordmark-mark.png" alt="수호부" style="width:248px;height:auto;display:block">
+    <div style="margin-top:22px;font-size:14px;color:rgba(46,46,46,.55);letter-spacing:.04em">오늘의 마음을 지키는 부적</div>
+    <img src="public/brand/divider.png" alt="" style="{{ dividerStyle }}">
+    <div style="{{ featListStyle }}">
+      <div style="{{ featRowStyle }}"><span style="{{ featNumStyle }}">壹</span><span style="{{ featRuleStyle }}"></span><span style="{{ featTextStyle }}">만세력 기반 정확한 사주 풀이</span></div>
+      <div style="{{ featRowStyle }}"><span style="{{ featNumStyle }}">貳</span><span style="{{ featRuleStyle }}"></span><span style="{{ featTextStyle }}">마음을 담아 만드는 나만의 부적</span></div>
+      <div style="{{ featRowStyle }}"><span style="{{ featNumStyle }}">參</span><span style="{{ featRuleStyle }}"></span><span style="{{ featTextStyle }}">오늘의 마음을 나누는 다정한 상담</span></div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ ob1 }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;gap:18px;overflow:auto;animation:inkin .5s ease both">
+    <div>
+      <div style="font-family:'Song Myung',serif;font-size:26px;color:#2E2E2E;line-height:1.4">태어난 날을<br>알려주세요</div>
+      <div style="margin-top:10px;font-size:12.5px;color:rgba(46,46,46,.45)">만세력으로 사주와 띠를 풀이합니다.</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <div style="flex:1"><div style="font-size:11px;color:rgba(46,46,46,.42);margin-bottom:6px">년</div><input value="{{ byear }}" onInput="{{ setYear }}" style="width:100%;box-sizing:border-box;background:rgba(255,252,244,.55);border:1px solid rgba(122,74,52,.28);color:#2E2E2E;font-family:'Gowun Batang',serif;font-size:16px;padding:11px 12px;border-radius:2px;outline:none"></div>
+      <div style="width:76px"><div style="font-size:11px;color:rgba(46,46,46,.42);margin-bottom:6px">월</div><input value="{{ bmonth }}" onInput="{{ setMonth }}" style="width:100%;box-sizing:border-box;background:rgba(255,252,244,.55);border:1px solid rgba(122,74,52,.28);color:#2E2E2E;font-family:'Gowun Batang',serif;font-size:16px;padding:11px 12px;border-radius:2px;outline:none"></div>
+      <div style="width:76px"><div style="font-size:11px;color:rgba(46,46,46,.42);margin-bottom:6px">일</div><input value="{{ bday }}" onInput="{{ setDay }}" style="width:100%;box-sizing:border-box;background:rgba(255,252,244,.55);border:1px solid rgba(122,74,52,.28);color:#2E2E2E;font-family:'Gowun Batang',serif;font-size:16px;padding:11px 12px;border-radius:2px;outline:none"></div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:rgba(46,46,46,.42);margin-bottom:9px">태어난 시 · 십이지시</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px">
+        <sc-for list="{{ hours }}" as="h" hint-placeholder-count="12">
+          <div onClick="{{ h.pick }}" style="{{ h.style }}">
+            <div style="{{ h.imgStyle }}"></div>
+            <div style="font-family:'Song Myung',serif;font-size:13px;margin-top:1px">{{ h.hanja }}</div>
+            <div style="font-size:9px;opacity:.55">{{ h.time }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:rgba(46,46,46,.42);margin-bottom:6px">이름 (선택) · 낙관에 새겨집니다</div>
+      <input value="{{ name }}" onInput="{{ setName }}" style="width:100%;box-sizing:border-box;background:rgba(255,252,244,.55);border:1px solid rgba(122,74,52,.28);color:#2E2E2E;font-family:'Gowun Batang',serif;font-size:16px;padding:11px 12px;border-radius:2px;outline:none">
+    </div>
+    <div style="margin-top:4px;display:flex;align-items:center;gap:14px;padding:12px 16px;border:1px solid rgba(143,107,20,.35);background:rgba(255,250,236,.5)">
+      <div style="{{ zodiacSm }}"></div>
+      <div><div style="font-size:13.5px;color:#2E2E2E">{{ zodiacLabel }} <span style="font-family:'Song Myung',serif;color:#8F6B14;margin-left:2px">{{ zodiacHanja }}</span></div><div style="font-size:11px;color:rgba(46,46,46,.45);margin-top:3px">입춘 기준</div></div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ ob2 }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;gap:18px;overflow:auto;animation:inkin .5s ease both">
+    <div style="display:flex;align-items:center;gap:16px">
+      <div style="{{ zodiacLg }}"></div>
+      <div style="font-family:'Song Myung',serif;font-size:26px;color:#2E2E2E;line-height:1.4">당신은<br>{{ zodiacLabel }}입니다</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+      <sc-for list="{{ pillars }}" as="p" hint-placeholder-count="4">
+        <div style="border:1px solid rgba(122,74,52,.25);padding:12px 0;text-align:center;background:rgba(255,252,244,.5)">
+          <div style="font-size:10px;color:rgba(46,46,46,.42)">{{ p.label }}</div>
+          <div style="font-family:'Song Myung',serif;font-size:26px;color:#2E2E2E;margin-top:6px;line-height:1.1">{{ p.gan }}</div>
+          <div style="font-family:'Song Myung',serif;font-size:26px;color:#8F6B14;line-height:1.1">{{ p.ji }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div>
+      <div style="font-size:11px;color:rgba(46,46,46,.42);margin-bottom:10px">오행 균형</div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <sc-for list="{{ elements }}" as="e" hint-placeholder-count="5">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font-family:'Song Myung',serif;font-size:14px;color:#2E2E2E;width:16px">{{ e.hanja }}</div>
+            <div style="flex:1;height:6px;background:rgba(122,74,52,.15)"><div style="{{ e.bar }}"></div></div>
+            <div style="font-size:11px;color:rgba(46,46,46,.42);width:18px;text-align:right">{{ e.n }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="border-left:2px solid #A72B21;padding:12px 14px;background:rgba(167,43,33,.07)">
+      <div style="font-size:12.5px;color:#2E2E2E;line-height:1.7">水 기운이 약합니다. 서두르기보다 한 박자 쉬어갈 때 일이 풀리는 해예요. 올해는 <span style="color:#A72B21">눌삼재</span>에 해당하니 삼재부를 곁에 두시길 권합니다.</div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ ob3 }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px">
+    <div style="text-align:center"><div style="font-family:'Song Myung',serif;font-size:24px;color:#2E2E2E">첫 부적을 선물합니다</div><div style="margin-top:8px;font-size:12.5px;color:rgba(46,46,46,.45)">護身符 · 몸과 마음의 평안을 지켜드릴게요</div></div>
+    <div style="animation:rise .8s ease both">
+      <div style="width:190px;height:296px;background:#FDFAF0;position:relative;border:1px solid rgba(122,74,52,.3);box-shadow:0 20px 44px rgba(60,40,20,.28)">
+        <div style="position:absolute;inset:9px;border:1px solid #A72B21"></div>
+        <div style="position:absolute;inset:14px;border:1px solid rgba(167,43,33,.35);display:flex;flex-direction:column;align-items:center;padding:16px 10px;box-sizing:border-box">
+          <div style="font-family:'Song Myung',serif;font-size:15px;color:#A72B21;letter-spacing:.3em">護身符</div>
+          <div style="width:30px;height:1px;background:rgba(167,43,33,.5);margin:10px 0 14px"></div>
+          <div style="font-family:'Song Myung',serif;font-size:52px;color:#2E2E2E;line-height:1">符</div>
+          <div style="writing-mode:vertical-rl;font-size:11.5px;color:#2E2E2E;letter-spacing:.16em;margin-top:14px;height:88px">몸과 마음의 평안</div>
+          <div style="margin-top:auto;font-family:'Song Myung',serif;font-size:9.5px;color:#7A4A34;letter-spacing:.2em">急急如律令</div>
+        </div>
+        <div style="position:absolute;right:14px;bottom:16px;width:26px;height:26px;background:#A72B21;color:#FDFAF0;font-family:'Song Myung',serif;font-size:9px;display:flex;align-items:center;justify-content:center;animation:seal .9s .5s ease both">{{ sealName }}</div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <div style="position:relative;z-index:2;display:flex;gap:10px;margin-top:24px">
+    <sc-if value="{{ obBack }}" hint-placeholder-val="{{ false }}"><div onClick="{{ obPrev }}" style="width:52px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(122,74,52,.3);color:rgba(46,46,46,.6);font-size:16px;cursor:pointer">‹</div></sc-if>
+    <div onClick="{{ obNext }}" style="flex:1;background:#A72B21;color:#FBF3E0;text-align:center;padding:17px;font-size:16px;letter-spacing:.08em;cursor:pointer;border:1px solid #7E1D16;box-shadow:inset 0 0 0 1px rgba(247,233,207,.35),0 8px 22px rgba(167,43,33,.25)">{{ obCta }}</div>
+  </div>
+  <div style="position:relative;z-index:2;display:flex;gap:5px;justify-content:center;margin-top:16px">
+    <sc-for list="{{ obDots }}" as="d" hint-placeholder-count="4"><div style="{{ d.s }}"></div></sc-for>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;overflow:auto;padding-bottom:92px">
+  <div style="position:relative;padding:56px 26px 0">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <img src="public/brand/wordmark-mark.png" alt="수호부" style="width:104px;height:auto;display:block">
+      <div style="display:flex;gap:14px;font-size:13px;color:rgba(46,46,46,.45)"><span>알림</span><span onClick="{{ goWidget }}" style="cursor:pointer;color:#8F6B14">위젯</span></div>
+    </div>
+    <div style="margin-top:12px;font-size:12.5px;color:rgba(46,46,46,.45)">{{ name }}님의 하루에 평안이 깃들기를</div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:26px;gap:14px">
+      <div style="writing-mode:vertical-rl;font-family:'Song Myung',serif;font-size:34px;color:#2E2E2E;line-height:1.7;letter-spacing:.1em;height:250px">오늘, 어떤 마음을 지키고 싶으신가요</div>
+      <div style="writing-mode:vertical-rl;font-size:12px;color:rgba(46,46,46,.32);letter-spacing:.2em;height:250px;align-self:flex-start">守護符 · 오늘의 마음</div>
+    </div>
+
+    <div onClick="{{ goMake }}" style="margin-top:26px;border:1px solid rgba(143,107,20,.35);background:rgba(255,250,236,.55);padding:16px 18px;display:flex;align-items:center;gap:14px;cursor:pointer">
+      <div style="font-family:'Song Myung',serif;font-size:30px;color:#8F6B14;line-height:1">吉</div>
+      <div style="flex:1"><div style="font-size:13px;color:#2E2E2E">오늘의 운세 · 상길(上吉)</div><div style="font-size:11.5px;color:rgba(46,46,46,.45);margin-top:4px">행운색 검정 · 방위 북 · 숫자 六</div></div>
+      <div style="color:rgba(46,46,46,.3);font-size:16px">›</div>
+    </div>
+
+    <div style="margin-top:30px;display:flex;align-items:baseline;justify-content:space-between">
+      <div style="font-size:13px;color:rgba(46,46,46,.55);letter-spacing:.1em">마음의 방향</div>
+      <div style="font-size:11px;color:rgba(46,46,46,.32)">여덟 가지 기운</div>
+    </div>
+    <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(122,74,52,.22);border:1px solid rgba(122,74,52,.22)">
+      <sc-for list="{{ energies }}" as="e" hint-placeholder-count="8">
+        <div onClick="{{ e.pick }}" style="background:rgba(253,249,239,.72);padding:20px 16px;cursor:pointer;position:relative;min-height:104px;box-sizing:border-box">
+          <div style="{{ e.hanjaStyle }}">{{ e.hanja }}</div>
+          <div style="position:relative;font-size:14.5px;color:#2E2E2E;letter-spacing:.02em">{{ e.title }}</div>
+          <div style="position:relative;font-size:11px;color:rgba(46,46,46,.42);margin-top:5px;line-height:1.5">{{ e.subtitle }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div onClick="{{ goMake }}" style="margin-top:22px;background:#A72B21;color:#FBF3E0;padding:18px;text-align:center;cursor:pointer;box-shadow:0 10px 26px rgba(167,43,33,.24)">
+      <div style="font-size:15.5px;letter-spacing:.06em">나만의 부적 만들기</div>
+      <div style="font-size:11.5px;opacity:.78;margin-top:5px">마음을 한 줄로 적으면 부적이 됩니다</div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isMake }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;overflow:auto;padding-bottom:92px">
+  <div style="position:sticky;top:0;background:linear-gradient(180deg,rgba(244,234,214,.92) 72%,rgba(244,234,214,0));backdrop-filter:blur(5px);z-index:5;padding:56px 26px 22px;display:flex;align-items:center;gap:14px">
+    <div onClick="{{ makeBack }}" style="color:rgba(46,46,46,.6);font-size:18px;cursor:pointer">‹</div>
+    <div style="flex:1;text-align:center;font-size:14px;color:#2E2E2E;letter-spacing:.08em">{{ makeTitle }}</div>
+    <div style="width:14px"></div>
+  </div>
+  <div style="display:flex;gap:6px;padding:6px 26px 0">
+    <sc-for list="{{ steps }}" as="s" hint-placeholder-count="3"><div style="{{ s.style }}"></div></sc-for>
+  </div>
+
+  <sc-if value="{{ phEnergy }}" hint-placeholder-val="{{ true }}">
+  <div style="padding:22px 26px">
+    <div style="font-family:'Song Myung',serif;font-size:25px;color:#2E2E2E;line-height:1.45">어떤 마음을<br>담아볼까요?</div>
+    <div style="margin-top:9px;font-size:12px;color:rgba(46,46,46,.45)">고르면 짧은 대화 후 부적을 만들어 드려요.</div>
+    <div style="margin-top:22px;display:flex;flex-direction:column;gap:1px;background:rgba(122,74,52,.22);border:1px solid rgba(122,74,52,.22)">
+      <sc-for list="{{ energies }}" as="e" hint-placeholder-count="8">
+        <div onClick="{{ e.pick }}" style="background:rgba(253,249,239,.72);padding:16px 18px;display:flex;align-items:center;gap:16px;cursor:pointer">
+          <div style="{{ e.rowHanja }}">{{ e.hanja }}</div>
+          <div style="flex:1"><div style="font-size:14.5px;color:#2E2E2E">{{ e.title }}</div><div style="font-size:11px;color:rgba(46,46,46,.42);margin-top:4px">{{ e.subtitle }}</div></div>
+          <div style="color:rgba(46,46,46,.25);font-size:15px">›</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ phChat }}" hint-placeholder-val="{{ false }}">
+  <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+    <sc-for list="{{ chatLog }}" as="m" hint-placeholder-count="3">
+      <div style="{{ m.wrap }}"><div style="{{ m.bubble }}">{{ m.text }}</div></div>
+    </sc-for>
+    <sc-if value="{{ typing }}" hint-placeholder-val="{{ false }}">
+      <div style="align-self:flex-start;background:rgba(253,249,239,.8);border:1px solid rgba(122,74,52,.2);padding:12px 16px;color:rgba(46,46,46,.5);font-size:13px;letter-spacing:.3em">···</div>
+    </sc-if>
+    <sc-if value="{{ showOptions }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
+        <sc-for list="{{ chatOptions }}" as="o" hint-placeholder-count="3">
+          <div onClick="{{ o.pick }}" style="border:1px solid rgba(167,43,33,.35);color:#2E2E2E;padding:13px 16px;font-size:13.5px;cursor:pointer;background:rgba(255,250,240,.6);align-self:flex-end;max-width:82%;text-align:right">{{ o.text }}</div>
+        </sc-for>
+      </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ phCustom }}" hint-placeholder-val="{{ false }}">
+  <div style="padding:22px 26px">
+    <div style="border:1px solid rgba(143,107,20,.35);background:rgba(255,250,236,.6);padding:16px 18px">
+      <div style="font-size:11px;color:rgba(46,46,46,.45);letter-spacing:.1em">당신에게 어울리는 부적</div>
+      <div style="margin-top:8px;font-family:'Song Myung',serif;font-size:22px;color:#2E2E2E">{{ resultName }} <span style="color:#A72B21;font-size:16px">{{ resultHanja }}</span></div>
+      <div style="margin-top:8px;font-size:12px;color:rgba(46,46,46,.55);line-height:1.7">{{ resultDesc }}</div>
+    </div>
+    <div style="margin-top:26px;font-family:'Song Myung',serif;font-size:21px;color:#2E2E2E;line-height:1.5">지금, 마음을<br>한 줄로 적어보세요</div>
+    <div style="margin-top:8px;font-size:12px;color:rgba(46,46,46,.42)">당신의 마음이 부적이 됩니다. (최대 24자)</div>
+    <textarea value="{{ wish }}" onInput="{{ setWish }}" placeholder="예 · 오늘 하루도 무사히" style="margin-top:14px;width:100%;box-sizing:border-box;height:82px;resize:none;background:rgba(255,252,244,.6);border:1px solid rgba(122,74,52,.28);color:#2E2E2E;font-family:'Gowun Batang',serif;font-size:16px;line-height:1.7;padding:14px;border-radius:2px;outline:none"></textarea>
+    <div style="margin-top:8px;text-align:right;font-size:11px;color:rgba(46,46,46,.32)">{{ wishCount }} / 24</div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <sc-for list="{{ wishSuggest }}" as="w" hint-placeholder-count="3">
+        <div onClick="{{ w.pick }}" style="border:1px solid rgba(122,74,52,.25);color:rgba(46,46,46,.6);font-size:11.5px;padding:8px 12px;cursor:pointer">{{ w.text }}</div>
+      </sc-for>
+    </div>
+    <div style="margin-top:28px;font-size:12px;color:rgba(46,46,46,.45);letter-spacing:.1em">화풍</div>
+    <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div onClick="{{ pickTrad }}" style="{{ tradStyle }}"><div style="font-family:'Song Myung',serif;font-size:20px">傳統</div><div style="font-size:12px;margin-top:6px">전통 화풍</div><div style="font-size:10.5px;opacity:.6;margin-top:3px">세로쓰기 · 낙관</div></div>
+      <div onClick="{{ pickMod }}" style="{{ modStyle }}"><div style="font-family:'Song Myung',serif;font-size:20px">現代</div><div style="font-size:12px;margin-top:6px">현대 화풍</div><div style="font-size:10.5px;opacity:.6;margin-top:3px">가로쓰기 · 여백</div></div>
+    </div>
+    <div onClick="{{ doReveal }}" style="margin-top:26px;background:#A72B21;color:#FBF3E0;padding:17px;text-align:center;font-size:15px;letter-spacing:.06em;cursor:pointer">부적 완성하기</div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ phReveal }}" hint-placeholder-val="{{ false }}">
+  <div style="padding:6px 26px 30px;display:flex;flex-direction:column;align-items:center">
+    <div style="animation:rise .9s ease both">
+      <div style="{{ paperStyle }}">
+        <div style="position:absolute;inset:10px;border:1px solid #A72B21"></div>
+        <div style="position:absolute;inset:15px;border:1px solid rgba(167,43,33,.3);display:flex;flex-direction:column;align-items:center;padding:18px 12px;box-sizing:border-box">
+          <div style="font-family:'Song Myung',serif;font-size:16px;color:#A72B21;letter-spacing:.3em">{{ resultHanja }}</div>
+          <div style="width:34px;height:1px;background:rgba(167,43,33,.5);margin:11px 0 16px"></div>
+          <div style="font-family:'Song Myung',serif;font-size:60px;color:#2E2E2E;line-height:1">{{ energyHanja1 }}</div>
+          <div style="{{ wishStyle }}">{{ wishFinal }}</div>
+          <div style="margin-top:auto;font-family:'Song Myung',serif;font-size:10px;color:#7A4A34;letter-spacing:.22em">急急如律令</div>
+        </div>
+        <div style="position:absolute;right:16px;bottom:18px;width:30px;height:30px;background:#A72B21;color:#FDFAF0;font-family:'Song Myung',serif;font-size:10px;display:flex;align-items:center;justify-content:center;animation:seal 1s .7s ease both">{{ sealName }}</div>
+      </div>
+    </div>
+    <div style="margin-top:22px;text-align:center"><div style="font-family:'Song Myung',serif;font-size:20px;color:#2E2E2E">{{ resultNameSubject }} 완성되었습니다</div><div style="margin-top:7px;font-size:12px;color:rgba(46,46,46,.45)">{{ todayLabel }} · {{ name }}</div></div>
+    <div onClick="{{ saveTalisman }}" style="margin-top:22px;width:100%;box-sizing:border-box;background:#A72B21;color:#FBF3E0;padding:17px;text-align:center;font-size:15px;cursor:pointer">{{ saveLabel }}</div>
+    <div style="margin-top:10px;width:100%;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div onClick="{{ openShare }}" style="border:1px solid rgba(122,74,52,.28);color:rgba(46,46,46,.7);padding:13px 0;text-align:center;font-size:12px;cursor:pointer">이미지 저장</div>
+      <div onClick="{{ openShare }}" style="border:1px solid rgba(122,74,52,.28);color:rgba(46,46,46,.7);padding:13px 0;text-align:center;font-size:12px;cursor:pointer">공유 카드</div>
+      <div onClick="{{ openShare }}" style="border:1px solid rgba(167,43,33,.45);color:#A72B21;padding:13px 0;text-align:center;font-size:12px;cursor:pointer">선물하기</div>
+    </div>
+    <div style="margin-top:18px;font-size:10.5px;color:rgba(46,46,46,.3);text-align:center;line-height:1.8">수호부는 정서적 위로와 응원을 위한 서비스입니다.<br>전문적인 도움이 필요할 때는 <span style="color:rgba(46,46,46,.55)">109</span> · <span style="color:rgba(46,46,46,.55)">1577-0199</span></div>
+  </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isColl }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;overflow:auto;padding-bottom:92px">
+  <div style="padding:56px 26px 0">
+    <div style="font-family:'Song Myung',serif;font-size:25px;color:#2E2E2E">내 부적함</div>
+    <div style="margin-top:8px;font-size:12px;color:rgba(46,46,46,.45)">{{ collCount }}장을 간직하고 있어요. 오래될수록 종이는 낡아갑니다.</div>
+    <div style="margin-top:18px;display:flex;gap:7px;overflow:auto;padding-bottom:4px">
+      <sc-for list="{{ filters }}" as="f" hint-placeholder-count="5"><div onClick="{{ f.pick }}" style="{{ f.style }}">{{ f.label }}</div></sc-for>
+    </div>
+    <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <sc-for list="{{ collection }}" as="c" hint-placeholder-count="4">
+        <div onClick="{{ c.open }}" style="cursor:pointer">
+          <div style="{{ c.paper }}">
+            <div style="position:absolute;inset:6px;border:1px solid rgba(167,43,33,.55)"></div>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+              <div style="font-family:'Song Myung',serif;font-size:11px;color:#A72B21;letter-spacing:.22em">{{ c.hanja }}</div>
+              <div style="font-family:'Song Myung',serif;font-size:40px;color:#2E2E2E;line-height:1">{{ c.glyph }}</div>
+              <div style="font-size:9px;color:#7A4A34;letter-spacing:.14em">急急如律令</div>
+            </div>
+            <div style="position:absolute;right:8px;bottom:8px;width:17px;height:17px;background:#A72B21;color:#FDFAF0;font-family:'Song Myung',serif;font-size:7px;display:flex;align-items:center;justify-content:center">{{ sealName }}</div>
+          </div>
+          <div style="margin-top:9px;font-size:13px;color:#2E2E2E">{{ c.name }}</div>
+          <div style="margin-top:3px;font-size:10.5px;color:rgba(46,46,46,.38)">{{ c.age }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div onClick="{{ goEnc }}" style="margin-top:26px;border:1px dashed rgba(122,74,52,.3);padding:16px;text-align:center;font-size:12.5px;color:rgba(46,46,46,.55);cursor:pointer">부적 도감에서 43종 모두 보기 ›</div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isEnc }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;overflow:auto;padding-bottom:92px">
+  <div style="position:sticky;top:0;background:linear-gradient(180deg,rgba(244,234,214,.92) 78%,rgba(244,234,214,0));backdrop-filter:blur(5px);padding:56px 26px 22px;z-index:5">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div onClick="{{ goColl }}" style="color:rgba(46,46,46,.6);font-size:18px;cursor:pointer">‹</div>
+      <div style="font-family:'Song Myung',serif;font-size:19px;color:#2E2E2E">부적 도감</div>
+      <div style="margin-left:auto;font-size:11.5px;color:#A72B21">43종 중 {{ collCountN }}종</div>
+    </div>
+    <input value="{{ encQuery }}" onInput="{{ setEncQuery }}" placeholder="부적 이름 · 상황으로 찾기" style="margin-top:14px;width:100%;box-sizing:border-box;background:rgba(255,252,244,.6);border:1px solid rgba(122,74,52,.25);color:#2E2E2E;font-family:'Gowun Batang',serif;font-size:14px;padding:11px 13px;border-radius:2px;outline:none">
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(122,74,52,.2);border:1px solid rgba(122,74,52,.2);margin:0 26px">
+    <sc-for list="{{ catalog }}" as="t" hint-placeholder-count="24">
+      <div style="{{ t.cell }}">
+        <div style="{{ t.glyphStyle }}">{{ t.glyph }}</div>
+        <div style="{{ t.nameStyle }}">{{ t.name }}</div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="padding:16px 26px 0;font-size:11px;color:rgba(46,46,46,.32);line-height:1.8">진하게 찍힌 칸이 수집한 부적입니다. 흐린 칸은 아직 만나지 않은 부적이에요.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isMy }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;overflow:auto;padding-bottom:92px">
+  <div style="padding:56px 26px 0">
+    <div style="font-family:'Song Myung',serif;font-size:25px;color:#2E2E2E">마이페이지</div>
+    <div style="margin-top:18px;border:1px solid rgba(143,107,20,.32);background:rgba(255,250,236,.55);padding:20px">
+      <div style="display:flex;align-items:center;gap:16px">
+        <div style="{{ zodiacMd }}"></div>
+        <div><div style="font-size:16px;color:#2E2E2E">{{ name }}</div><div style="margin-top:5px;font-size:11.5px;color:rgba(46,46,46,.45)">{{ zodiacLabel }} · {{ birthLabel }}</div></div>
+        <div style="margin-left:auto;border:1px solid #A72B21;color:#A72B21;font-size:10.5px;padding:5px 9px">눌삼재</div>
+      </div>
+      <div style="margin-top:18px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        <sc-for list="{{ pillars }}" as="p" hint-placeholder-count="4">
+          <div style="text-align:center;padding:10px 0;background:rgba(255,252,244,.6);border:1px solid rgba(122,74,52,.18)">
+            <div style="font-size:9.5px;color:rgba(46,46,46,.38)">{{ p.label }}</div>
+            <div style="font-family:'Song Myung',serif;font-size:19px;color:#2E2E2E;margin-top:4px;line-height:1.15">{{ p.gan }}</div>
+            <div style="font-family:'Song Myung',serif;font-size:19px;color:#8F6B14;line-height:1.15">{{ p.ji }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(122,74,52,.22);border:1px solid rgba(122,74,52,.22)">
+      <div style="background:rgba(253,249,239,.72);padding:16px 0;text-align:center"><div style="font-family:'Song Myung',serif;font-size:24px;color:#2E2E2E">{{ collCountN }}</div><div style="font-size:10.5px;color:rgba(46,46,46,.4);margin-top:5px">간직한 부적</div></div>
+      <div style="background:rgba(253,249,239,.72);padding:16px 0;text-align:center"><div style="font-family:'Song Myung',serif;font-size:24px;color:#2E2E2E">12</div><div style="font-size:10.5px;color:rgba(46,46,46,.4);margin-top:5px">연속 방문</div></div>
+      <div style="background:rgba(253,249,239,.72);padding:16px 0;text-align:center"><div style="font-family:'Song Myung',serif;font-size:24px;color:#2E2E2E">3</div><div style="font-size:10.5px;color:rgba(46,46,46,.4);margin-top:5px">받은 선물</div></div>
+    </div>
+    <div style="margin-top:24px;font-size:12px;color:rgba(46,46,46,.45);letter-spacing:.1em">이번 주 운세 흐름</div>
+    <div style="margin-top:12px;display:flex;align-items:flex-end;gap:8px;height:74px">
+      <sc-for list="{{ week }}" as="w" hint-placeholder-count="7">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+          <div style="{{ w.bar }}"></div>
+          <div style="font-size:10px;color:rgba(46,46,46,.32)">{{ w.d }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="margin-top:26px;display:flex;flex-direction:column;gap:1px;background:rgba(122,74,52,.22);border:1px solid rgba(122,74,52,.22)">
+      <div onClick="{{ goEnc }}" style="background:rgba(253,249,239,.72);padding:15px 18px;font-size:13.5px;color:#2E2E2E;display:flex;cursor:pointer">부적 도감 <span style="margin-left:auto;color:rgba(46,46,46,.25)">›</span></div>
+      <div onClick="{{ goWidget }}" style="background:rgba(253,249,239,.72);padding:15px 18px;font-size:13.5px;color:#2E2E2E;display:flex;cursor:pointer">위젯 설정 <span style="margin-left:auto;color:rgba(46,46,46,.25)">›</span></div>
+      <div onClick="{{ restart }}" style="background:rgba(253,249,239,.72);padding:15px 18px;font-size:13.5px;color:#2E2E2E;display:flex;cursor:pointer">사주 정보 다시 입력 <span style="margin-left:auto;color:rgba(46,46,46,.25)">›</span></div>
+    </div>
+    <div style="margin-top:22px;font-size:10.5px;color:rgba(46,46,46,.22);text-align:center">수호부 v2.0</div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isWidget }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;overflow:auto;padding-bottom:92px">
+  <div style="padding:56px 26px 0">
+    <div style="display:flex;align-items:center;gap:14px"><div onClick="{{ goHome }}" style="color:rgba(46,46,46,.6);font-size:18px;cursor:pointer">‹</div><div style="font-family:'Song Myung',serif;font-size:19px;color:#2E2E2E">홈 화면 위젯</div></div>
+    <div style="margin-top:10px;font-size:12px;color:rgba(46,46,46,.45);line-height:1.8">부적은 시간이 지나면 낡는 물건입니다. 위젯의 부적도 45일에 걸쳐 서서히 바랩니다.</div>
+    <div style="margin-top:22px;border-radius:24px;padding:26px 22px;background:linear-gradient(160deg,#3a2f22,#1d1712);box-shadow:0 14px 32px rgba(40,28,14,.3)">
+      <div style="display:flex;gap:16px;align-items:flex-start">
+        <div style="width:120px;height:120px;border-radius:22px;overflow:hidden;position:relative;background:#FDFAF0;box-shadow:0 8px 22px rgba(0,0,0,.45)">
+          <div style="{{ agedStyle }}">
+            <div style="position:absolute;inset:7px;border:1px solid #A72B21"></div>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px">
+              <div style="font-family:'Song Myung',serif;font-size:9px;color:#A72B21;letter-spacing:.2em">{{ resultHanja }}</div>
+              <div style="font-family:'Song Myung',serif;font-size:40px;color:#2E2E2E;line-height:1">{{ energyHanja1 }}</div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;padding-top:6px">
+          <div style="font-size:13px;color:#EFE3C8">수호부</div>
+          <div style="margin-top:6px;font-size:11px;color:rgba(239,227,200,.5);line-height:1.7">당신의 하루를 지켜주는 작은 부적</div>
+          <div style="margin-top:12px;font-size:11px;color:#D9B25A">{{ ageLabel }}</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:20px;font-size:12px;color:rgba(46,46,46,.45)">시간을 움직여 보세요 — 낡아가는 정도</div>
+    <input type="range" min="0" max="45" value="{{ widgetAge }}" onInput="{{ setAge }}" style="margin-top:12px;width:100%;accent-color:#A72B21">
+    <div style="display:flex;justify-content:space-between;font-size:10.5px;color:rgba(46,46,46,.3);margin-top:4px"><span>오늘</span><span>45일 후 · 교체 권장</span></div>
+    <div style="margin-top:24px;border-left:2px solid #8F6B14;background:rgba(255,250,236,.6);padding:14px 16px;font-size:12px;color:rgba(46,46,46,.62);line-height:1.8">45일이 지나면 “부적을 새로 모실 때가 되었어요” 알림과 함께 교체 플로우로 이어집니다.</div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ detail }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeDetail }}" style="position:absolute;inset:0;background:rgba(35,26,16,.62);backdrop-filter:blur(5px);z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:34px;box-sizing:border-box">
+  <div style="width:214px;height:334px;background:#FDFAF0;position:relative;box-shadow:0 24px 56px rgba(0,0,0,.45);animation:rise .5s ease both">
+    <div style="position:absolute;inset:10px;border:1px solid #A72B21"></div>
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px">
+      <div style="font-family:'Song Myung',serif;font-size:13px;color:#A72B21;letter-spacing:.28em">{{ detailHanja }}</div>
+      <div style="font-family:'Song Myung',serif;font-size:64px;color:#2E2E2E;line-height:1">{{ detailGlyph }}</div>
+      <div style="font-size:10px;color:#7A4A34;letter-spacing:.2em">急急如律令</div>
+    </div>
+    <div style="position:absolute;right:14px;bottom:16px;width:26px;height:26px;background:#A72B21;color:#FDFAF0;font-family:'Song Myung',serif;font-size:9px;display:flex;align-items:center;justify-content:center">{{ sealName }}</div>
+  </div>
+  <div style="text-align:center"><div style="font-family:'Song Myung',serif;font-size:19px;color:#F2E6CC">{{ detailName }}</div><div style="margin-top:7px;font-size:12px;color:rgba(242,230,204,.6)">{{ detailAge }}</div></div>
+  <div style="font-size:11.5px;color:rgba(242,230,204,.4)">아무 곳이나 눌러 닫기</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ share }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeShare }}" style="position:absolute;inset:0;background:rgba(35,26,16,.4);z-index:45;display:flex;align-items:flex-end">
+  <div style="width:100%;background:#F6EDD9;border-top:1px solid rgba(122,74,52,.25);padding:26px 26px 34px;box-shadow:0 -14px 34px rgba(40,28,14,.18)">
+    <div style="width:36px;height:3px;background:rgba(122,74,52,.28);margin:0 auto 20px"></div>
+    <div style="font-family:'Song Myung',serif;font-size:18px;color:#2E2E2E">부적 선물하기</div>
+    <div style="margin-top:8px;font-size:12px;color:rgba(46,46,46,.5);line-height:1.7">받는 분의 이름을 낙관에 새겨 보냅니다. 링크를 연 사람만 부적함에 담을 수 있어요.</div>
+    <div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="border:1px solid rgba(122,74,52,.28);padding:15px 0;text-align:center;font-size:12.5px;color:rgba(46,46,46,.7)">이미지 저장</div>
+      <div style="border:1px solid rgba(122,74,52,.28);padding:15px 0;text-align:center;font-size:12.5px;color:rgba(46,46,46,.7)">스토리 카드</div>
+      <div style="border:1px solid rgba(122,74,52,.28);padding:15px 0;text-align:center;font-size:12.5px;color:rgba(46,46,46,.7)">정사각 카드</div>
+      <div style="background:#A72B21;color:#FBF3E0;padding:15px 0;text-align:center;font-size:12.5px">선물 링크 만들기</div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showTabs }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:0;right:0;bottom:0;height:82px;background:rgba(244,234,214,.94);backdrop-filter:blur(12px);border-top:1px solid rgba(122,74,52,.22);display:grid;grid-template-columns:repeat(4,1fr);z-index:20">
+  <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+    <div onClick="{{ t.pick }}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;padding-bottom:12px">
+      <div style="{{ t.hanja }}">{{ t.glyph }}</div>
+      <div style="{{ t.label }}">{{ t.name }}</div>
+    </div>
+  </sc-for>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844},&quot;start&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;onboard&quot;,&quot;birth&quot;,&quot;saju&quot;,&quot;gift&quot;,&quot;home&quot;,&quot;energy&quot;,&quot;chat&quot;,&quot;custom&quot;,&quot;reveal&quot;,&quot;coll&quot;,&quot;enc&quot;,&quot;my&quot;,&quot;widget&quot;,&quot;detail&quot;,&quot;share&quot;],&quot;default&quot;:&quot;onboard&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;화면&quot;},&quot;norigaeLeft&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:-30,&quot;min&quot;:-60,&quot;max&quot;:260,&quot;step&quot;:2,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;오방색 노리개&quot;},&quot;norigaeTop&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:78,&quot;min&quot;:0,&quot;max&quot;:320,&quot;step&quot;:2,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;오방색 노리개&quot;},&quot;norigaeSize&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:215,&quot;min&quot;:90,&quot;max&quot;:300,&quot;step&quot;:5,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;오방색 노리개&quot;},&quot;ropeWidth&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:2.2,&quot;min&quot;:1,&quot;max&quot;:5,&quot;step&quot;:0.05,&quot;unit&quot;:&quot;%&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;오방색 노리개&quot;},&quot;featIndent&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:34,&quot;min&quot;:0,&quot;max&quot;:120,&quot;step&quot;:2,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;소개 3줄 — 배치&quot;},&quot;featTop&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:54,&quot;min&quot;:10,&quot;max&quot;:140,&quot;step&quot;:2,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;소개 3줄 — 배치&quot;},&quot;featGap&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:14,&quot;min&quot;:4,&quot;max&quot;:40,&quot;step&quot;:1,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;소개 3줄 — 배치&quot;},&quot;featGapX&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:12,&quot;min&quot;:4,&quot;max&quot;:40,&quot;step&quot;:1,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;소개 3줄 — 배치&quot;},&quot;featRuleHeight&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:16,&quot;min&quot;:0,&quot;max&quot;:34,&quot;step&quot;:1,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;소개 3줄 — 세로 구분선&quot;},&quot;featRuleOpacity&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:35,&quot;min&quot;:0,&quot;max&quot;:100,&quot;step&quot;:5,&quot;unit&quot;:&quot;%&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;소개 3줄 — 세로 구분선&quot;},&quot;featNumSize&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:16,&quot;min&quot;:10,&quot;max&quot;:30,&quot;step&quot;:1,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;소개 3줄 — 숫자 한자&quot;},&quot;featNumColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#7A4A34&quot;,&quot;options&quot;:[&quot;#7A4A34&quot;,&quot;#8F6B14&quot;,&quot;#A72B21&quot;,&quot;#2E2E2E&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;소개 3줄 — 숫자 한자&quot;},&quot;featNumWidth&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:20,&quot;min&quot;:14,&quot;max&quot;:48,&quot;step&quot;:1,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;소개 3줄 — 숫자 한자&quot;},&quot;featTextSize&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:13.5,&quot;min&quot;:10,&quot;max&quot;:20,&quot;step&quot;:0.5,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;소개 3줄 — 설명 글씨&quot;},&quot;featTextOpacity&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:72,&quot;min&quot;:35,&quot;max&quot;:100,&quot;step&quot;:5,&quot;unit&quot;:&quot;%&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;소개 3줄 — 설명 글씨&quot;},&quot;featTextTracking&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:-2,&quot;min&quot;:-4,&quot;max&quot;:16,&quot;step&quot;:1,&quot;unit&quot;:&quot;/100em&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;소개 3줄 — 설명 글씨&quot;},&quot;dividerSize&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:250,&quot;min&quot;:120,&quot;max&quot;:360,&quot;step&quot;:5,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;매듭 문양 (구분선)&quot;},&quot;dividerGap&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:20,&quot;min&quot;:0,&quot;max&quot;:80,&quot;step&quot;:2,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;매듭 문양 (구분선)&quot;},&quot;dividerOpacity&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:85,&quot;min&quot;:30,&quot;max&quot;:100,&quot;step&quot;:5,&quot;unit&quot;:&quot;%&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;매듭 문양 (구분선)&quot;},&quot;cloudRight&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:-46,&quot;min&quot;:-160,&quot;max&quot;:80,&quot;step&quot;:2,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;구름·팔괘 (오른쪽 위)&quot;},&quot;cloudTop&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:30,&quot;min&quot;:-160,&quot;max&quot;:200,&quot;step&quot;:2,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;구름·팔괘 (오른쪽 위)&quot;},&quot;cloudSize&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:295,&quot;min&quot;:160,&quot;max&quot;:520,&quot;step&quot;:5,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;구름·팔괘 (오른쪽 위)&quot;},&quot;jangseungRight&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:0,&quot;min&quot;:-160,&quot;max&quot;:80,&quot;step&quot;:2,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;장승 (오른쪽 아래)&quot;},&quot;jangseungBottom&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:124,&quot;min&quot;:-80,&quot;max&quot;:300,&quot;step&quot;:2,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;장승 (오른쪽 아래)&quot;},&quot;jangseungSize&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:220,&quot;min&quot;:100,&quot;max&quot;:400,&quot;step&quot;:5,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;장승 (오른쪽 아래)&quot;}}">
+const HOURS=[['子','23-01'],['丑','01-03'],['寅','03-05'],['卯','05-07'],['辰','07-09'],['巳','09-11'],['午','11-13'],['未','13-15'],['申','15-17'],['酉','17-19'],['戌','19-21'],['亥','21-23']];
+const ZODIAC=[['쥐','鼠'],['소','牛'],['호랑이','虎'],['토끼','兎'],['용','龍'],['뱀','蛇'],['말','馬'],['양','羊'],['원숭이','猴'],['닭','鷄'],['개','狗'],['돼지','猪']];
+const ENERGIES=[
+ {id:'aegun',title:'액운 막기',subtitle:'나쁜 기운 차단',hanja:'厄',color:'#A72B21',tal:'삼재부',talH:'三災符',desc:'삼재의 해에 드는 액을 눌러 주는 부적입니다. 문 안쪽에 붙이거나 지갑에 지닙니다.'},
+ {id:'yeonae',title:'인연의 기운',subtitle:'설레는 마음과 좋은 인연',hanja:'緣',color:'#B14A69',tal:'인연부',talH:'因緣符',desc:'맺어질 인연을 당기고 어긋난 인연을 정리해 주는 부적입니다.'},
+ {id:'maeum',title:'마음 안정',subtitle:'불안과 걱정 내려놓기',hanja:'安',color:'#5C6E55',tal:'안신부',talH:'安神符',desc:'놀란 마음과 잠 못 드는 밤을 가라앉히는 부적입니다. 머리맡에 둡니다.'},
+ {id:'jaebok',title:'재복 기원',subtitle:'재물과 복 불러오기',hanja:'財',color:'#B5860F',tal:'재수대통부',talH:'財數大通符',desc:'막힌 재수를 트고 들어올 복을 부르는 부적입니다. 지갑 안쪽에 넣습니다.'},
+ {id:'geongang',title:'건강 기원',subtitle:'몸과 마음의 건강',hanja:'健',color:'#2F5680',tal:'무병장수부',talH:'無病長壽符',desc:'병을 물리고 기운을 돋우는 부적입니다. 늘 지니고 다닙니다.'},
+ {id:'sowon',title:'소원 성취',subtitle:'바라는 일 이루기',hanja:'願',color:'#B5860F',tal:'소원성취부',talH:'所願成就符',desc:'품은 뜻이 이루어지도록 돕는 부적입니다. 소원을 적어 함께 둡니다.'},
+ {id:'gajeong',title:'가정 수호',subtitle:'가족의 평안과 화합',hanja:'家',color:'#8A5A44',tal:'가택평안부',talH:'家宅平安符',desc:'집안의 다툼을 눅이고 평안을 부르는 부적입니다. 현관 위에 붙입니다.'},
+ {id:'hakeop',title:'학업·시험',subtitle:'집중력과 좋은 결과',hanja:'合',color:'#4A4438',tal:'합격부',talH:'合格符',desc:'집중을 모으고 좋은 결과를 부르는 부적입니다. 책상 앞에 둡니다.'}];
+const CATALOG=['호신부','삼재부','소재부','벽사부','안택부','진택부','축귀부','방신부','재수대통부','초재부','부귀부','만사형통부','상업번창부','금전부','횡재부','치병부','무병장수부','안신부','산신부','명심부','해독부','활력부','수명장수부','가택평안부','화합부','부부화합부','자손번창부','출산부','효도부','안산부','합격부','문창부','집중부','등과부','지혜부','인연부','소원성취부','여행안전부','구설수막이부','관재구설부','이사부','개운부','정신안정부'];
+const WISHES={aegun:['오늘 하루도 무사히','나쁜 일은 비켜 가기를','걱정 없이 지나가기를'],yeonae:['좋은 인연이 닿기를','설레는 마음 그대로','오래 함께이기를'],maeum:['오늘은 편히 잠들기를','괜찮아, 천천히','마음이 잔잔하기를'],jaebok:['막힌 재수가 트이기를','들어올 복은 모두','넉넉한 한 해가 되기를'],geongang:['아프지 않기를','오래 건강하기를','몸도 마음도 튼튼히'],sowon:['바라는 일 이루어지기를','올해는 꼭','한 걸음 더 가까이'],gajeong:['우리 집에 평안이','가족 모두 무탈하기를','따뜻한 저녁이 이어지기를'],hakeop:['오늘 공부가 잘 되기를','흔들리지 않기를','좋은 결과가 있기를']};
+const QS=[{q:'요즘 어떤 일이 가장 마음에 걸리시나요?',o:['일이 자꾸 꼬여요','사람 때문에 지쳐요','막연히 불안해요']},{q:'그 마음이 언제 가장 크게 느껴지세요?',o:['잠들기 전 밤에','아침에 눈 뜰 때','혼자 있을 때']},{q:'부적은 어디에 두고 싶으세요?',o:['지갑 안에','머리맡에','현관 위에']}];
+
+const SEED={
+ onboard:{screen:'onboard',ob:0}, birth:{screen:'onboard',ob:1}, saju:{screen:'onboard',ob:2}, gift:{screen:'onboard',ob:3},
+ home:{screen:'home'}, energy:{screen:'make',phase:'energy'},
+ chat:{screen:'make',phase:'chat',energyId:'aegun',chat:1,showOpts:true,
+  log:[{r:'a',t:'「액운 막기」의 마음이군요. 잠시 이야기를 나눠볼게요.'},{r:'a',t:QS[0].q},{r:'u',t:QS[0].o[0]},{r:'a',t:QS[1].q}]},
+ custom:{screen:'make',phase:'custom',energyId:'aegun'},
+ reveal:{screen:'make',phase:'reveal',energyId:'aegun',wish:'오늘 하루도 무사히'},
+ coll:{screen:'coll'}, enc:{screen:'enc'}, my:{screen:'my'}, widget:{screen:'widget'},
+ detail:{screen:'coll',detail:0}, share:{screen:'make',phase:'reveal',energyId:'aegun',share:true}
+};
+
+class Component extends DCLogic{
+ constructor(p){super(p);
+  this.state=Object.assign({screen:'onboard',ob:0,name:'혜빈',by:'1996',bm:'5',bd:'14',hour:6,
+   phase:'energy',energyId:null,chat:0,log:[],typing:false,showOpts:true,
+   wish:'',trad:true,saved:false,filter:'전체',encQ:'',age:12,detail:null,share:false,
+   coll:[{n:'호신부',h:'護身符',g:'護',a:'42일 전'},{n:'합격부',h:'合格符',g:'合',a:'18일 전'},{n:'안신부',h:'安神符',g:'安',a:'6일 전'}]},
+   SEED[p.start]||SEED.onboard);
+ }
+
+ set=(k)=>(e)=>this.setState({[k]:e.target.value});
+
+ pickEnergy=(id)=>()=>{
+  const e=ENERGIES.find(x=>x.id===id);
+  this.setState({screen:'make',phase:'chat',energyId:id,chat:0,log:[{r:'a',t:'「'+e.title+'」의 마음이군요. 잠시 이야기를 나눠볼게요.'},{r:'a',t:QS[0].q}],showOpts:true,wish:'',saved:false});
+ };
+ answer=(t)=>()=>{
+  const n=this.state.chat+1;
+  this.setState(s=>({log:[...s.log,{r:'u',t}],showOpts:false,typing:true}));
+  setTimeout(()=>{
+   if(n<QS.length) this.setState(s=>({typing:false,chat:n,log:[...s.log,{r:'a',t:QS[n].q}],showOpts:true}));
+   else{const e=this.energy();this.setState(s=>({typing:false,chat:n,log:[...s.log,{r:'a',t:'당신에게 어울리는 부적을 찾았어요. 「'+e.tal+' ('+e.talH+')」'}],showOpts:false}));
+    setTimeout(()=>this.setState({phase:'custom'}),900);}
+  },1300);
+ };
+ energy=()=>ENERGIES.find(x=>x.id===this.state.energyId)||ENERGIES[0];
+ zodiac=()=>{const y=parseInt(this.state.by,10)||1996;return ZODIAC[((y-1900)%12+12)%12];};
+
+ renderVals(){
+  const s=this.state,e=this.energy(),z=this.zodiac();
+  const seal=(s.name||'守').slice(0,2);
+  const wishFinal=s.wish||WISHES[e.id][0];
+  const on=(k,v)=>()=>this.setState({[k]:v});
+  const obCta=['시작하기','사주 풀이 보기','첫 부적 받기','부적함에 담고 시작'][s.ob];
+  return{
+   name:s.name||'벗',sealName:seal,
+   featNumStyle:'font-family:\'Song Myung\',serif;font-size:'+(this.props.featNumSize??15)+'px;color:'+(this.props.featNumColor??'#8F6B14')+';width:'+(this.props.featNumWidth??20)+'px;flex:none;text-align:center',
+   featListStyle:'margin-top:'+(this.props.featTop??54)+'px;display:flex;flex-direction:column;gap:'+(this.props.featGap??14)+'px;width:100%;padding-left:'+(this.props.featIndent??34)+'px;box-sizing:border-box',
+   featRuleStyle:'flex:none;width:1px;height:'+(this.props.featRuleHeight??16)+'px;background:rgba(122,74,52,'+((this.props.featRuleOpacity??35)/100)+')',
+   featTextStyle:'font-size:'+(this.props.featTextSize??13.5)+'px;color:rgba(46,46,46,'+((this.props.featTextOpacity??72)/100)+');letter-spacing:'+((this.props.featTextTracking??0)/100)+'em',
+   featRowStyle:'display:flex;align-items:center;gap:'+(this.props.featGapX??12)+'px;text-align:left',
+   dividerStyle:'width:'+(this.props.dividerSize??250)+'px;height:auto;display:block;margin-top:'+(this.props.dividerGap??20)+'px;opacity:'+((this.props.dividerOpacity??85)/100),
+   cloudStyle:'position:absolute;top:'+(this.props.cloudTop??-46)+'px;right:'+(this.props.cloudRight??-64)+'px;width:'+(this.props.cloudSize??330)+'px;height:auto;display:block;pointer-events:none',
+   jangseungStyle:'position:absolute;bottom:'+(this.props.jangseungBottom??96)+'px;right:'+(this.props.jangseungRight??-40)+'px;width:'+(this.props.jangseungSize??212)+'px;height:auto;display:block;opacity:.9;pointer-events:none',
+   norigaeStyle:'position:absolute;top:'+(this.props.norigaeTop??94)+'px;left:'+(this.props.norigaeLeft??-30)+'px;width:'+(this.props.norigaeSize??215)+'px;transform-origin:'+((this.props.norigaeSize??215)*0.465)+'px '+(-(this.props.norigaeTop??94))+'px;animation:sway 6.5s ease-in-out infinite',
+   norigaeClear:'flex:none;height:'+Math.max(0,(this.props.norigaeTop??94)+(this.props.norigaeSize??215)*1.5+18-64)+'px',
+   norigaeCord:'position:absolute;left:45.2%;width:'+(this.props.ropeWidth??1.95)+'%;top:'+(-(this.props.norigaeTop??78)-6)+'px;height:'+((this.props.norigaeTop??78)+8)+'px;background:url("public/brand/rope.png") center top/100% auto repeat-y;filter:brightness(.95) saturate(1.05) hue-rotate(-4deg)',
+   norigaeCordOld:'position:absolute;left:45.3%;top:'+(-(this.props.norigaeTop??94)-4)+'px;width:1.95%;height:'+((this.props.norigaeTop??94)+6)+'px;background:linear-gradient(90deg,#793A06 0%,#8D490B 5%,#B56F1A 10%,#C07C1C 14%,#A15A0F 19%,#A15710 24%,#BE781C 29%,#BF7D23 33%,#965516 38%,#C0791E 43%,#B66B16 48%,#C47B20 52%,#C17719 57%,#9B530F 62%,#A35F14 67%,#B66F17 71%,#C27D1A 76%,#A05C0F 81%,#874B0C 86%,#94510F 91%,#5A2A06 100%)',
+   isOnboard:s.screen==='onboard',isHome:s.screen==='home',isMake:s.screen==='make',
+   isColl:s.screen==='coll',isEnc:s.screen==='enc',isMy:s.screen==='my',isWidget:s.screen==='widget',
+   showTabs:['home','make','coll','my'].includes(s.screen)&&s.phase!=='chat',
+   ob0:s.ob===0,ob1:s.ob===1,ob2:s.ob===2,ob3:s.ob===3,obBack:s.ob>0,obCta,
+   obDots:[0,1,2,3].map(i=>({s:'width:'+(i===s.ob?'18px':'5px')+';height:5px;background:'+(i===s.ob?'#A72B21':'rgba(122,74,52,.3)')+';transition:all .3s'})),
+   obNext:()=>s.ob<3?this.setState({ob:s.ob+1}):this.setState({screen:'home'}),
+   obPrev:()=>this.setState({ob:s.ob-1}),
+   byear:s.by,bmonth:s.bm,bday:s.bd,setYear:this.set('by'),setMonth:this.set('bm'),setDay:this.set('bd'),setName:this.set('name'),
+   birthLabel:s.by+'.'+s.bm+'.'+s.bd,
+   zodiacLabel:z[0]+'띠',zodiacHanja:z[1],
+   zodiacSm:'width:60px;height:60px;flex:none;background:url("public/zodiac/'+encodeURIComponent(z[0])+'.png") center/contain no-repeat;mix-blend-mode:multiply',
+   zodiacMd:'width:64px;height:64px;flex:none;background:url("public/zodiac/'+encodeURIComponent(z[0])+'.png") center/contain no-repeat;mix-blend-mode:multiply',
+   zodiacLg:'width:104px;height:104px;flex:none;background:url("public/zodiac/'+encodeURIComponent(z[0])+'.png") center/contain no-repeat;mix-blend-mode:multiply',
+   hours:HOURS.map((h,i)=>({hanja:h[0],time:h[1],pick:on('hour',i),
+    imgStyle:'width:100%;aspect-ratio:1;background:url("public/zodiac/'+encodeURIComponent(ZODIAC[i][0])+'.png") center/contain no-repeat;mix-blend-mode:multiply;'+(s.hour===i?'':'opacity:.5;filter:grayscale(.35)'),
+    style:'padding:7px 6px 8px;text-align:center;cursor:pointer;border:1px solid '+(s.hour===i?'#A72B21':'rgba(122,74,52,.22)')+';color:'+(s.hour===i?'#A72B21':'rgba(46,46,46,.6)')+';background:'+(s.hour===i?'rgba(167,43,33,.07)':'rgba(255,252,244,.4)')})),
+   pillars:[{label:'시주',gan:'丙',ji:'午'},{label:'일주',gan:'壬',ji:'子'},{label:'월주',gan:'癸',ji:'巳'},{label:'년주',gan:'丙',ji:'子'}],
+   elements:[['木',3],['火',4],['土',2],['金',2],['水',1]].map(([h,n])=>({hanja:h,n,bar:'height:6px;width:'+(n/5*100)+'%;background:'+(n<=1?'#A72B21':'#8F6B14')})),
+
+   energies:ENERGIES.map(x=>({...x,pick:this.pickEnergy(x.id),
+    hanjaStyle:'position:absolute;right:12px;top:8px;font-family:\'Song Myung\',serif;font-size:44px;line-height:1;color:'+x.color+';opacity:.2',
+    rowHanja:'font-family:\'Song Myung\',serif;font-size:26px;width:32px;text-align:center;color:'+x.color})),
+
+   makeTitle:s.phase==='chat'?e.title+' · 마음 나누기':s.phase==='custom'?'부적 꾸미기':s.phase==='reveal'?'완성':'나만의 부적 만들기',
+   makeBack:()=>{if(s.phase==='energy')this.setState({screen:'home'});else if(s.phase==='chat')this.setState({phase:'energy'});else if(s.phase==='custom')this.setState({phase:'chat'});else this.setState({phase:'custom'});},
+   steps:[0,1,2].map(i=>{const cur=['chat','custom','reveal'].indexOf(s.phase);return{style:'flex:1;height:2px;background:'+(i<=cur?'#A72B21':'rgba(122,74,52,.25)')};}),
+   phEnergy:s.phase==='energy',phChat:s.phase==='chat',phCustom:s.phase==='custom',phReveal:s.phase==='reveal',
+
+   chatLog:s.log.map(m=>({text:m.t,wrap:'display:flex;justify-content:'+(m.r==='u'?'flex-end':'flex-start'),
+    bubble:m.r==='u'?'background:#A72B21;color:#FBF3E0;padding:12px 16px;font-size:13.5px;line-height:1.7;max-width:80%':'background:rgba(253,249,239,.82);border:1px solid rgba(122,74,52,.2);color:#2E2E2E;padding:13px 16px;font-size:13.5px;line-height:1.75;max-width:84%'})),
+   typing:s.typing,showOptions:s.showOpts&&s.chat<QS.length,
+   chatOptions:(QS[Math.min(s.chat,QS.length-1)].o).map(t=>({text:t,pick:this.answer(t)})),
+
+   resultName:e.tal,resultNameSubject:e.tal+((e.tal.charCodeAt(e.tal.length-1)-0xAC00)%28!==0?'이':'가'),resultHanja:e.talH,resultDesc:e.desc,energyHanja1:e.hanja,
+   wish:s.wish,wishCount:s.wish.length,setWish:(ev)=>this.setState({wish:ev.target.value.slice(0,24)}),
+   wishSuggest:WISHES[e.id].map(t=>({text:t,pick:()=>this.setState({wish:t})})),
+   tradStyle:'padding:16px 14px;cursor:pointer;text-align:center;border:1px solid '+(s.trad?'#A72B21':'rgba(122,74,52,.25)')+';color:'+(s.trad?'#A72B21':'rgba(46,46,46,.55)')+';background:'+(s.trad?'rgba(167,43,33,.07)':'rgba(255,252,244,.45)'),
+   modStyle:'padding:16px 14px;cursor:pointer;text-align:center;border:1px solid '+(!s.trad?'#A72B21':'rgba(122,74,52,.25)')+';color:'+(!s.trad?'#A72B21':'rgba(46,46,46,.55)')+';background:'+(!s.trad?'rgba(167,43,33,.07)':'rgba(255,252,244,.45)'),
+   pickTrad:on('trad',true),pickMod:on('trad',false),
+   doReveal:()=>this.setState({phase:'reveal',saved:false}),
+
+   paperStyle:'width:208px;height:324px;background:#FDFAF0;position:relative;border:1px solid rgba(122,74,52,.28);box-shadow:0 22px 48px rgba(60,40,20,.3)'+(s.trad?'':';border-radius:16px'),
+   wishStyle:s.trad?'writing-mode:vertical-rl;font-size:12.5px;color:#2E2E2E;letter-spacing:.18em;margin-top:16px;height:104px;text-align:start':'font-size:13px;color:#2E2E2E;letter-spacing:.04em;margin-top:20px;text-align:center;line-height:1.9;padding:0 6px',
+   wishFinal,todayLabel:'2026년 8월 7일',
+   saveLabel:s.saved?'✓ 부적함에 담았습니다':'부적함에 담기',
+   saveTalisman:()=>{if(s.saved)return;this.setState(st=>({saved:true,coll:[{n:e.tal,h:e.talH,g:e.hanja,a:'방금'},...st.coll]}));setTimeout(()=>this.setState({screen:'coll',phase:'energy'}),900);},
+   openShare:()=>this.setState({share:true}),closeShare:()=>this.setState({share:false}),share:s.share,
+
+   collection:s.coll.map((c,i)=>({name:c.n,hanja:c.h,glyph:c.g,age:c.a,open:()=>this.setState({detail:i}),
+    paper:'position:relative;width:100%;aspect-ratio:.66;background:#FDFAF0;border:1px solid rgba(122,74,52,.25);box-shadow:0 10px 24px rgba(60,40,20,.2);filter:sepia('+Math.min(.45,i*.14)+')'})),
+   collCount:s.coll.length,collCountN:s.coll.length,
+   filters:['전체','수호','건강','학업','재물','가정'].map(f=>({label:f,pick:on('filter',f),
+    style:'flex:none;padding:8px 14px;font-size:12px;cursor:pointer;border:1px solid '+(s.filter===f?'#A72B21':'rgba(122,74,52,.25)')+';color:'+(s.filter===f?'#A72B21':'rgba(46,46,46,.55)')+';background:'+(s.filter===f?'rgba(167,43,33,.07)':'rgba(255,252,244,.45)')})),
+   detail:s.detail!==null,closeDetail:()=>this.setState({detail:null}),
+   detailName:s.detail!==null?s.coll[s.detail].n:'',detailHanja:s.detail!==null?s.coll[s.detail].h:'',
+   detailGlyph:s.detail!==null?s.coll[s.detail].g:'',detailAge:s.detail!==null?s.coll[s.detail].a+' 부적함에 담김':'',
+
+   encQuery:s.encQ,setEncQuery:this.set('encQ'),
+   catalog:CATALOG.filter(n=>!s.encQ||n.includes(s.encQ)).map(n=>{const got=s.coll.some(c=>c.n===n);
+    return{name:n,glyph:n[0],
+     cell:'background:rgba(253,249,239,'+(got?'.82':'.4')+');padding:16px 4px;text-align:center',
+     glyphStyle:'font-family:\'Song Myung\',serif;font-size:28px;line-height:1;color:'+(got?'#A72B21':'rgba(46,46,46,.22)'),
+     nameStyle:'margin-top:8px;font-size:10.5px;color:'+(got?'#2E2E2E':'rgba(46,46,46,.3)')};}),
+
+   week:[['월',60],['화',34],['수',78],['목',52],['금',90],['토',44],['일',68]].map(([d,v])=>({d,
+    bar:'width:100%;height:'+(v*.62)+'px;background:'+(v>75?'#A72B21':'rgba(122,74,52,.28)')})),
+
+   widgetAge:s.age,setAge:this.set('age'),
+   agedStyle:'position:absolute;inset:0;filter:sepia('+(s.age/45*.65)+') brightness('+(1-s.age/45*.22)+') contrast('+(1-s.age/45*.12)+')',
+   ageLabel:s.age<=1?'오늘 모신 부적':s.age>=45?'45일 · 새 부적을 모실 때':s.age+'일째 지니는 중',
+
+   tabs:[{k:'home',g:'家',n:'홈'},{k:'make',g:'筆',n:'부적 만들기'},{k:'coll',g:'函',n:'내 부적함'},{k:'my',g:'我',n:'마이페이지'}].map(t=>{
+    const a=s.screen===t.k;return{glyph:t.g,name:t.n,pick:()=>this.setState({screen:t.k,phase:t.k==='make'?'energy':s.phase,detail:null}),
+     hanja:'font-family:\'Song Myung\',serif;font-size:21px;line-height:1;color:'+(a?'#A72B21':'rgba(46,46,46,.4)'),
+     label:'font-size:10px;color:'+(a?'#2E2E2E':'rgba(46,46,46,.4)')};}),
+
+   goHome:()=>this.setState({screen:'home'}),goMake:()=>this.setState({screen:'make',phase:'energy'}),
+   goColl:()=>this.setState({screen:'coll'}),goEnc:()=>this.setState({screen:'enc'}),
+   goWidget:()=>this.setState({screen:'widget'}),restart:()=>this.setState({screen:'onboard',ob:0}),
+  };
+ }
+}
+</script>
+</body>
+</html>
