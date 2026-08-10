@@ -42,6 +42,9 @@ import {
   type DaeunPillar,
 } from '@/data/daeun';
 import { getLoveSinsal } from '@/data/sinsal-love';
+import { getSeun, type SeunRelation } from '@/data/seun';
+import { getSipseong, SIPSEONG_MEANING } from '@/data/sipseong';
+import { getSinsal } from '@/data/sinsal';
 
 // ─────────────────────────────────────────────
 // 한지 디자인 토큰 (globals.css의 --color-* 와 동일 값)
@@ -437,6 +440,9 @@ export default function SajuDetailPage() {
     const yongsin = getYongsin(detail, oheng);
 
     const love = getLoveSinsal(detail);
+    const seun = getSeun(yongsin);
+    const sipseong = getSipseong(detail);
+    const sinsal = getSinsal(detail);
 
     const currentYear = new Date().getFullYear();
     const samjae = isSamjae(currentYear, detail.sajuYear);
@@ -465,6 +471,9 @@ export default function SajuDetailPage() {
       reading,
       yongsin,
       love,
+      seun,
+      sipseong,
+      sinsal,
       currentYear,
       samjae,
       samjaeYears,
@@ -1911,9 +1920,417 @@ export default function SajuDetailPage() {
           )}
         </Section>
 
-        {/* ── 7. 내 매력의 결 — 도화·홍염 ─────────── */}
+        {/* ── 7. 올해의 흐름 — 세운·월운 ─────────── */}
+        <Section delay={0.34}>
+          <SectionLabel index={7} title="올해의 흐름" term="세운(歲運)" />
+          <p
+            className="mt-2 text-[12px] leading-relaxed"
+            style={{ color: GALSAEK }}
+          >
+            대운이 10년의 계절이라면, 세운은 올해의 날씨예요. 올해의 간지와 내
+            용신을 맞춰 한 해와 달마다의 흐름을 봅니다.
+          </p>
+
+          {/* 올해 총평 */}
+          <div
+            className="mt-4 rounded-xl px-4 py-4"
+            style={{
+              background: `${JUHONG}0B`,
+              border: `1px solid ${JUHONG}30`,
+            }}
+          >
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span
+                className="rounded-full px-2 py-[2px] text-[10.5px] font-bold"
+                style={{ background: `${JUHONG}16`, color: JUHONG }}
+              >
+                {data.seun.year}년 {data.seun.gan.name}
+                {data.seun.ji.name}({data.seun.gan.hanja}
+                {data.seun.ji.hanja})년
+              </span>
+              <span
+                className="rounded-full px-2 py-[2px] text-[10.5px] font-bold"
+                style={{
+                  background: `${GALSAEK}12`,
+                  color: GALSAEK,
+                }}
+              >
+                {RELATION_BADGE[data.seun.relation].label}
+              </span>
+            </div>
+            <p
+              className="mt-2.5 font-serif-kr text-[13.5px] font-bold leading-snug"
+              style={{ color: MEOK }}
+            >
+              {data.seun.headline}
+            </p>
+            <p
+              className="mt-2 text-[12.5px] leading-[1.85]"
+              style={{ color: `${MEOK}CC` }}
+            >
+              {data.seun.reading}
+            </p>
+          </div>
+
+          {/* 12개월 흐름 */}
+          <div className="mt-3 grid grid-cols-3 gap-1.5">
+            {data.seun.months.map((mo) => {
+              const isThisMonth = mo.month === data.seun.currentMonth;
+              const relColor: Record<SeunRelation, string> = {
+                yongsin: SSUK,
+                huisin: NAMSAEK,
+                gisin: GALSAEK,
+                neutral: `${MEOK}77`,
+              };
+              const c = relColor[mo.relation];
+              return (
+                <div
+                  key={mo.month}
+                  className="rounded-lg px-2 py-2 text-center"
+                  style={{
+                    background: isThisMonth ? `${JUHONG}0F` : `${GALSAEK}07`,
+                    border: `1.2px solid ${isThisMonth ? JUHONG : `${GALSAEK}1E`}`,
+                  }}
+                >
+                  <p
+                    className="text-[11px] font-bold tabular-nums"
+                    style={{ color: isThisMonth ? JUHONG : `${MEOK}AA` }}
+                  >
+                    {mo.month}월{isThisMonth ? ' ·지금' : ''}
+                  </p>
+                  <p
+                    className="mt-0.5 font-serif-kr text-[12px] leading-none"
+                    style={{ color: `${MEOK}88` }}
+                  >
+                    {mo.gan.hanja}
+                    {mo.ji.hanja}
+                  </p>
+                  <p
+                    className="mt-1 text-[9.5px] font-bold leading-tight"
+                    style={{ color: c }}
+                  >
+                    {RELATION_BADGE[mo.relation].label}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 이번 달 한 줄 */}
+          {(() => {
+            const cur = data.seun.months.find(
+              (m) => m.month === data.seun.currentMonth
+            );
+            return cur ? (
+              <p
+                className="mt-2.5 rounded-xl px-4 py-3 text-[12.5px] leading-relaxed"
+                style={{
+                  background: `${SSUK}0E`,
+                  border: `1px solid ${SSUK}2E`,
+                  color: `${MEOK}CC`,
+                }}
+              >
+                🌙 이번 달({cur.month}월)은 — {cur.short}
+              </p>
+            ) : null;
+          })()}
+
+          <p
+            className="mt-2.5 text-[10.5px] leading-relaxed"
+            style={{ color: `${GALSAEK}99` }}
+          >
+            달의 경계는 절기(節氣) 기준이라 매달 초와는 며칠 차이가 날 수
+            있어요. 참고용 흐름으로 봐주세요.
+          </p>
+        </Section>
+
+        {/* ── 8. 타고난 재능 — 십성 ─────────────── */}
         <Section delay={0.36}>
-          <SectionLabel index={7} title="내 매력의 결" term="도화살(桃花煞)" />
+          <SectionLabel index={8} title="타고난 재능의 결" term="십성(十星)" />
+          <p
+            className="mt-2 text-[12px] leading-relaxed"
+            style={{ color: GALSAEK }}
+          >
+            나(일간)를 기준으로 나머지 일곱 글자를 열 가지 별로 나눠, 어떤
+            재능의 결이 강한지 봅니다.
+          </p>
+
+          {/* 5그룹 분포 바 */}
+          <div className="mt-4 space-y-1.5">
+            {(['비겁', '식상', '재성', '관성', '인성'] as const).map((g) => {
+              const n = data.sipseong.groupCounts[g];
+              const max = 7;
+              const isDom = g === data.sipseong.dominant;
+              const groupDesc: Record<string, string> = {
+                비겁: '주체·추진',
+                식상: '표현·창작',
+                재성: '실속·운용',
+                관성: '책임·조직',
+                인성: '배움·직관',
+              };
+              return (
+                <div key={g} className="flex items-center gap-2">
+                  <span
+                    className="w-[70px] shrink-0 text-[11.5px] font-bold"
+                    style={{ color: isDom ? JUHONG : `${MEOK}99` }}
+                  >
+                    {g}
+                    <span
+                      className="ml-1 text-[9.5px] font-medium"
+                      style={{ color: `${GALSAEK}AA` }}
+                    >
+                      {groupDesc[g]}
+                    </span>
+                  </span>
+                  <div
+                    className="h-[10px] flex-1 overflow-hidden rounded-full"
+                    style={{ background: `${GALSAEK}12` }}
+                  >
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${(n / max) * 100}%`,
+                        background: isDom ? JUHONG : `${GALSAEK}55`,
+                        transition: 'width 0.6s ease',
+                      }}
+                    />
+                  </div>
+                  <span
+                    className="w-4 text-right text-[11px] font-bold tabular-nums"
+                    style={{ color: isDom ? JUHONG : `${MEOK}77` }}
+                  >
+                    {n}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 대표 결 풀이 */}
+          <div
+            className="mt-4 rounded-xl px-4 py-4"
+            style={{
+              background: `${NAMSAEK}0A`,
+              border: `1px solid ${NAMSAEK}30`,
+            }}
+          >
+            <p
+              className="font-serif-kr text-[13.5px] font-bold leading-snug"
+              style={{ color: NAMSAEK }}
+            >
+              ✨ {data.sipseong.headline}
+            </p>
+            <p
+              className="mt-2 text-[12.5px] leading-[1.85]"
+              style={{ color: `${MEOK}CC` }}
+            >
+              {data.sipseong.talent}
+            </p>
+
+            <div
+              className="mt-3 border-t pt-3"
+              style={{ borderColor: `${NAMSAEK}22` }}
+            >
+              <p className="text-[11px] font-bold" style={{ color: NAMSAEK }}>
+                이런 일의 결이 잘 맞아요
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {data.sipseong.careers.map((c) => (
+                  <span
+                    key={c}
+                    className="rounded-full px-2.5 py-1 text-[11px] font-medium"
+                    style={{
+                      background: `${NAMSAEK}10`,
+                      color: NAMSAEK,
+                    }}
+                  >
+                    {c}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <p
+              className="mt-3 text-[12px] leading-relaxed"
+              style={{ color: `${MEOK}BB` }}
+            >
+              💰 <strong>돈의 결</strong> — {data.sipseong.moneyStyle}
+            </p>
+            <p
+              className="mt-1.5 text-[12px] leading-relaxed"
+              style={{ color: `${MEOK}BB` }}
+            >
+              🖋 <strong>일의 결</strong> — {data.sipseong.workStyle}
+            </p>
+          </div>
+
+          {/* 일곱 글자 십성표 */}
+          <div className="-mx-1 mt-3 overflow-x-auto px-1">
+            <div className="flex w-max gap-1.5">
+              {data.sipseong.entries.map((e) => (
+                <div
+                  key={e.position}
+                  className="flex w-[68px] shrink-0 flex-col items-center rounded-lg px-1 py-2"
+                  style={{
+                    background: `${GALSAEK}08`,
+                    border: `1px solid ${GALSAEK}1E`,
+                  }}
+                >
+                  <span
+                    className="text-[9px] font-bold"
+                    style={{ color: `${GALSAEK}AA` }}
+                  >
+                    {e.position}
+                  </span>
+                  <span
+                    className="mt-0.5 font-serif-kr text-[17px] font-bold leading-none"
+                    style={{ color: MEOK }}
+                  >
+                    {e.hanja}
+                  </span>
+                  <span
+                    className="mt-1 rounded-full px-1.5 py-[1px] text-[9.5px] font-bold"
+                    style={{
+                      background:
+                        e.group === data.sipseong.dominant
+                          ? `${JUHONG}14`
+                          : `${GALSAEK}10`,
+                      color:
+                        e.group === data.sipseong.dominant ? JUHONG : GALSAEK,
+                    }}
+                  >
+                    {e.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <p
+            className="mt-1.5 text-[10px] leading-relaxed"
+            style={{ color: `${GALSAEK}88` }}
+          >
+            {data.sipseong.entries
+              .slice(0, 3)
+              .map((e) => `${e.name}: ${SIPSEONG_MEANING[e.name]}`)
+              .filter((v, i, a) => a.indexOf(v) === i)
+              .join(' · ')}
+          </p>
+
+          {data.sipseong.missingNote && (
+            <p
+              className="mt-2.5 rounded-xl px-4 py-3 text-[12px] leading-relaxed"
+              style={{
+                background: `${GALSAEK}0A`,
+                border: `1px solid ${GALSAEK}22`,
+                color: `${MEOK}BB`,
+              }}
+            >
+              🍃 {data.sipseong.missingNote}
+            </p>
+          )}
+
+          <p
+            className="mt-2.5 text-[10.5px] leading-relaxed"
+            style={{ color: `${GALSAEK}99` }}
+          >
+            십성은 적성의 결을 보는 전통적 방법이에요. 직업을 정해주는 것이
+            아니라, 어떤 방식으로 일할 때 힘이 나는지를 보여줍니다.
+          </p>
+        </Section>
+
+        {/* ── 9. 사주에 깃든 별들 — 신살 ─────────── */}
+        <Section delay={0.38}>
+          <SectionLabel index={9} title="사주에 깃든 별들" term="신살(神煞)" />
+          <p
+            className="mt-2 text-[12px] leading-relaxed"
+            style={{ color: GALSAEK }}
+          >
+            옛사람들이 사주 글자의 조합에서 읽어낸 특별한 별들이에요. 무서운
+            이름도 현대에는 재능과 개성으로 풀어 읽습니다.
+          </p>
+
+          {data.sinsal.count === 0 ? (
+            <div
+              className="mt-4 rounded-xl px-4 py-4"
+              style={{
+                background: `${SSUK}0E`,
+                border: `1px solid ${SSUK}2E`,
+              }}
+            >
+              <p
+                className="text-[12.5px] leading-relaxed"
+                style={{ color: `${MEOK}CC` }}
+              >
+                🍃 {data.sinsal.emptyNote}
+              </p>
+            </div>
+          ) : (
+            <div className="mt-4 space-y-2.5">
+              {data.sinsal.hits.map((h) => (
+                <div
+                  key={h.id}
+                  className="rounded-xl px-4 py-3.5"
+                  style={{
+                    background: `${GALSAEK}07`,
+                    border: `1px solid ${GALSAEK}22`,
+                  }}
+                >
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[16px] leading-none">{h.emoji}</span>
+                    <span
+                      className="font-serif-kr text-[13.5px] font-bold"
+                      style={{ color: MEOK }}
+                    >
+                      {h.name}
+                    </span>
+                    <span
+                      className="text-[10.5px]"
+                      style={{ color: `${GALSAEK}AA` }}
+                    >
+                      {h.hanja}
+                    </span>
+                    <span
+                      className="rounded-full px-2 py-[2px] text-[9.5px] font-bold"
+                      style={{ background: `${JUHONG}10`, color: JUHONG }}
+                    >
+                      {h.positions.join(' · ')}
+                    </span>
+                  </div>
+                  <p
+                    className="mt-1 text-[12px] font-bold"
+                    style={{ color: `${MEOK}AA` }}
+                  >
+                    {h.tagline}
+                  </p>
+                  <p
+                    className="mt-1.5 text-[12px] leading-[1.8]"
+                    style={{ color: `${MEOK}BB` }}
+                  >
+                    {h.reading}
+                  </p>
+                  <p
+                    className="mt-2 border-t pt-2 text-[11.5px] leading-relaxed"
+                    style={{ borderColor: `${GALSAEK}1A`, color: SSUK }}
+                  >
+                    💡 {h.tip}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p
+            className="mt-2.5 text-[10.5px] leading-relaxed"
+            style={{ color: `${GALSAEK}99` }}
+          >
+            연애 관련 별(도화살·홍염살)은 아래 &ldquo;내 매력의 결&rdquo;에서
+            따로 보여드려요.
+          </p>
+        </Section>
+
+        {/* ── 10. 내 매력의 결 — 도화·홍염 ─────────── */}
+        <Section delay={0.4}>
+          <SectionLabel index={10} title="내 매력의 결" term="도화살(桃花煞)" />
 
           <div
             className="mt-4 rounded-xl px-4 py-4"
@@ -1977,7 +2394,7 @@ export default function SajuDetailPage() {
 
         {/* ── 8. 삼재 ──────────────────────────────── */}
         <Section delay={0.42}>
-          <SectionLabel index={8} title="삼재 보기" term="삼재(三災)" />
+          <SectionLabel index={11} title="삼재 보기" term="삼재(三災)" />
 
           <div
             className="mt-4 rounded-xl px-4 py-4"

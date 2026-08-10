@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   HomeTabIcon,
   BrushTabIcon,
+  CalendarTabIcon,
   BoxTabIcon,
   PersonTabIcon,
 } from './hanji/motifs';
@@ -12,8 +13,9 @@ import {
 const tabs = [
   { href: '/', label: '홈', Icon: HomeTabIcon },
   { href: '/talisman', label: '부적 만들기', Icon: BrushTabIcon },
-  { href: '/collection', label: '내 부적함', Icon: BoxTabIcon },
-  { href: '/mypage', label: '마이페이지', Icon: PersonTabIcon },
+  { href: '/days', label: '좋은 날', Icon: CalendarTabIcon },
+  { href: '/collection', label: '부적함', Icon: BoxTabIcon },
+  { href: '/mypage', label: '마이', Icon: PersonTabIcon },
 ];
 
 export default function BottomTab() {

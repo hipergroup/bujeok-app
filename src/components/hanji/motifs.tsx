@@ -273,6 +273,18 @@ export function HomeTabIcon(props: MotifProps) {
   );
 }
 
+export function CalendarTabIcon(props: MotifProps) {
+  return (
+    <Svg {...props}>
+      {/* 책력(달력) — 한지 두루마리 느낌 */}
+      <rect x="9" y="12" width="30" height="28" rx="3" stroke="currentColor" strokeWidth="2" />
+      <path d="M9 20h30" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M17 8v7M31 8v7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <circle cx="24" cy="30" r="4.5" stroke="currentColor" strokeWidth="1.8" />
+    </Svg>
+  );
+}
+
 export function BrushTabIcon(props: MotifProps) {
   return (
     <Svg {...props}>
