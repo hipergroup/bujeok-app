@@ -10,7 +10,50 @@ export type TalismanStyle = 'traditional' | 'emotional';
 export const TALISMAN_ASSETS: Record<
   string,
   Partial<Record<TalismanStyle, string>>
-> = {};
+> = {
+  "개업대길부": {
+    "traditional": "/talismans/%EA%B0%9C%EC%97%85%EB%8C%80%EA%B8%B8%EB%B6%80-%EC%A0%84%ED%86%B5.png"
+  },
+  "경면주사부": {
+    "traditional": "/talismans/%EA%B2%BD%EB%A9%B4%EC%A3%BC%EC%82%AC%EB%B6%80-%EC%A0%84%ED%86%B5.png"
+  },
+  "매매부": {
+    "traditional": "/talismans/%EB%A7%A4%EB%A7%A4%EB%B6%80-%EC%A0%84%ED%86%B5.png"
+  },
+  "벽사부": {
+    "traditional": "/talismans/%EB%B2%BD%EC%82%AC%EB%B6%80-%EC%A0%84%ED%86%B5.png"
+  },
+  "부도옹부": {
+    "traditional": "/talismans/%EB%B6%80%EB%8F%84%EC%98%B9%EB%B6%80-%EC%A0%84%ED%86%B5.png"
+  },
+  "사업번창부": {
+    "traditional": "/talismans/%EC%82%AC%EC%97%85%EB%B2%88%EC%B0%BD%EB%B6%80-%EC%A0%84%ED%86%B5.png"
+  },
+  "삼재부": {
+    "traditional": "/talismans/%EC%82%BC%EC%9E%AC%EB%B6%80-%EC%A0%84%ED%86%B5.png"
+  },
+  "수살막이부": {
+    "traditional": "/talismans/%EC%88%98%EC%82%B4%EB%A7%89%EC%9D%B4%EB%B6%80-%EC%A0%84%ED%86%B5.png"
+  },
+  "승진부": {
+    "traditional": "/talismans/%EC%8A%B9%EC%A7%84%EB%B6%80-%EC%A0%84%ED%86%B5.png"
+  },
+  "오방신장부": {
+    "traditional": "/talismans/%EC%98%A4%EB%B0%A9%EC%8B%A0%EC%9E%A5%EB%B6%80-%EC%A0%84%ED%86%B5.png"
+  },
+  "재물부": {
+    "traditional": "/talismans/%EC%9E%AC%EB%AC%BC%EB%B6%80-%EC%A0%84%ED%86%B5.png"
+  },
+  "천왕부": {
+    "traditional": "/talismans/%EC%B2%9C%EC%99%95%EB%B6%80-%EC%A0%84%ED%86%B5.png"
+  },
+  "초복부": {
+    "traditional": "/talismans/%EC%B4%88%EB%B3%B5%EB%B6%80-%EC%A0%84%ED%86%B5.png"
+  },
+  "횡재부": {
+    "traditional": "/talismans/%ED%9A%A1%EC%9E%AC%EB%B6%80-%EC%A0%84%ED%86%B5.png"
+  }
+};
 
 /**
  * 해당 부적·모습의 그림 파일 경로. 없으면 undefined —
