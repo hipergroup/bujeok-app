@@ -27,14 +27,7 @@ import HanjiBackground from "@/components/hanji/HanjiBackground";
 import TraditionalHeader from "@/components/hanji/TraditionalHeader";
 import TraditionalButton from "@/components/hanji/TraditionalButton";
 import TalismanCategoryCard from "@/components/hanji/TalismanCategoryCard";
-import {
-  BackIcon,
-  GearIcon,
-  BrushStroke,
-  BrushPen,
-  FlameMotif,
-  KnotMotif,
-} from "@/components/hanji/motifs";
+import { BackIcon, GearIcon, KnotMotif } from "@/components/hanji/motifs";
 import { buildGiftUrl, GIFT_MESSAGE_MAX, GIFT_NAME_MAX } from "@/lib/gift";
 import { generateTalismanSVG } from "@/lib/talisman-generator";
 import { getTalismanAsset } from "@/data/talisman-assets";
@@ -62,7 +55,7 @@ type ChatMessage = {
   options?: DialogueOption[];
 };
 
-type Phase = "category" | "chat" | "customize" | "reveal";
+type Phase = "category" | "chat" | "reveal";
 
 /* ───────── constants ───────── */
 
@@ -132,20 +125,6 @@ const SUPPORTIVE_TALISMAN_TYPE: TalismanType =
   TALISMANS.find((t) => t.category === TalismanCategory.Health) ??
   TALISMANS[0];
 
-/** 부적을 간직하는 두 가지 모습 — 담긴 바람은 같고 표현만 다르다 */
-const STYLE_OPTIONS = [
-  {
-    value: "traditional",
-    label: "전통 부적",
-    desc: "전통 문양과 상징을 담은 본래의 모습",
-  },
-  {
-    value: "modern",
-    label: "감성 부적",
-    desc: "같은 바람을 일상에 어울리게 풀어낸 모습",
-  },
-] as const;
-
 /* ───────── helpers ───────── */
 
 /** 온보딩에서 저장한 사용자 정보 → 이름·띠 동물 */
@@ -174,11 +153,11 @@ function loadUserContext(): { name: string; animal: string } {
   return { name: "", animal: "" };
 }
 
-/** 3단계 진행 표시 — 시안의 미니멀 점 슬라이더 (●─○─○) */
-function StepDots({ current }: { current: 1 | 2 | 3 }) {
+/** 2단계 진행 표시 — 시안의 미니멀 점 슬라이더 (●─○) */
+function StepDots({ current }: { current: 1 | 2 }) {
   return (
     <div className="flex items-center justify-center gap-0 pb-3">
-      {[1, 2, 3].map((n) => {
+      {[1, 2].map((n) => {
         const reached = n <= current;
         return (
           <div key={n} className="flex items-center">
@@ -292,9 +271,8 @@ function TalismanFlow() {
   /** setTimeout 콜백 안에서 최신 값을 읽기 위한 미러 */
   const supportiveModeRef = useRef(false);
 
-  /* customization state */
-  const [talismanStyle, setTalismanStyle] =
-    useState<"traditional" | "modern">("traditional");
+  /* 부적 모습 — 꾸미기 단계를 없애면서 전통 부적으로 고정 */
+  const talismanStyle = "traditional" as const;
   const [background, setBackground] = useState("hwangji");
   const [animalChoice, setAnimalChoice] = useState("");
   const [encouragement, setEncouragement] = useState("");
@@ -373,17 +351,18 @@ function TalismanFlow() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  /* ── initialize encouragement when entering customise ── */
-  useEffect(() => {
-    if (phase === "customize" && selectedCategory && !encouragement) {
+  /* ──────── phase handlers ──────── */
+
+  /* 상담이 끝나면 바로 완성된 부적으로 — 기원 문구는 마음에 맞춰 골라 얹는다 */
+  const goToReveal = useCallback(() => {
+    if (selectedCategory && !encouragement) {
       const pool = supportiveMode
         ? SUPPORTIVE_TALISMAN.messages
         : ENCOURAGEMENT_MESSAGES[selectedCategory];
       setEncouragement(pool[Math.floor(Math.random() * pool.length)]);
     }
-  }, [phase, selectedCategory, encouragement, supportiveMode]);
-
-  /* ──────── phase handlers ──────── */
+    setPhase("reveal");
+  }, [selectedCategory, encouragement, supportiveMode]);
 
   /* 1. energy(마음) 선택 → chat */
   const handleEnergySelect = useCallback(
@@ -696,8 +675,7 @@ function TalismanFlow() {
     }
   }, [recommended, giftFrom, giftMessage]);
 
-  const stepNum: 1 | 2 | 3 =
-    phase === "customize" ? 2 : phase === "reveal" ? 3 : 1;
+  const stepNum: 1 | 2 = phase === "reveal" ? 2 : 1;
 
   /* ══════════════════ RENDER ══════════════════ */
 
@@ -709,8 +687,7 @@ function TalismanFlow() {
             onClick={() => {
               if (phase === "category") router.push("/");
               else if (phase === "chat") resetToCategory();
-              else if (phase === "customize") setPhase("chat");
-              else setPhase("customize");
+              else setPhase("chat");
             }}
             aria-label="뒤로가기"
           >
@@ -807,8 +784,8 @@ function TalismanFlow() {
                   className="flex justify-center pt-4"
                 >
                   <div className="w-full max-w-[240px]">
-                    <TraditionalButton onClick={() => setPhase("customize")}>
-                      부적 만들기
+                    <TraditionalButton onClick={goToReveal}>
+                      부적 받기
                     </TraditionalButton>
                   </div>
                 </motion.div>
@@ -847,142 +824,6 @@ function TalismanFlow() {
                 </div>
               </form>
             )}
-          </motion.div>
-        )}
-
-        {/* ─── Phase 3: 부적 꾸미기 ─── */}
-        {phase === "customize" && (
-          <motion.div
-            key="customize"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.35 }}
-            className="mx-auto w-full max-w-md flex-1 px-5 pb-16"
-          >
-            <p className="mb-4 text-center font-serif-kr text-sm leading-relaxed text-[var(--color-galsaek)]">
-              지금, 마음을 한 줄로 적어보세요.
-              <br />
-              당신의 마음이 부적이 됩니다.
-            </p>
-
-            {/* 기원 문구 입력 — 미리보기에 즉시 반영 */}
-            <input
-              type="text"
-              value={encouragement}
-              onChange={(e) => setEncouragement(e.target.value)}
-              maxLength={24}
-              placeholder="가족의 건강과 무사함을 기원합니다"
-              className="mb-1 w-full rounded-lg px-4 py-3 text-center font-serif-kr text-sm text-[var(--color-meok)] placeholder-[var(--color-galsaek)]/40 focus:outline-none"
-              style={{
-                border: "1px solid rgba(122,74,52,0.4)",
-                backgroundColor: "rgba(246,237,217,0.8)",
-              }}
-            />
-            <p className="mb-4 text-right text-[10px] text-[var(--color-galsaek)] opacity-60">
-              {encouragement.length}/24
-            </p>
-
-            {/* 부적 미리보기 — 시안: 불꽃 배경 + 붓 장식 */}
-            <div className="relative mb-2 flex justify-center">
-              <FlameMotif
-                size={90}
-                className="pointer-events-none absolute -left-1 bottom-2 text-[var(--color-juhong)] opacity-[0.14]"
-              />
-              <FlameMotif
-                size={56}
-                className="pointer-events-none absolute right-2 top-4 text-[var(--color-hwang)] opacity-[0.14]"
-              />
-              <TalismanPreview
-                type={talismanType}
-                style={talismanStyle}
-                message={encouragement}
-                background={background}
-                accent={accent}
-                animal={animalChoice || undefined}
-                symbols={
-                  recommended
-                    ? [...recommended.design.patterns, ...recommended.design.symbols]
-                    : undefined
-                }
-                userName={userCtx.name || undefined}
-                title={talismanName}
-                hanja={recommended?.hanja}
-                mantra={recommended?.mantra}
-                size="md"
-              />
-              <BrushPen
-                size={120}
-                className="pointer-events-none absolute -right-1 bottom-0 rotate-[24deg] drop-shadow-sm"
-              />
-            </div>
-            <div className="mb-5 flex justify-center text-[var(--color-meok)] opacity-60">
-              <BrushStroke width={100} />
-            </div>
-
-            {/* 같은 마음, 다른 모습 — 전통 부적 / 감성 부적 */}
-            <div className="mb-6">
-              <p className="text-center font-brush text-[13px] text-[var(--color-galsaek)]">
-                같은 마음, 다른 모습
-              </p>
-              <h3 className="mt-1 text-center font-serif-kr text-[16px] font-bold text-[var(--color-meok)]">
-                어떤 모습으로 간직할까요?
-              </h3>
-              <p className="mb-3.5 mt-2 text-center text-[11px] leading-relaxed text-[var(--color-galsaek)] opacity-85">
-                전통 부적과 감성 부적은 담고 있는 바람은 같아요.
-                <br />
-                전통의 모습 그대로 간직하거나, 일상에
-                <br />
-                자연스럽게 어울리는 모습으로 간직해 보세요.
-              </p>
-
-              <div className="grid grid-cols-2 gap-2.5">
-                {STYLE_OPTIONS.map(({ value, label, desc }) => {
-                  const active = talismanStyle === value;
-                  return (
-                    <motion.button
-                      key={value}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => setTalismanStyle(value)}
-                      className="hanji-card relative rounded-xl px-3 pb-3.5 pt-4 text-center transition-colors"
-                      style={{
-                        borderColor: active
-                          ? "var(--color-juhong)"
-                          : "rgba(122,74,52,0.35)",
-                        backgroundColor: active
-                          ? "rgba(167,43,33,0.06)"
-                          : undefined,
-                      }}
-                    >
-                      <span
-                        className="pointer-events-none absolute inset-[4px] rounded-lg"
-                        style={{
-                          border: active
-                            ? "1px solid rgba(167,43,33,0.28)"
-                            : "1px solid rgba(122,74,52,0.14)",
-                        }}
-                      />
-                      <span
-                        className={`block font-serif-kr text-[15px] font-bold ${
-                          active
-                            ? "text-[var(--color-juhong)]"
-                            : "text-[var(--color-meok)]"
-                        }`}
-                      >
-                        {label}
-                      </span>
-                      <span className="mt-1.5 block text-[11px] leading-relaxed text-[var(--color-galsaek)] opacity-80">
-                        {desc}
-                      </span>
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <TraditionalButton onClick={() => setPhase("reveal")}>
-              부적 완성하기
-            </TraditionalButton>
           </motion.div>
         )}
 
