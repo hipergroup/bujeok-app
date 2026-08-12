@@ -54,36 +54,18 @@ import { saveProfile } from '@/lib/store';
 
 // 한지 테마 팔레트 — 기존 변수명을 유지한 채 색만 교체 (알파 접미사 호환)
 const GOLD = '#A72B21'; // 주홍 (포인트)
-const GOLD_LIGHT = '#C4544A';
 const GOLD_DARK = '#8A231B';
 const BG_DARK = '#F2E7CE'; // 한지 바탕
 const BG_CARD = '#F6EDD9';
 
 /**
- * 12지시 선택지.
- * `value` 는 24시간제 실제 "시(hour)" 값이며, 각 지시(支時)의 대표 시각이다.
+ * 12지시의 실제 "시(hour)" 값은 아래 HOUR_CELLS 가 갖는다.
  * (사주 모듈은 23:00~00:59 를 자시로 처리하므로 자시는 0시로 둔다)
  * -1 = 시간 모름
  */
 const HOUR_UNKNOWN = -1;
 /** 시간을 모를 때 계산에 사용하는 기본 시각 (오시 정중앙) */
 const DEFAULT_HOUR = 12;
-
-const HOURS = [
-  { label: '자시 (23:00~01:00)', value: 0 },
-  { label: '축시 (01:00~03:00)', value: 2 },
-  { label: '인시 (03:00~05:00)', value: 4 },
-  { label: '묘시 (05:00~07:00)', value: 6 },
-  { label: '진시 (07:00~09:00)', value: 8 },
-  { label: '사시 (09:00~11:00)', value: 10 },
-  { label: '오시 (11:00~13:00)', value: 12 },
-  { label: '미시 (13:00~15:00)', value: 14 },
-  { label: '신시 (15:00~17:00)', value: 16 },
-  { label: '유시 (17:00~19:00)', value: 18 },
-  { label: '술시 (19:00~21:00)', value: 20 },
-  { label: '해시 (21:00~23:00)', value: 22 },
-  { label: '모르겠어요', value: HOUR_UNKNOWN },
-] as const;
 
 /** 시간 미상이면 기본 시각으로 대체 */
 function effectiveHour(hour: number): number {
@@ -194,145 +176,30 @@ function SectionLabel({
 // Progress Indicator
 // ─────────────────────────────────────────────
 
+/** 지나온·현재 단계는 긴 획, 남은 단계는 점 하나 (SPEC §0) */
 function ProgressBar({ step, total }: { step: number; total: number }) {
   return (
-    <div className="absolute top-0 left-0 right-0 z-50 flex items-center gap-2 px-6 pt-[max(1rem,env(safe-area-inset-top))]">
+    <div
+      className="absolute left-0 right-0 top-0 z-50 flex items-center pt-[max(1rem,env(safe-area-inset-top))]"
+      style={{ paddingLeft: 26, paddingRight: 26, gap: 5 }}
+    >
       {Array.from({ length: total }, (_, i) => (
-        <div
+        <span
           key={i}
-          className="h-1 flex-1 rounded-full overflow-hidden"
-          style={{ background: `${GOLD}22` }}
-        >
-          <motion.div
-            className="h-full rounded-full"
-            style={{ background: `linear-gradient(90deg, ${GOLD}, ${GOLD_LIGHT})` }}
-            initial={{ width: '0%' }}
-            animate={{ width: i < step ? '100%' : i === step ? '50%' : '0%' }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-          />
-        </div>
+          className="transition-all duration-300"
+          style={{
+            width: i <= step ? 22 : 5,
+            height: 3,
+            background: i <= step ? JUHONG : 'rgba(122,74,52,0.3)',
+          }}
+        />
       ))}
       <span
-        className="ml-2 text-xs font-medium tabular-nums"
-        style={{ color: `${GOLD}99` }}
+        className="ml-auto tabular-nums"
+        style={{ fontSize: 11, color: 'rgba(46,46,46,0.35)' }}
       >
-        {step + 1}/{total}
+        {step + 1} / {total}
       </span>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────
-// Scroll Wheel Picker
-// ─────────────────────────────────────────────
-
-function ScrollPicker({
-  items,
-  value,
-  onChange,
-  label,
-  suffix = '',
-}: {
-  items: { label: string; value: number }[];
-  value: number;
-  onChange: (v: number) => void;
-  label: string;
-  suffix?: string;
-}) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const ITEM_HEIGHT = 40;
-  const VISIBLE_ITEMS = 5;
-  const scrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const selectedIdx = items.findIndex(i => i.value === value);
-
-  useEffect(() => {
-    if (containerRef.current && selectedIdx >= 0) {
-      containerRef.current.scrollTop = selectedIdx * ITEM_HEIGHT;
-    }
-  }, []);
-
-  const handleScroll = () => {
-    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
-    scrollTimeout.current = setTimeout(() => {
-      if (!containerRef.current) return;
-      const idx = Math.round(containerRef.current.scrollTop / ITEM_HEIGHT);
-      const clamped = Math.max(0, Math.min(idx, items.length - 1));
-      containerRef.current.scrollTo({ top: clamped * ITEM_HEIGHT, behavior: 'smooth' });
-      if (items[clamped]) onChange(items[clamped].value);
-    }, 100);
-  };
-
-  return (
-    <div className="flex flex-col items-center">
-      <span className="mb-2 text-xs" style={{ color: `${GOLD}88` }}>{label}</span>
-      <div
-        className="relative overflow-hidden rounded-xl"
-        style={{
-          height: ITEM_HEIGHT * VISIBLE_ITEMS,
-          width: '100%',
-          background: `${GOLD}08`,
-          border: `1px solid ${GOLD}18`,
-        }}
-      >
-        {/* Selection highlight */}
-        <div
-          className="pointer-events-none absolute left-1 right-1 z-10 rounded-lg"
-          style={{
-            top: ITEM_HEIGHT * 2,
-            height: ITEM_HEIGHT,
-            background: `${GOLD}15`,
-            border: `1px solid ${GOLD}30`,
-          }}
-        />
-        {/* Fade masks */}
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 z-20"
-          style={{
-            height: ITEM_HEIGHT * 2,
-            background: `linear-gradient(to bottom, ${BG_DARK}, transparent)`,
-          }}
-        />
-        <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-20"
-          style={{
-            height: ITEM_HEIGHT * 2,
-            background: `linear-gradient(to top, ${BG_DARK}, transparent)`,
-          }}
-        />
-        <div
-          ref={containerRef}
-          className="h-full overflow-y-auto scrollbar-hide"
-          style={{ scrollSnapType: 'y mandatory', paddingTop: ITEM_HEIGHT * 2, paddingBottom: ITEM_HEIGHT * 2 }}
-          onScroll={handleScroll}
-        >
-          {items.map((item, i) => {
-            const isSelected = item.value === value;
-            return (
-              <div
-                key={i}
-                className="flex items-center justify-center cursor-pointer transition-all duration-200"
-                style={{
-                  height: ITEM_HEIGHT,
-                  scrollSnapAlign: 'center',
-                  color: isSelected ? GOLD : `${GOLD}44`,
-                  fontSize: isSelected ? '18px' : '14px',
-                  fontWeight: isSelected ? 600 : 400,
-                }}
-                onClick={() => {
-                  onChange(item.value);
-                  containerRef.current?.scrollTo({
-                    top: i * ITEM_HEIGHT,
-                    behavior: 'smooth',
-                  });
-                }}
-              >
-                {item.label}{suffix}
-              </div>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 }
@@ -515,7 +382,143 @@ interface BirthInfo {
   day: number;
   hour: number;
   name: string;
+  /** 대운의 순행·역행 판정에 쓴다 — /saju 와 같은 'M' | 'F' 표기 */
+  gender: 'M' | 'F' | null;
 }
+
+// ─────────────────────────────────────────────
+// 한지 카드 조각 (2·3단계 공통)
+// ─────────────────────────────────────────────
+
+/** 카드 바탕·테두리 */
+const CARD_STYLE = {
+  background: 'rgba(255,253,248,0.82)',
+  border: '1px solid rgba(122,74,52,0.2)',
+} as const;
+
+/** 카드 머리 — 한자 머리표 + 보조 설명 (+ 오른쪽 슬롯) */
+function CardHead({
+  hanja,
+  sub,
+  right,
+}: {
+  hanja: string;
+  sub?: string;
+  right?: React.ReactNode;
+}) {
+  return (
+    <div
+      className="flex items-center justify-between gap-2"
+      style={{
+        padding: '10px 16px',
+        background: 'rgba(122,74,52,0.06)',
+        borderBottom: '1px solid rgba(122,74,52,0.16)',
+      }}
+    >
+      <span className="flex items-baseline gap-2">
+        <span
+          className="font-serif-kr"
+          style={{ fontSize: 12, color: GALSAEK, letterSpacing: '0.14em' }}
+        >
+          {hanja}
+        </span>
+        {sub && (
+          <span style={{ fontSize: 11, color: 'rgba(46,46,46,0.42)' }}>{sub}</span>
+        )}
+      </span>
+      {right}
+    </div>
+  );
+}
+
+/** 그 달의 말일 */
+function daysInMonth(year: number, month: number): number {
+  return new Date(year, month, 0).getDate();
+}
+
+/**
+ * 밑줄 숫자 입력.
+ * 타이핑 중에는 적는 대로 두고, 범위를 벗어난 값은 포커스가 빠질 때 되돌린다.
+ * 부모가 값을 바꾸는 경우(월이 바뀌어 말일이 줄 때)는 key 로 다시 마운트해 맞춘다.
+ */
+function UnderlineNumber({
+  value,
+  min,
+  max,
+  unit,
+  label,
+  onCommit,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  unit: string;
+  label: string;
+  onCommit: (v: number) => void;
+}) {
+  const [draft, setDraft] = useState(String(value));
+
+  return (
+    <label
+      className="flex items-baseline gap-1"
+      style={{
+        borderBottom: '1.5px solid rgba(122,74,52,0.32)',
+        paddingBottom: 8,
+      }}
+    >
+      <input
+        type="number"
+        inputMode="numeric"
+        aria-label={label}
+        value={draft}
+        min={min}
+        max={max}
+        onChange={(e) => {
+          const s = e.target.value.replace(/[^0-9]/g, '').slice(0, 4);
+          setDraft(s);
+          const n = Number(s);
+          if (s && n >= min && n <= max) onCommit(n);
+        }}
+        onBlur={() => {
+          const n = draft
+            ? Math.min(max, Math.max(min, Number(draft)))
+            : value;
+          setDraft(String(n));
+          onCommit(n);
+        }}
+        className="w-full min-w-0 bg-transparent tabular-nums outline-none"
+        style={{ fontSize: 22, color: MEOK }}
+      />
+      <span
+        className="shrink-0"
+        style={{ fontSize: 12, color: 'rgba(46,46,46,0.4)' }}
+      >
+        {unit}
+      </span>
+    </label>
+  );
+}
+
+/** 12지시 격자 — value 는 기존 HOURS 와 같은 시(hour) 값 */
+const HOUR_CELLS: { hanja: string; range: string; value: number }[] = [
+  { hanja: '子', range: '23-01', value: 0 },
+  { hanja: '丑', range: '01-03', value: 2 },
+  { hanja: '寅', range: '03-05', value: 4 },
+  { hanja: '卯', range: '05-07', value: 6 },
+  { hanja: '辰', range: '07-09', value: 8 },
+  { hanja: '巳', range: '09-11', value: 10 },
+  { hanja: '午', range: '11-13', value: 12 },
+  { hanja: '未', range: '13-15', value: 14 },
+  { hanja: '申', range: '15-17', value: 16 },
+  { hanja: '酉', range: '17-19', value: 18 },
+  { hanja: '戌', range: '19-21', value: 20 },
+  { hanja: '亥', range: '21-23', value: 22 },
+];
+
+const GENDERS: { value: 'F' | 'M'; hanja: string; label: string }[] = [
+  { value: 'F', hanja: '坤', label: '여자' },
+  { value: 'M', hanja: '乾', label: '남자' },
+];
 
 function StepBirthInfo({
   info,
@@ -526,209 +529,305 @@ function StepBirthInfo({
   onChange: (info: BirthInfo) => void;
   onNext: () => void;
 }) {
-  const years = useMemo(() =>
-    Array.from({ length: 61 }, (_, i) => ({
-      label: `${1950 + i}`,
-      value: 1950 + i,
-    })), []);
-  const months = useMemo(() =>
-    Array.from({ length: 12 }, (_, i) => ({
-      label: `${i + 1}월`,
-      value: i + 1,
-    })), []);
-  const days = useMemo(() =>
-    Array.from({ length: 31 }, (_, i) => ({
-      label: `${i + 1}일`,
-      value: i + 1,
-    })), []);
+  const thisYear = new Date().getFullYear();
+
+  /** 년·월이 바뀌면 말일을 넘긴 일자도 함께 줄인다 */
+  const patch = (p: Partial<BirthInfo>) => {
+    const next = { ...info, ...p };
+    const limit = daysInMonth(next.year, next.month);
+    if (next.day > limit) next.day = limit;
+    onChange(next);
+  };
+
+  const hour = effectiveHour(info.hour);
 
   // 입춘(立春) 기준 정확한 띠 — 만세력 모듈 사용
   const animal = useMemo(
-    () => getAnimal(info.year, info.month, info.day, effectiveHour(info.hour)),
-    [info.year, info.month, info.day, info.hour]
+    () => getAnimal(info.year, info.month, info.day, hour),
+    [info.year, info.month, info.day, hour]
   );
 
   // 사주 기준 연도 (입춘 전 출생이면 전년도)
   const sajuYear = useMemo(
-    () => getSajuYear(info.year, info.month, info.day, effectiveHour(info.hour)),
-    [info.year, info.month, info.day, info.hour]
+    () => getSajuYear(info.year, info.month, info.day, hour),
+    [info.year, info.month, info.day, hour]
   );
 
-  // Dynamic background hue based on selection
-  const bgHue = useMemo(() => {
-    const hueMap: Record<string, number> = { '목': 120, '화': 0, '토': 40, '금': 45, '수': 210 };
-    return hueMap[animal.element] ?? 0;
-  }, [animal.element]);
+  // 연주 간지 — 미리보기에 `丙子년` 으로 보여준다
+  const ganji = useMemo(() => {
+    const s = getSaju(info.year, info.month, info.day, hour);
+    return `${s.yearStem.hanja}${s.yearBranch.hanja}`;
+  }, [info.year, info.month, info.day, hour]);
 
   return (
     <motion.div
-      className="relative flex min-h-full flex-col px-6 pb-8 pt-14"
+      className="flex min-h-full flex-col"
+      style={{ padding: '56px 26px 40px' }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.4 }}
     >
-      {/* Animated background overlay — 밝은 한지 위 은은한 오행빛 */}
-      <motion.div
-        className="pointer-events-none absolute inset-0"
-        animate={{
-          background: `radial-gradient(ellipse at 50% 80%, hsla(${bgHue}, 45%, 55%, 0.12) 0%, transparent 60%)`,
+      <h1
+        className="font-serif-kr"
+        style={{ marginTop: 26, fontSize: 25, lineHeight: 1.5, color: MEOK }}
+      >
+        태어난 날을
+        <br />
+        알려주세요
+      </h1>
+      <p
+        style={{
+          marginTop: 10,
+          fontSize: 12.5,
+          lineHeight: 1.8,
+          color: 'rgba(46,46,46,0.45)',
         }}
-        transition={{ duration: 1 }}
-      />
-
-
-      <motion.h1
-        className="relative z-10 mb-2 text-center text-2xl font-bold"
-        style={{ color: GOLD }}
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2 }}
       >
-        태어난 날을 알려주세요
-      </motion.h1>
-      <motion.p
-        className="relative z-10 mb-6 text-center text-sm"
-        style={{ color: `${GOLD}66` }}
-        initial={{ y: -10, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.3 }}
-      >
-        정확한 사주 풀이를 위해 생년월일시를 입력하세요
-      </motion.p>
+        만세력(萬歲曆)으로 정확히 풀어드릴게요.
+        <br />
+        입력한 정보는 이 기기에만 저장됩니다.
+      </p>
 
-      {/* Date pickers row */}
-      <motion.div
-        className="relative z-10 mb-4 grid grid-cols-3 gap-3"
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.4 }}
-      >
-        <ScrollPicker
-          items={years}
-          value={info.year}
-          onChange={(v) => onChange({ ...info, year: v })}
-          label="년"
+      {/* 生年月日 */}
+      <div className="mt-6 overflow-hidden rounded-xl" style={CARD_STYLE}>
+        <CardHead
+          hanja="生年月日"
+          right={
+            <span
+              className="inline-flex overflow-hidden"
+              style={{
+                borderRadius: 6,
+                border: '1px solid rgba(122,74,52,0.24)',
+              }}
+            >
+              <span
+                style={{
+                  padding: '4px 10px',
+                  fontSize: 10.5,
+                  background: JUHONG,
+                  color: '#FBF3E0',
+                }}
+              >
+                양력
+              </span>
+              {/* 음→양 변환이 아직 없어 고를 수 없다 — 되는 척하지 않는다 */}
+              <button
+                type="button"
+                disabled
+                title="준비 중"
+                style={{
+                  padding: '4px 10px',
+                  fontSize: 10.5,
+                  color: 'rgba(122,74,52,0.45)',
+                  cursor: 'not-allowed',
+                }}
+              >
+                음력 (준비 중)
+              </button>
+            </span>
+          }
         />
-        <ScrollPicker
-          items={months}
-          value={info.month}
-          onChange={(v) => onChange({ ...info, month: v })}
-          label="월"
-        />
-        <ScrollPicker
-          items={days}
-          value={info.day}
-          onChange={(v) => onChange({ ...info, day: v })}
-          label="일"
-        />
-      </motion.div>
-
-      {/* Hour picker - full width */}
-      <motion.div
-        className="relative z-10 mb-4"
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.5 }}
-      >
         <div
-          className="rounded-2xl p-4"
+          className="grid gap-[10px]"
           style={{
-            background: `${GOLD}06`,
-            border: `1px solid ${GOLD}12`,
+            padding: '18px 16px',
+            gridTemplateColumns: '1.5fr 1fr 1fr',
           }}
         >
-          <span className="mb-2 block text-center text-xs" style={{ color: `${GOLD}88` }}>
-            태어난 시간
-          </span>
-          <div className="flex flex-wrap justify-center gap-2">
-            {HOURS.map((h) => (
-              <button
-                key={h.value}
-                className="rounded-lg px-3 py-1.5 text-xs transition-all duration-200"
-                style={{
-                  background: info.hour === h.value ? `${GOLD}25` : 'transparent',
-                  color: info.hour === h.value ? GOLD : `${GOLD}55`,
-                  border: `1px solid ${info.hour === h.value ? `${GOLD}40` : `${GOLD}10`}`,
-                }}
-                onClick={() => onChange({ ...info, hour: h.value })}
-              >
-                {h.label}
-              </button>
-            ))}
-          </div>
+          <UnderlineNumber
+            label="태어난 해"
+            value={info.year}
+            min={1900}
+            max={thisYear}
+            unit="年"
+            onCommit={(v) => patch({ year: v })}
+          />
+          <UnderlineNumber
+            label="태어난 달"
+            value={info.month}
+            min={1}
+            max={12}
+            unit="月"
+            onCommit={(v) => patch({ month: v })}
+          />
+          <UnderlineNumber
+            key={`${info.year}-${info.month}`}
+            label="태어난 날"
+            value={info.day}
+            min={1}
+            max={daysInMonth(info.year, info.month)}
+            unit="日"
+            onCommit={(v) => patch({ day: v })}
+          />
         </div>
-      </motion.div>
+      </div>
 
-      {/* Name input */}
-      <motion.div
-        className="relative z-10 mb-8"
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.6 }}
-      >
+      {/* 時辰 */}
+      <div className="mt-3 overflow-hidden rounded-xl" style={CARD_STYLE}>
+        <CardHead hanja="時辰" sub="태어난 시각" />
         <div
-          className="rounded-2xl p-4"
-          style={{ background: `${GOLD}06`, border: `1px solid ${GOLD}12` }}
+          className="grid grid-cols-4"
+          style={{ gap: 1, background: 'rgba(122,74,52,0.14)' }}
         >
-          <label className="mb-2 block text-center text-xs" style={{ color: `${GOLD}88` }}>
-            이름 (선택사항 · 인장에 사용됩니다)
-          </label>
+          {HOUR_CELLS.map((c) => {
+            const on = info.hour === c.value;
+            return (
+              <button
+                key={c.value}
+                type="button"
+                onClick={() => patch({ hour: c.value })}
+                className="flex flex-col items-center justify-center"
+                style={{
+                  padding: '10px 0',
+                  background: on
+                    ? 'rgba(167,43,33,0.08)'
+                    : 'rgba(255,253,248,0.9)',
+                  boxShadow: on ? 'inset 0 0 0 1.5px #A72B21' : undefined,
+                }}
+              >
+                <span
+                  className="font-serif-kr"
+                  style={{ fontSize: 17, color: on ? JUHONG : MEOK }}
+                >
+                  {c.hanja}
+                </span>
+                <span
+                  style={{
+                    marginTop: 2,
+                    fontSize: 9.5,
+                    color: 'rgba(46,46,46,0.4)',
+                  }}
+                >
+                  {c.range}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          onClick={() => patch({ hour: HOUR_UNKNOWN })}
+          className="w-full text-center"
+          style={{
+            borderTop: '1px solid rgba(122,74,52,0.14)',
+            padding: 12,
+            fontSize: 12.5,
+            color: info.hour === HOUR_UNKNOWN ? JUHONG : 'rgba(46,46,46,0.55)',
+            background:
+              info.hour === HOUR_UNKNOWN ? 'rgba(167,43,33,0.05)' : undefined,
+          }}
+        >
+          시각을 모르겠어요
+        </button>
+      </div>
+
+      {/* 性別 — 대운의 순행·역행을 가른다 */}
+      <div className="mt-3 overflow-hidden rounded-xl" style={CARD_STYLE}>
+        <CardHead hanja="性別" sub="대운의 방향이 달라져요" />
+        <div
+          className="grid grid-cols-2 gap-[10px]"
+          style={{ padding: '18px 16px' }}
+        >
+          {GENDERS.map((g) => {
+            const on = info.gender === g.value;
+            return (
+              <button
+                key={g.value}
+                type="button"
+                onClick={() => patch({ gender: g.value })}
+                className="flex items-center justify-center gap-[9px]"
+                style={{
+                  padding: '14px 0',
+                  borderRadius: 9,
+                  border: on
+                    ? '1px solid rgba(167,43,33,0.45)'
+                    : '1px solid rgba(122,74,52,0.24)',
+                  background: on
+                    ? 'rgba(167,43,33,0.06)'
+                    : 'rgba(255,253,248,0.7)',
+                }}
+              >
+                <span
+                  className="font-serif-kr"
+                  style={{
+                    fontSize: 19,
+                    color: on ? JUHONG : 'rgba(122,74,52,0.65)',
+                  }}
+                >
+                  {g.hanja}
+                </span>
+                <span
+                  style={{ fontSize: 14, color: on ? JUHONG : MEOK }}
+                >
+                  {g.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 姓名 */}
+      <div className="mt-3 overflow-hidden rounded-xl" style={CARD_STYLE}>
+        <CardHead hanja="姓名" />
+        <div style={{ padding: '18px 16px' }}>
           <input
             type="text"
             value={info.name}
-            onChange={(e) => onChange({ ...info, name: e.target.value })}
-            placeholder="이름을 입력하세요"
-            className="w-full rounded-xl border bg-transparent px-4 py-3 text-center text-sm outline-none transition-colors duration-200"
+            onChange={(e) => patch({ name: e.target.value })}
+            placeholder="이름 (선택 · 낙관에 새겨져요)"
+            className="w-full bg-transparent outline-none"
             style={{
-              borderColor: `${GOLD}20`,
-              color: GOLD,
-              caretColor: GOLD,
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = `${GOLD}50`;
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = `${GOLD}20`;
+              borderBottom: '1px solid rgba(122,74,52,0.28)',
+              paddingBottom: 8,
+              fontSize: 15,
+              color: MEOK,
             }}
           />
         </div>
-      </motion.div>
+      </div>
 
-      {/* Animal preview */}
-      <motion.div
-        className="relative z-10 mb-6 text-center"
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.7 }}
-      >
-        <div className="flex items-center justify-center gap-2" style={{ color: `${GOLD}77` }}>
-          <AnimalMotif animal={animal.name} size={26} line />
-          <span className="text-sm">{sajuYear}년 {animal.name}띠</span>
-        </div>
-        {sajuYear !== info.year && (
-          <p className="mt-1 text-[11px]" style={{ color: `${GOLD}55` }}>
-            입춘(立春) 전 출생이라 사주상 {sajuYear}년생으로 봅니다
-          </p>
-        )}
-      </motion.div>
-
-      {/* Next button */}
-      <motion.button
-        className="relative z-10 mt-auto w-full rounded-2xl px-8 py-4 text-base font-bold tracking-wider"
+      {/* 띠 미리보기 */}
+      <div
+        className="flex items-center"
         style={{
-          background: `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})`,
-          color: '#F6EDD9',
-          boxShadow: `0 4px 30px ${GOLD}40`,
+          marginTop: 20,
+          gap: 14,
+          padding: '14px 16px',
+          borderRadius: 12,
+          border: '1px solid rgba(143,107,20,0.35)',
+          background: 'rgba(255,250,236,0.55)',
         }}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.97 }}
-        onClick={onNext}
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.8 }}
       >
-        사주 풀이 보기
-      </motion.button>
+        <AnimalMotif animal={animal.name} size={46} />
+        <div className="min-w-0">
+          <p className="font-serif-kr" style={{ fontSize: 16, color: MEOK }}>
+            {ganji}년 · {animal.name}띠
+          </p>
+          <p
+            style={{
+              marginTop: 3,
+              fontSize: 11,
+              lineHeight: 1.6,
+              color: 'rgba(46,46,46,0.45)',
+            }}
+          >
+            {sajuYear === info.year
+              ? `입춘(立春) 이후 출생이라 사주 연도도 ${info.year}년입니다`
+              : `입춘(立春) 전 출생이라 사주상 ${sajuYear}년생으로 봅니다`}
+          </p>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <TraditionalButton
+          onClick={onNext}
+          disabled={!info.gender}
+          className="rounded-lg"
+        >
+          사주 풀이 보기
+        </TraditionalButton>
+      </div>
     </motion.div>
   );
 }
@@ -1964,6 +2063,7 @@ export default function OnboardingPage() {
     day: 1,
     hour: -1,
     name: '',
+    gender: null,
   });
   const [loveStatus, setLoveStatus] = useState<LoveStatus | null>(null);
 
@@ -2069,6 +2169,16 @@ export default function OnboardingPage() {
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
+        }
+        /* 생년월일 밑줄 입력 — 숫자 증감 화살표는 붓글씨 톤과 어울리지 않는다 */
+        input[type='number']::-webkit-outer-spin-button,
+        input[type='number']::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type='number'] {
+          -moz-appearance: textfield;
+          appearance: textfield;
         }
       `}</style>
     </div>
