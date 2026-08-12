@@ -24,6 +24,7 @@ import {
 } from '@/components/hanji/motifs';
 import AnimalMotif from '@/components/hanji/AnimalMotif';
 import { downloadBackup, restoreFromFile } from '@/lib/backup';
+import { collectedCatalogIds, loadCollection } from '@/lib/collection';
 
 /* ── 온보딩이 저장한 프로필 로드 ───────────────────── */
 
@@ -618,6 +619,8 @@ export default function MyPage() {
   const [showServiceInfo, setShowServiceInfo] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [collectedCount, setCollectedCount] = useState(0);
+  /** 도감 47종 중 몇 종을 모았는지 — 같은 부적을 여러 번 담아도 1종 */
+  const [collectedKinds, setCollectedKinds] = useState(0);
   const [streakDays, setStreakDays] = useState(1);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [ready, setReady] = useState(false);
@@ -681,14 +684,8 @@ export default function MyPage() {
     setProfile(loadProfile());
     setLoveStatus(loadLoveStatus());
     setStreakDays(trackVisitStreak());
-    try {
-      const stored = localStorage.getItem('bujeok-collection');
-      if (stored) {
-        setCollectedCount((JSON.parse(stored) as Array<{ id: string }>).length);
-      }
-    } catch {
-      // ignore
-    }
+    setCollectedCount(loadCollection().length);
+    setCollectedKinds(collectedCatalogIds().size);
     setReady(true);
   }, []);
 
@@ -829,7 +826,7 @@ export default function MyPage() {
         >
           {[
             { label: '받은 부적', value: `${collectedCount}개`, icon: <ScrollMotif size={20} /> },
-            { label: '수집 종류', value: `${collectedCount}/${TOTAL_TALISMAN_COUNT}`, icon: <BookMotif size={20} /> },
+            { label: '수집 종류', value: `${collectedKinds}/${TOTAL_TALISMAN_COUNT}`, icon: <BookMotif size={20} /> },
             { label: '연속 방문', value: `${streakDays}일`, icon: <FlameMotif size={20} /> },
           ].map((stat) => (
             <div

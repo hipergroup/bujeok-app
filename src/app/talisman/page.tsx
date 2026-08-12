@@ -602,6 +602,7 @@ function TalismanFlow() {
     const talisman: SavedTalisman = {
       ...recommended,
       id: `custom-${Date.now()}`,
+      sourceId: recommended.id, // 도감에서 어느 종인지 알아보게 원본 id를 남긴다
       savedAt: new Date().toISOString(),
       note: encouragement || undefined,
       svg: generateTalismanSVG(talismanParams),

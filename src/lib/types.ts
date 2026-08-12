@@ -15,6 +15,11 @@ export type TalismanInfo = TalismanType;
 
 /** 사용자가 수집(수령)한 부적 */
 export interface SavedTalisman extends TalismanType {
+  /**
+   * 원본 부적(도감 47종)의 id.
+   * 부적함에서는 id 를 새로 매기므로, 도감 수집 판정은 이 값으로 한다.
+   */
+  sourceId?: string;
   /** 수령 일시 (ISO date string) */
   savedAt: string;
   note?: string;

@@ -14,6 +14,7 @@ import { BackIcon, SearchMotif } from '@/components/hanji/motifs';
 import { getEnergyByCategory } from '@/data/energies';
 import { TalismanInfo, TalismanCategory, CATEGORY_LIST } from '@/lib/types';
 import { TALISMANS, TOTAL_TALISMAN_COUNT } from '@/data/talismans';
+import { collectedCatalogIds } from '@/lib/collection';
 
 export default function EncyclopediaPage() {
   const router = useRouter();
@@ -22,17 +23,9 @@ export default function EncyclopediaPage() {
   const [selected, setSelected] = useState<TalismanInfo | null>(null);
   const [collectedIds, setCollectedIds] = useState<Set<string>>(new Set());
 
-  // load collected IDs from localStorage
+  // 부적함에 담긴 부적이 도감의 어느 종인지 판정해 수집 표시
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('bujeok-collection');
-      if (stored) {
-        const parsed = JSON.parse(stored) as Array<{ id: string }>;
-        setCollectedIds(new Set(parsed.map((t) => t.id)));
-      }
-    } catch {
-      // ignore
-    }
+    setCollectedIds(collectedCatalogIds());
   }, []);
 
   const collectedCount = collectedIds.size;

@@ -80,6 +80,7 @@ function GiftReceive() {
     const item: GiftedTalisman = {
       ...talisman,
       id: savedId,
+      sourceId: talisman.id, // 도감에서 어느 종인지 알아보게 원본 id를 남긴다
       savedAt: new Date().toISOString(),
       note: payload.m || undefined,
       svg,
