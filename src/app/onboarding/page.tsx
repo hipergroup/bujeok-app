@@ -191,53 +191,6 @@ function SectionLabel({
 }
 
 // ─────────────────────────────────────────────
-// Floating Particles Component
-// ─────────────────────────────────────────────
-
-function FloatingParticles({ count = 30 }: { count?: number }) {
-  const particles = useMemo(() =>
-    Array.from({ length: count }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 3 + 1,
-      duration: Math.random() * 8 + 6,
-      delay: Math.random() * 5,
-      opacity: Math.random() * 0.6 + 0.2,
-    })), [count]);
-
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {particles.map((p) => (
-        <motion.div
-          key={p.id}
-          className="absolute rounded-full"
-          style={{
-            left: `${p.x}%`,
-            top: `${p.y}%`,
-            width: p.size,
-            height: p.size,
-            background: `radial-gradient(circle, ${GOLD_LIGHT}, ${GOLD}88)`,
-            boxShadow: `0 0 ${p.size * 2}px ${GOLD}66`,
-          }}
-          animate={{
-            y: [0, -30, 0, 20, 0],
-            x: [0, 15, -10, 5, 0],
-            opacity: [p.opacity, p.opacity * 1.5, p.opacity, p.opacity * 0.7, p.opacity],
-          }}
-          transition={{
-            duration: p.duration,
-            delay: p.delay,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────
 // Progress Indicator
 // ─────────────────────────────────────────────
 
@@ -623,7 +576,6 @@ function StepBirthInfo({
         transition={{ duration: 1 }}
       />
 
-      <FloatingParticles count={15} />
 
       <motion.h1
         className="relative z-10 mb-2 text-center text-2xl font-bold"
@@ -852,7 +804,6 @@ function StepSajuResult({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <FloatingParticles count={12} />
 
       {/* Title */}
       <motion.div
@@ -1503,7 +1454,6 @@ function StepLoveStatus({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <FloatingParticles count={12} />
 
       <motion.h1
         className="relative z-10 mb-2 text-center text-2xl font-bold"
@@ -1802,7 +1752,6 @@ function StepTalismanGift({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <FloatingParticles count={35} />
 
       {/* Title */}
       <motion.div
