@@ -182,22 +182,24 @@ function ProgressBar({ step, total }: { step: number; total: number }) {
 
 function HosinbuTalisman() {
   // 황지·주사 실사 호신부 (public/talismans/hosinbu-gift.png, 찢긴 가장자리 투명 처리)
+  // 종이는 가만히 두고 뒤의 숨빛만 천천히 쉰다 — 앱이 드리는 기성 부적이라 낙관은 없다.
   return (
     <motion.div
       className="relative mx-auto"
-      style={{ width: 220 }}
-      initial={{ scale: 0.3, opacity: 0, rotateY: 90 }}
-      animate={{ scale: 1, opacity: 1, rotateY: 0 }}
-      transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+      style={{ width: 214 }}
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
     >
-      {/* 은은한 주홍빛 */}
       <motion.div
-        className="absolute inset-0 rounded-2xl"
+        className="pointer-events-none absolute"
         style={{
-          background: `radial-gradient(ellipse at center, ${GOLD}30 0%, transparent 70%)`,
-          filter: 'blur(26px)',
+          inset: -14,
+          background:
+            'radial-gradient(ellipse at center, rgba(167,43,33,0.22) 0%, transparent 70%)',
+          filter: 'blur(24px)',
         }}
-        animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.95, 1.04, 0.95] }}
+        animate={{ opacity: [0.45, 0.9, 0.45], scale: [0.97, 1.03, 0.97] }}
         transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
       />
       <Image
@@ -1694,6 +1696,8 @@ function StepTalismanGift({
         hourKnown,
       },
       name: info.name,
+      // 대운의 순행·역행 판정용 — /saju 가 읽는 표기와 같아야 한다
+      gender: info.gender ?? undefined,
       animal: animal.name,
       animalEmoji: animal.emoji,
       sajuYear,
@@ -1730,6 +1734,7 @@ function StepTalismanGift({
       'user_profile',
       JSON.stringify({
         name: displayName,
+        gender: info.gender ?? undefined,
         animal: animal.name,
         animalEmoji: animal.emoji,
         element: animal.element,
@@ -1843,191 +1848,202 @@ function StepTalismanGift({
     }, 250);
   }, [onComplete]);
 
+  // 삼재의 해면 첫 인사 문구가 달라진다
+  const samjaeNow = isSamjae(
+    new Date().getFullYear(),
+    getSajuYear(info.year, info.month, info.day, effectiveHour(info.hour))
+  ).is;
+
   return (
     <motion.div
-      className="relative flex min-h-full flex-col items-center justify-center px-6 pb-8 pt-14"
+      className="flex min-h-full flex-col"
+      style={{ padding: '56px 26px 40px' }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-
-      {/* Title */}
-      <motion.div
-        className="relative z-10 mb-2 text-center"
-        initial={{ y: -30, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.3 }}
-      >
-        <h1 className="text-2xl font-bold" style={{ color: GOLD }}>
-          환영합니다!
-        </h1>
-      </motion.div>
-      <motion.p
-        className="relative z-10 mb-8 text-center text-base"
-        style={{ color: `${GOLD}AA` }}
-        initial={{ y: -10, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.5 }}
-      >
-        첫 부적을 선물합니다
-      </motion.p>
-
-      {/* Talisman with effects */}
-      <motion.div
-        className="relative z-10 mb-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
-      >
-        {/* Radial light rays */}
-        <motion.div
-          className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-          style={{
-            width: 400,
-            height: 400,
-            background: `conic-gradient(from 0deg, transparent, ${GOLD}15, transparent, ${GOLD}10, transparent, ${GOLD}15, transparent)`,
-            borderRadius: '50%',
-          }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
-        />
-        <HosinbuTalisman />
-      </motion.div>
-
-      {/* Talisman name */}
-      <motion.div
-        className="relative z-10 mb-2 text-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5 }}
-      >
-        <p className="text-lg font-bold" style={{ color: GOLD }}>
-          호신부 (護身符)
-        </p>
-        <p className="mt-1 text-xs" style={{ color: `${GOLD}77` }}>
-          몸을 보호하기 위해 늘 지니는 부적
-        </p>
+      <div className="flex flex-1 flex-col items-center justify-center text-center">
         <p
-          className="mx-auto mt-3 max-w-[17rem] text-xs leading-relaxed"
-          style={{ color: `${GOLD}66` }}
+          style={{
+            fontSize: 12,
+            letterSpacing: '0.14em',
+            color: 'rgba(46,46,46,0.45)',
+          }}
         >
-          예로부터 길 떠나는 이에게 쥐여주던 부적입니다.
-          <br />
-          부모가 군대 가는 자식에게 손수 써서 주기도 했습니다.
+          첫 만남의 선물
         </p>
-      </motion.div>
+        <h1
+          className="font-serif-kr"
+          style={{ marginTop: 12, fontSize: 25, lineHeight: 1.55, color: MEOK }}
+        >
+          {samjaeNow ? (
+            <>
+              삼재를 지나는 당신께
+              <br />
+              호신부를 드립니다
+            </>
+          ) : (
+            <>
+              오늘부터 당신 곁에
+              <br />
+              호신부를 드립니다
+            </>
+          )}
+        </h1>
 
-      <div className="flex-1" />
+        <div style={{ marginTop: 30 }}>
+          <HosinbuTalisman />
+        </div>
 
-      {/* Save button ↔ 위젯 담기 질문 카드 */}
-      <AnimatePresence mode="wait">
-        {!askWidget ? (
-          <motion.button
-            key="save-btn"
-            className="relative z-10 w-full max-w-xs rounded-2xl px-8 py-4 text-base font-bold tracking-wider"
-            style={{
-              background: saved
-                ? `linear-gradient(135deg, #4CAF50, #388E3C)`
-                : `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})`,
-              color: '#F6EDD9',
-              boxShadow: saved ? `0 4px 30px #4CAF5040` : `0 4px 30px ${GOLD}40`,
-            }}
-            whileHover={!saved ? { scale: 1.02 } : {}}
-            whileTap={!saved ? { scale: 0.97 } : {}}
-            onClick={!saved ? handleSave : undefined}
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 20, opacity: 0 }}
-            transition={{ delay: saved ? 0 : 1.8 }}
-            disabled={saved}
-          >
-            <AnimatePresence mode="wait">
-              {saved ? (
-                <motion.span
-                  key="saved"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center justify-center gap-2"
+        <p
+          className="font-serif-kr"
+          style={{ marginTop: 26, fontSize: 18, color: MEOK }}
+        >
+          호신부{' '}
+          <span style={{ fontSize: 12, color: 'rgba(122,74,52,0.7)' }}>
+            護身符
+          </span>
+        </p>
+
+        <p
+          style={{
+            marginTop: 12,
+            maxWidth: 290,
+            fontSize: 13,
+            lineHeight: 2.05,
+            color: `${MEOK}BB`,
+          }}
+        >
+          몸과 마음을 지키는 부적이에요. 예로부터 먼 길을 떠나는 이의 품에 넣어
+          보내던 것으로, 삼재의 해를 지날 때 곁에 두었습니다.
+        </p>
+
+        <div
+          className="flex flex-wrap items-center justify-center gap-1.5"
+          style={{ marginTop: 20 }}
+        >
+          {['삼재의 해', '몸과 마음', '늘 지니는 부적'].map((t) => (
+            <span
+              key={t}
+              className="rounded-full"
+              style={{
+                padding: '3px 10px',
+                fontSize: 11.5,
+                color: GALSAEK,
+                border: '1px solid rgba(122,74,52,0.26)',
+              }}
+            >
+              {t}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* 부적함에 모시기 ↔ (네이티브) 위젯 담기 질문 */}
+      <div style={{ marginTop: 24 }}>
+        <AnimatePresence mode="wait">
+          {!askWidget ? (
+            <motion.div
+              key="save"
+              initial={{ y: 16, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 12, opacity: 0 }}
+              transition={{ duration: 0.35 }}
+            >
+              <TraditionalButton
+                onClick={!saved ? handleSave : undefined}
+                disabled={saved}
+                className="rounded-lg"
+              >
+                {saved ? '부적함에 모셨습니다' : '부적함에 모시기'}
+              </TraditionalButton>
+              {saved && widgetNote && (
+                <p
+                  className="text-center"
+                  style={{ marginTop: 12, fontSize: 12, color: `${GALSAEK}CC` }}
                 >
-                  ✓ 부적함에 담았습니다
-                </motion.span>
-              ) : (
-                <motion.span
-                  key="save"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
-                  부적함에 담기
-                </motion.span>
+                  {widgetNote}
+                </p>
               )}
-            </AnimatePresence>
-            {saved && widgetNote && (
-              <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="absolute -bottom-7 left-0 right-0 text-center text-[11px] font-normal text-[var(--color-galsaek)] opacity-90"
-              >
-                {widgetNote}
-              </motion.span>
-            )}
-          </motion.button>
-        ) : (
-          <motion.div
-            key="widget-ask"
-            className="hanji-card relative z-10 w-full max-w-xs rounded-2xl px-6 py-5 text-center"
-            initial={{ y: 24, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-          >
-            {!widgetDone ? (
-              <>
-                <p className="font-serif-kr text-base font-bold text-[var(--color-meok)]">
-                  홈 화면 위젯에도 담아드릴까요?
-                </p>
-                <p className="mt-2 text-xs leading-relaxed text-[var(--color-galsaek)]">
-                  부적은 몸에 지니고 다닐 때 힘을 낸다고 해요.
-                  <br />
-                  위젯에 담아두면 휴대폰을 열 때마다
-                  <br />
-                  호신부가 당신의 하루를 지켜드려요.
-                </p>
-                <button
-                  className="mt-4 w-full rounded-xl px-6 py-3 text-sm font-bold tracking-wider"
-                  style={{
-                    background: `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})`,
-                    color: '#F6EDD9',
-                    boxShadow: `0 4px 20px ${GOLD}40`,
-                  }}
-                  onClick={handleWidgetYes}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="widget"
+              className="rounded-xl text-center"
+              style={{ ...CARD_STYLE, padding: '20px 18px' }}
+              initial={{ y: 24, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {!widgetDone ? (
+                <>
+                  <p
+                    className="font-serif-kr"
+                    style={{ fontSize: 16, color: MEOK }}
+                  >
+                    홈 화면 위젯에도 담아드릴까요?
+                  </p>
+                  <p
+                    style={{
+                      marginTop: 8,
+                      fontSize: 12,
+                      lineHeight: 1.9,
+                      color: `${GALSAEK}CC`,
+                    }}
+                  >
+                    부적은 몸에 지니고 다닐 때 힘을 낸다고 해요. 위젯에 담아두면
+                    휴대폰을 열 때마다 호신부가 당신의 하루를 지켜드려요.
+                  </p>
+                  <div style={{ marginTop: 16 }}>
+                    <TraditionalButton
+                      onClick={handleWidgetYes}
+                      className="rounded-lg"
+                    >
+                      위젯으로 두기
+                    </TraditionalButton>
+                  </div>
+                  <button
+                    type="button"
+                    className="w-full"
+                    style={{
+                      marginTop: 10,
+                      padding: '6px 0',
+                      fontSize: 12,
+                      color: `${GALSAEK}CC`,
+                    }}
+                    onClick={handleWidgetLater}
+                  >
+                    나중에 할게요
+                  </button>
+                </>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
                 >
-                  위젯에 담기
-                </button>
-                <button
-                  className="mt-2 w-full py-2 text-xs text-[var(--color-galsaek)] opacity-80"
-                  onClick={handleWidgetLater}
-                >
-                  나중에 할게요
-                </button>
-              </>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <p className="font-serif-kr text-base font-bold text-[var(--color-meok)]">
-                  ✓ 위젯에 담았어요
-                </p>
-                <p className="mt-2 text-xs leading-relaxed text-[var(--color-galsaek)]">
-                  홈 화면을 길게 눌러 &lsquo;수호부&rsquo; 위젯을 추가하면
-                  <br />
-                  바로 만날 수 있어요. 선물 부적은 사흘에 걸쳐
-                  <br />
-                  조금씩 낡아가요 — 새 부적으로 마음을 다시 채워보세요.
-                </p>
-              </motion.div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  <p
+                    className="font-serif-kr"
+                    style={{ fontSize: 16, color: MEOK }}
+                  >
+                    위젯에 담았어요
+                  </p>
+                  <p
+                    style={{
+                      marginTop: 8,
+                      fontSize: 12,
+                      lineHeight: 1.9,
+                      color: `${GALSAEK}CC`,
+                    }}
+                  >
+                    홈 화면을 길게 눌러 &lsquo;수호부&rsquo; 위젯을 추가하면 바로
+                    만날 수 있어요. 선물 부적은 사흘에 걸쳐 조금씩 낡아가요 — 새
+                    부적으로 마음을 다시 채워보세요.
+                  </p>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </motion.div>
   );
 }
