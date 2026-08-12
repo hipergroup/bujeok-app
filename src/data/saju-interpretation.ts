@@ -708,9 +708,10 @@ export function getSajuReading(
     { meaning: PILLAR_MEANING_MAP.hour, gan: saju.hourStem, ji: saju.hourBranch },
   ];
 
-  const headline = `${ilgan.emoji} ${ilgan.symbol}처럼 ${iGa(
+  // 한지 톤에 맞춰 이모지 없이 — 글자와 한자만으로 읽히게 한다
+  const headline = `${ilgan.symbol}처럼 ${iGa(
     ilgan.keyword
-  )} 돋보이는 사람, ${dom.emoji} ${ohengAnalysis.dominant}(${dom.hanja})의 기운이 ${
+  )} 돋보이는 사람, ${ohengAnalysis.dominant}(${dom.hanja})의 기운이 ${
     BALANCE_PHRASE[ohengAnalysis.balance]
   }`;
 
