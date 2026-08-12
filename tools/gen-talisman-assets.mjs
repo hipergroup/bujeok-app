@@ -19,6 +19,11 @@ import { join } from 'node:path';
 const ASSET_DIR = 'public/talismans';
 const OUT_FILE = 'src/data/talisman-assets.ts';
 
+// GitHub Pages 배포 빌드는 하위 경로(/bujeok-app)에서 서빙되므로
+// next.config와 같은 조건으로 그림 URL에도 basePath를 붙인다.
+// (SVG 문자열 안의 <image href>는 Next가 보정해 주지 않는다)
+const BASE_PATH = process.env.GITHUB_PAGES === 'true' ? '/bujeok-app' : '';
+
 /** 파일명 접미사 → 부적의 모습 */
 const STYLE_SUFFIX = {
   전통: 'traditional',
@@ -47,7 +52,7 @@ function scan() {
     // 키는 비교하기 쉽게 NFC로, 경로는 실제 파일명 그대로 인코딩한다
     const name = base.slice(0, dash).normalize('NFC').trim();
     assets[name] ??= {};
-    assets[name][style] = `/talismans/${encodeURIComponent(file)}`;
+    assets[name][style] = `${BASE_PATH}/talismans/${encodeURIComponent(file)}`;
   }
 
   return assets;

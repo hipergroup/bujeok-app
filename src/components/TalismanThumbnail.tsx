@@ -1,10 +1,13 @@
 'use client';
 
 import { TalismanCategory, CATEGORY_COLORS } from '@/lib/types';
+import { getTalismanById } from '@/data/talismans';
+import { getTalismanAsset } from '@/data/talisman-assets';
 
 /**
  * Generates a compact talisman-style thumbnail SVG based on the talisman's id.
  * Used in collection grid, encyclopedia list, and modals.
+ * 전통 부적 그림(public/talismans)이 있는 부적은 그림을 우선 보여준다.
  */
 export default function TalismanThumbnail({
   id,
@@ -19,6 +22,27 @@ export default function TalismanThumbnail({
   className?: string;
   grayed?: boolean;
 }) {
+  const art = getTalismanAsset(getTalismanById(id)?.name, 'traditional');
+  if (art) {
+    return (
+      <div
+        className={className}
+        style={{ width: size, height: size * 1.4 }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- 정적 export, 크기 고정 썸네일 */}
+        <img
+          src={art}
+          alt=""
+          className="h-full w-full object-cover"
+          style={{
+            borderRadius: 6,
+            border: '1px solid rgba(122, 74, 52, 0.35)',
+            ...(grayed ? { filter: 'grayscale(1)', opacity: 0.55 } : null),
+          }}
+        />
+      </div>
+    );
+  }
   // simple hash for deterministic variation
   const hash = id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
   const accent = grayed ? '#555' : CATEGORY_COLORS[category];
