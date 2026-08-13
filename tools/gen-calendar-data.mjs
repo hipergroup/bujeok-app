@@ -11,7 +11,7 @@
 // 키가 없으면 아무 파일도 만들지 않고 종료한다 — 가짜 날짜를 굽지 않는다.
 // ============================================================
 
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const VERSION = '1.0.0';
@@ -21,17 +21,37 @@ const LUNAR_API =
 const HOLIDAY_API =
   'https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo';
 
-const KEY = process.env.KASI_SERVICE_KEY;
+/** .env.local 에서 KASI_SERVICE_KEY 를 읽는다 (git 에는 올라가지 않는 파일) */
+function readKeyFromEnvFile() {
+  for (const f of ['.env.local', '.env']) {
+    if (!existsSync(f)) continue;
+    const line = readFileSync(f, 'utf8')
+      .split('\n')
+      .find((l) => l.trim().startsWith('KASI_SERVICE_KEY='));
+    if (line) return line.slice(line.indexOf('=') + 1).trim().replace(/^["']|["']$/g, '');
+  }
+  return undefined;
+}
 
-if (!KEY) {
+const RAW_KEY = process.env.KASI_SERVICE_KEY || readKeyFromEnvFile();
+
+if (!RAW_KEY) {
   console.error(
     '\n[calendar] KASI_SERVICE_KEY 가 없습니다.\n' +
-      '  공공데이터포털에서 "음양력 정보"와 "특일 정보" 활용신청 후 일반 인증키를 넣어주세요:\n' +
-      '    KASI_SERVICE_KEY=... node tools/gen-calendar-data.mjs 2026 2035\n' +
-      '  키 없이는 달력 데이터를 만들지 않습니다 (임의 생성 금지).\n'
+      '  공공데이터포털(data.go.kr)에서 "음양력 정보"와 "특일 정보" 활용신청 후,\n' +
+      '  프로젝트 루트에 .env.local 파일을 만들고 아래 한 줄을 넣어주세요:\n' +
+      '    KASI_SERVICE_KEY=발급받은_인증키\n' +
+      '  (.env* 는 .gitignore 에 있어 저장소에 올라가지 않습니다)\n' +
+      '  키 없이는 달력 데이터를 만들지 않습니다 — 임의 생성 금지.\n'
   );
   process.exit(1);
 }
+
+// 포털은 Encoding/Decoding 두 형태를 준다. URL 에 넣을 때는 인코딩된 값이어야 하므로
+// 이미 %XX 가 들어 있으면 그대로, 아니면(Decoding 키) 여기서 인코딩한다.
+const KEY = /%[0-9A-Fa-f]{2}/.test(RAW_KEY)
+  ? RAW_KEY
+  : encodeURIComponent(RAW_KEY);
 
 const fromYear = Number(process.argv[2] ?? 2026);
 const toYear = Number(process.argv[3] ?? fromYear);
