@@ -1906,14 +1906,15 @@ function StepTalismanGift({
           }}
         >
           몸과 마음을 지키는 부적이에요. 예로부터 먼 길을 떠나는 이의 품에 넣어
-          보내던 것으로, 삼재의 해를 지날 때 곁에 두었습니다.
+          보내던 것으로, 삼재의 해를 지날 때 곁에 두었습니다. 이 호신부는 사흘
+          동안 곁을 지킨 뒤 조용히 자리를 비웁니다.
         </p>
 
         <div
           className="flex flex-wrap items-center justify-center gap-1.5"
           style={{ marginTop: 20 }}
         >
-          {['삼재의 해', '몸과 마음', '늘 지니는 부적'].map((t) => (
+          {['삼재의 해', '몸과 마음', '사흘의 동행'].map((t) => (
             <span
               key={t}
               className="rounded-full"

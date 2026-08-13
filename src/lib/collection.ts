@@ -12,11 +12,34 @@ const STORAGE_KEY = 'bujeok-collection';
 const CATALOG_IDS = new Set(TALISMANS.map((t) => t.id));
 const ID_BY_NAME = new Map(TALISMANS.map((t) => [t.name, t.id]));
 
+// 온보딩 선물 호신부는 사흘만 머문다 — 위젯의 agingDays: 3 (사흘에 걸쳐
+// 낡아간다)과 같은 컨셉. 사흘이 지나면 읽는 시점에 부적함에서 조용히 비운다.
+const GIFT_ID = 'hosinbu-gift';
+const GIFT_LIFETIME_MS = 3 * 24 * 60 * 60 * 1000;
+
+function pruneExpiredGift(list: SavedTalisman[]): SavedTalisman[] {
+  const now = Date.now();
+  const kept = list.filter((t) => {
+    if (t.id !== GIFT_ID) return true;
+    const savedAt = new Date(t.savedAt).getTime();
+    // savedAt 이 깨진 옛 데이터는 만료 판정을 못 하므로 남겨둔다
+    return Number.isNaN(savedAt) || now - savedAt < GIFT_LIFETIME_MS;
+  });
+  if (kept.length !== list.length) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(kept));
+    } catch {
+      // 저장 실패해도 화면에서는 만료된 것으로 취급
+    }
+  }
+  return kept;
+}
+
 export function loadCollection(): SavedTalisman[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as SavedTalisman[]) : [];
+    return raw ? pruneExpiredGift(JSON.parse(raw) as SavedTalisman[]) : [];
   } catch {
     return [];
   }

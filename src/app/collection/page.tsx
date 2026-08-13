@@ -12,6 +12,7 @@ import TraditionalButton from '@/components/hanji/TraditionalButton';
 import CollectionSegment from '@/components/hanji/CollectionSegment';
 import { BackIcon, GearIcon } from '@/components/hanji/motifs';
 import { SavedTalisman } from '@/lib/types';
+import { loadCollection } from '@/lib/collection';
 import { ENERGIES } from '@/data/energies';
 
 /** 필터 칩 — 전체 + 기운(카테고리 중복 제거) */
@@ -37,14 +38,7 @@ export default function CollectionPage() {
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('bujeok-collection');
-      if (stored) {
-        setCollection(JSON.parse(stored) as SavedTalisman[]);
-      }
-    } catch {
-      // ignore
-    }
+    setCollection(loadCollection());
   }, []);
 
   const handleDelete = () => {
