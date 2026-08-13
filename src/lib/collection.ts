@@ -12,10 +12,12 @@ const STORAGE_KEY = 'bujeok-collection';
 const CATALOG_IDS = new Set(TALISMANS.map((t) => t.id));
 const ID_BY_NAME = new Map(TALISMANS.map((t) => [t.name, t.id]));
 
-// 온보딩 선물 호신부는 사흘만 머문다 — 위젯의 agingDays: 3 (사흘에 걸쳐
-// 낡아간다)과 같은 컨셉. 사흘이 지나면 읽는 시점에 부적함에서 조용히 비운다.
-const GIFT_ID = 'hosinbu-gift';
-const GIFT_LIFETIME_MS = 3 * 24 * 60 * 60 * 1000;
+// 호신부(hosinbu-gift)는 사흘만 머문다 — 위젯의 agingDays: 3 (사흘에 걸쳐
+// 낡아간다)과 같은 컨셉. 사흘이 지나면 읽는 시점에 부적함에서 비우되,
+// 떠난 흔적(GIFT_EXPIRED_KEY)을 남겨 부적함이 "다시 모시기" 안내를 띄운다.
+export const GIFT_ID = 'hosinbu-gift';
+export const GIFT_LIFETIME_MS = 3 * 24 * 60 * 60 * 1000;
+export const GIFT_EXPIRED_KEY = 'bujeok-gift-expired-at';
 
 function pruneExpiredGift(list: SavedTalisman[]): SavedTalisman[] {
   const now = Date.now();
@@ -28,11 +30,32 @@ function pruneExpiredGift(list: SavedTalisman[]): SavedTalisman[] {
   if (kept.length !== list.length) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(kept));
+      localStorage.setItem(GIFT_EXPIRED_KEY, new Date(now).toISOString());
     } catch {
       // 저장 실패해도 화면에서는 만료된 것으로 취급
     }
   }
   return kept;
+}
+
+/** 호신부가 떠났고 아직 새로 모시지 않았는가 — 부적함의 "다시 모시기" 안내용 */
+export function giftDeparted(collection: SavedTalisman[]): boolean {
+  if (typeof window === 'undefined') return false;
+  if (collection.some((t) => t.id === GIFT_ID)) return false;
+  try {
+    return localStorage.getItem(GIFT_EXPIRED_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
+/** 호신부를 새로 모셨을 때 떠난 흔적을 지운다 */
+export function clearGiftDeparted(): void {
+  try {
+    localStorage.removeItem(GIFT_EXPIRED_KEY);
+  } catch {
+    // ignore
+  }
 }
 
 export function loadCollection(): SavedTalisman[] {
