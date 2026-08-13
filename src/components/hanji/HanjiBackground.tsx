@@ -28,11 +28,10 @@ export default function HanjiBackground({
         aria-hidden
         className="pointer-events-none fixed inset-0 z-0"
         style={{
-          backgroundImage: `url(${hanjiPaper.src})`,
-          backgroundSize: 'cover',
-          // 화면 맨 위부터 꽉 차게 — 종이의 윗부분(구름·낙관)이 잘리지 않는다
-          backgroundPosition: 'center top',
-          backgroundRepeat: 'no-repeat',
+          // 종이의 왼쪽 아래(무늬를 피한 평평한 결)를 190%로 키워 쓴다.
+          // 앱 전체가 같은 종이로 보이도록 배경 지정은 이 한 군데에만 둔다 —
+          // 화면마다 따로 깔면 크롭이 어긋나 다른 종이처럼 보인다.
+          background: `#F2E7CE url(${hanjiPaper.src}) 22% 92% / 190% auto no-repeat`,
         }}
       />
       <div className="relative z-10 flex min-h-dvh flex-col">{children}</div>

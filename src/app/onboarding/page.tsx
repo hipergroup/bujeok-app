@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import TraditionalButton from '@/components/hanji/TraditionalButton';
+import HanjiBackground from '@/components/hanji/HanjiBackground';
 import { KnotMotif } from '@/components/hanji/motifs';
 import AnimalMotif from '@/components/hanji/AnimalMotif';
 import { getTalismanById } from '@/data/talismans';
@@ -14,7 +15,6 @@ import {
   pushTalismanToWidget,
 } from '@/lib/widget-bridge';
 import hosinbuGift from '../../../public/talismans/hosinbu-gift.png';
-import hanjiBg from '../../../public/brand/hanji-bg.jpg';
 import wordmarkMark from '../../../public/brand/wordmark-mark.png';
 import cloudTrigramImg from '../../../public/brand/cloud-trigram.png';
 import dividerImg from '../../../public/brand/divider.png';
@@ -236,15 +236,7 @@ function StepWelcome({
 
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden">
-      {/* 한지 배경 — body의 safe-area 패딩(노치·홈바 띠) 바깥까지 뷰포트 전체를 덮는다.
-          background-position 22% 92%는 배경 무늬(구름·낙관)를 피해 평평한 결만 보이는 값 */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0"
-        style={{
-          background: `#F2E7CE url(${hanjiBg.src}) 22% 92% / 190% auto no-repeat`,
-        }}
-      />
+      {/* 배경은 페이지를 감싼 HanjiBackground 가 깐다 (safe-area 밖까지 덮는 fixed 종이) */}
       {/* 프레임 — 390 기준 절대 좌표의 기준면 */}
       <div
         className="relative mx-auto flex w-full max-w-[430px] flex-1 flex-col"
@@ -2121,8 +2113,10 @@ export default function OnboardingPage() {
   }, [router]);
 
   return (
+    // 종이는 HanjiBackground 한 군데에서만 깐다 — 1~5단계가 같은 결로 이어진다
+    <HanjiBackground>
     <div
-      className={`hanji-surface relative flex flex-col overflow-x-hidden text-[var(--color-meok)] ${
+      className={`relative flex flex-col overflow-x-hidden text-[var(--color-meok)] ${
         step === 0 ? 'overflow-y-hidden' : 'min-h-dvh'
       }`}
       style={
@@ -2196,5 +2190,6 @@ export default function OnboardingPage() {
         }
       `}</style>
     </div>
+    </HanjiBackground>
   );
 }
