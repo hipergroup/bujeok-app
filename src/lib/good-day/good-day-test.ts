@@ -232,6 +232,75 @@ function testMissingData() {
   check('데이터 없을 때 값을 지어내지 않음', madeUpValue === undefined);
 }
 
+// ── 6. 실제 달력 (음력·공휴일·절기) ──────────────────────────
+
+function testRealCalendar() {
+  // 설날 — 음력 1월 1일
+  const seol = getCalendarDay('2026-02-17');
+  eq('2026 설날 음력', [seol.lunarMonth, seol.lunarDay], [1, 1]);
+  eq('2026 설날 공휴일', seol.holidayName, '설날');
+  check('설날 전날도 연휴', getCalendarDay('2026-02-16').holiday);
+  check('설날 다음날도 연휴', getCalendarDay('2026-02-18').holiday);
+
+  // 추석 — 음력 8월 15일
+  const chuseok = getCalendarDay('2026-09-25');
+  eq('2026 추석 음력', [chuseok.lunarMonth, chuseok.lunarDay], [8, 15]);
+  eq('2026 추석 공휴일', chuseok.holidayName, '추석');
+
+  // 양력 고정 공휴일
+  for (const [d, name] of [
+    ['2026-01-01', '신정'],
+    ['2026-03-01', '삼일절'],
+    ['2026-05-05', '어린이날'],
+    ['2026-06-06', '현충일'],
+    ['2026-08-15', '광복절'],
+    ['2026-10-03', '개천절'],
+    ['2026-10-09', '한글날'],
+    ['2026-12-25', '성탄절'],
+  ] as [string, string][]) {
+    eq(`고정 공휴일 ${name}`, getCalendarDay(d).holidayName, name);
+  }
+
+  // 대체공휴일 — 주말과 겹친 공휴일 다음 평일에 하나 생겨야 한다
+  let foundSubstitute = false;
+  for (const y of [2026, 2027, 2028]) {
+    for (const m of [3, 8, 10, 12]) {
+      for (let d = 1; d <= 12; d++) {
+        const iso = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const day = getCalendarDay(iso);
+        if (day.holidayName?.includes('대체공휴일')) foundSubstitute = true;
+      }
+    }
+  }
+  check('대체공휴일이 계산된다', foundSubstitute);
+
+  // 절기 — 입춘은 2월 3~5일 사이
+  const ipchun = ['2026-02-03', '2026-02-04', '2026-02-05'].map(
+    (d) => getCalendarDay(d).solarTerm
+  );
+  check('입춘이 2월 초에 잡힌다', ipchun.includes('입춘'), ipchun.join(','));
+
+  // 일진·세차·월건이 채워진다
+  check('일진 채워짐', Boolean(seol.iljin) && seol.iljin!.length === 2, seol.iljin);
+  check('세차 채워짐', Boolean(seol.secha), seol.secha);
+
+  // 손 없는 날이 실제 음력과 이어진다 (음력 9일 → 손 없는 날)
+  const lunar9 = ['2026-02-25', '2026-02-26', '2026-02-27'].find(
+    (d) => getCalendarDay(d).lunarDay === 9
+  );
+  check('음력 9일을 실제 달력에서 찾음', Boolean(lunar9), String(lunar9));
+  if (lunar9) eq('그날은 손 없는 날', getSonDirection(9), 'none');
+
+  // 지원 범위 밖은 오류
+  let ranged = false;
+  try {
+    getCalendarDay('2051-01-01');
+  } catch (e) {
+    ranged = e instanceof CalendarDataMissingError;
+  }
+  check('2051년은 범위 밖 오류', ranged);
+}
+
 export function runGoodDayTests() {
   results.length = 0;
   testSonnal();
@@ -239,6 +308,7 @@ export function runGoodDayTests() {
   testFilters();
   testEngine();
   testMissingData();
+  testRealCalendar();
   const passed = results.filter((r) => r.pass).length;
   return { passed, total: results.length, results };
 }

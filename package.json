@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "framer-motion": "^12.43.0",
+    "korean-lunar-calendar": "^0.4.0",
     "lucide-react": "^1.31.0",
     "next": "16.2.12",
     "react": "19.2.4",
