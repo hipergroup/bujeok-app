@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomTab from "@/components/BottomTab";
+import { getUpcomingLine } from "@/lib/good-day/savedDays";
 import HanjiBackground from "@/components/hanji/HanjiBackground";
 import TraditionalHeader from "@/components/hanji/TraditionalHeader";
 import TalismanCategoryCard from "@/components/hanji/TalismanCategoryCard";
@@ -30,6 +31,26 @@ import {
 import OnboardingPage from "./onboarding/page";
 
 /* ── 오늘의 운세 — 사주 기반(온보딩 완료 시), 없으면 날짜 시드 ── */
+
+// ── 고른 좋은 날 (localStorage) ──
+// 서버 렌더에는 없는 값이라 useSyncExternalStore 로 읽어 하이드레이션 불일치를 피한다.
+let cachedUpcoming: ReturnType<typeof getUpcomingLine> | undefined;
+
+function readUpcomingGoodDay() {
+  if (cachedUpcoming === undefined) cachedUpcoming = getUpcomingLine();
+  return cachedUpcoming;
+}
+
+function subscribeGoodDays(onChange: () => void) {
+  cachedUpcoming = undefined;
+  onChange();
+  const handler = () => {
+    cachedUpcoming = undefined;
+    onChange();
+  };
+  window.addEventListener("storage", handler);
+  return () => window.removeEventListener("storage", handler);
+}
 
 const OHENG_LABEL: Record<string, string> = {
   목: "목(木)", 화: "화(火)", 토: "토(土)", 금: "금(金)", 수: "수(水)",
@@ -125,6 +146,12 @@ const stagger = {
 /* ── Component ─────────────────────────── */
 export default function HomePage() {
   const router = useRouter();
+  // 고른 좋은 날 — localStorage 는 서버에 없으므로 마운트 뒤에 읽는다
+  const upcomingDay = useSyncExternalStore(
+    subscribeGoodDays,
+    readUpcomingGoodDay,
+    () => null
+  );
   const [ready, setReady] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [userName, setUserName] = useState("");
@@ -568,8 +595,17 @@ export default function HomePage() {
                 <span className="font-serif-kr text-[13.5px] font-bold leading-tight text-[var(--color-meok)]">
                   {s.title}
                 </span>
-                <span className="text-[11px] leading-tight text-[var(--color-galsaek)] opacity-80">
-                  {s.desc}
+                <span
+                  className="text-[11px] leading-tight opacity-80"
+                  style={{
+                    color:
+                      s.href === '/days' && upcomingDay
+                        ? 'var(--color-juhong)'
+                        : 'var(--color-galsaek)',
+                  }}
+                >
+                  {/* 고른 날이 있으면 남은 날을 대신 보여준다 */}
+                  {s.href === '/days' && upcomingDay ? upcomingDay.line : s.desc}
                 </span>
               </Link>
             ))}

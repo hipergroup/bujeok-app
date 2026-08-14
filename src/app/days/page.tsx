@@ -1,41 +1,53 @@
 'use client';
 
 // ============================================================
-// 좋은 날 고르기 (택일 擇日)
-// 나의 사주와 그날의 일진(日辰)을 맞춰 한 달의 흐름을 달력으로 본다.
-// 전통 택일 관습을 참고한 재미·참고용 정보 — 겁주지 않는다.
+// 좋은 날 고르기 — 생활 택일
+//
+// 목적 고르기 → 조건 넣기 → 추천 보기 → 상세·근거
+// 공식 달력(음양력·공휴일)과 앱의 만세력 해석을 나눠서 보여준다.
 // ============================================================
 
-import { useState, useEffect, useMemo } from 'react';
+import { useCallback, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import HanjiBackground from '@/components/hanji/HanjiBackground';
 import TraditionalHeader from '@/components/hanji/TraditionalHeader';
+import TraditionalButton from '@/components/hanji/TraditionalButton';
 import BottomTab from '@/components/BottomTab';
-import { getSaju, getOheng, type SajuResult } from '@/data/saju';
-import { getYongsin, type YongsinResult } from '@/data/yongsin';
+import { BackIcon } from '@/components/hanji/motifs';
+import PurposeSelector from '@/components/good-day/PurposeSelector';
+import DateConditionForm from '@/components/good-day/DateConditionForm';
+import RecommendationCard, {
+  formatDate,
+  formatLunar,
+} from '@/components/good-day/RecommendationCard';
+import GoodDayCalendar from '@/components/good-day/GoodDayCalendar';
+import ReasonSheet from '@/components/good-day/ReasonSheet';
+import { SON_DIRECTION_LABEL } from '@/lib/calendar/sonnal';
+import { CalendarDataMissingError } from '@/lib/calendar/calendarAdapter';
 import {
-  getMonthRatings,
-  TAEGIL_PURPOSES,
-  LEVEL_LABEL,
-  type TaegilPurpose,
-  type DayRating,
-} from '@/data/taegil';
+  buildPersonSaju,
+  recommendDates,
+} from '@/lib/good-day/dateSelectionEngine';
+import { saveGoodDay } from '@/lib/good-day/savedDays';
+import { PURPOSE_LABEL } from '@/types/good-day';
+import type {
+  DateConditions,
+  DayCandidate,
+  GoodDayPurpose,
+  RecommendationResult,
+} from '@/types/good-day';
 
-// 한지 팔레트 (사주 페이지와 동일)
 const JUHONG = '#A72B21';
-const MEOK = '#2B2B2B';
+const MEOK = '#2E2E2E';
 const GALSAEK = '#7A4A34';
-const NAMSAEK = '#1F4E5F';
-const SSUK = '#5C7350';
-
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 interface Profile {
   name: string;
-  birth: { year: number; month: number; day: number; hour: number };
+  birth: { year: number; month: number; day: number; hour: number | null };
 }
 
+/** 온보딩이 저장한 사주 프로필을 그대로 재사용한다 (다시 묻지 않는다) */
 function loadProfile(): Profile | null {
   try {
     const raw = localStorage.getItem('bujeok-user');
@@ -48,7 +60,7 @@ function loadProfile(): Profile | null {
             year: u.birth.year,
             month: u.birth.month ?? 1,
             day: u.birth.day ?? 1,
-            hour: u.birth.hour ?? 12,
+            hour: u.birth.hourKnown === false ? null : (u.birth.hour ?? 12),
           },
         };
       }
@@ -63,7 +75,7 @@ function loadProfile(): Profile | null {
             year: u.birthYear,
             month: u.birthMonth ?? 1,
             day: u.birthDay ?? 1,
-            hour: u.birthHour ?? 12,
+            hour: u.birthHourKnown === false ? null : (u.birthHour ?? 12),
           },
         };
       }
@@ -74,393 +86,443 @@ function loadProfile(): Profile | null {
   return null;
 }
 
+// localStorage 는 서버에 없다. 첫 렌더(서버)는 null 로 그리고, 마운트 뒤에
+// 실제 값으로 다시 그린다 — useSyncExternalStore 로 하이드레이션 불일치를 피한다.
+let cachedProfile: Profile | null | undefined;
+
+function readProfile(): Profile | null {
+  if (cachedProfile === undefined) cachedProfile = loadProfile();
+  return cachedProfile;
+}
+
+function subscribeProfile(onChange: () => void) {
+  // 마운트 시 다시 읽는다 (온보딩을 막 마치고 돌아온 경우 대비)
+  cachedProfile = undefined;
+  onChange();
+  const handler = () => {
+    cachedProfile = undefined;
+    onChange();
+  };
+  window.addEventListener('storage', handler);
+  return () => window.removeEventListener('storage', handler);
+}
+
+type Phase = 'purpose' | 'conditions' | 'result';
+
 export default function DaysPage() {
-  const [loaded, setLoaded] = useState<{ profile: Profile | null } | null>(
-    null
+  const [phase, setPhase] = useState<Phase>('purpose');
+  const [purpose, setPurpose] = useState<GoodDayPurpose | null>(null);
+  const [result, setResult] = useState<RecommendationResult | null>(null);
+  const [detail, setDetail] = useState<DayCandidate | null>(null);
+  const [showReason, setShowReason] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [savedDate, setSavedDate] = useState<string | null>(null);
+
+  const profile = useSyncExternalStore(subscribeProfile, readProfile, () => null);
+
+  const run = useCallback(
+    (conditions: DateConditions) => {
+      if (!profile || !purpose) return;
+      setError(null);
+      try {
+        const me = buildPersonSaju(
+          profile.birth.year,
+          profile.birth.month,
+          profile.birth.day,
+          profile.birth.hour
+        );
+        const partner = conditions.partner
+          ? buildPersonSaju(
+              conditions.partner.year,
+              conditions.partner.month,
+              conditions.partner.day,
+              conditions.partner.hour
+            )
+          : undefined;
+        setResult(recommendDates({ purpose, conditions, me, partner }));
+        setPhase('result');
+      } catch (e) {
+        setError(
+          e instanceof CalendarDataMissingError
+            ? e.message
+            : e instanceof Error
+              ? e.message
+              : String(e)
+        );
+      }
+    },
+    [profile, purpose]
   );
-  const today = useMemo(() => new Date(), []);
-  const [viewYear, setViewYear] = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth() + 1); // 1-12
-  const [purpose, setPurpose] = useState<TaegilPurpose>('전체');
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
-  useEffect(() => {
-    setLoaded({ profile: loadProfile() });
-  }, []);
+  const top3 = result?.candidates.slice(0, 3) ?? [];
 
-  // 내 사주 · 용신 (프로필 있을 때만)
-  const my = useMemo(() => {
-    if (!loaded?.profile) return null;
-    const b = loaded.profile.birth;
-    const saju: SajuResult = getSaju(b.year, b.month, b.day, b.hour);
-    const yongsin: YongsinResult = getYongsin(saju, getOheng(saju));
-    return { saju, yongsin };
-  }, [loaded]);
-
-  // 한 달치 등급
-  const ratings: DayRating[] = useMemo(() => {
-    if (!my) return [];
-    return getMonthRatings(my.saju, my.yongsin, viewYear, viewMonth, purpose);
-  }, [my, viewYear, viewMonth, purpose]);
-
-  const best3 = useMemo(() => {
-    const isThisMonth =
-      viewYear === today.getFullYear() && viewMonth === today.getMonth() + 1;
-    return [...ratings]
-      .filter((r) => !isThisMonth || r.date.getDate() >= today.getDate())
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3)
-      .filter((r) => r.score >= 2)
-      .sort((a, b) => a.date.getDate() - b.date.getDate());
-  }, [ratings, viewYear, viewMonth, today]);
-
-  const selected =
-    selectedDay !== null
-      ? (ratings.find((r) => r.date.getDate() === selectedDay) ?? null)
-      : null;
-
-  const firstWeekday = new Date(viewYear, viewMonth - 1, 1).getDay();
-
-  const moveMonth = (delta: number) => {
-    let y = viewYear;
-    let m = viewMonth + delta;
-    if (m < 1) {
-      m = 12;
-      y -= 1;
-    } else if (m > 12) {
-      m = 1;
-      y += 1;
-    }
-    // 만세력 데이터 범위 보호 (1900~2100)
-    if (y < 1901 || y > 2099) return;
-    setViewYear(y);
-    setViewMonth(m);
-    setSelectedDay(null);
+  const handleSave = (c: DayCandidate) => {
+    if (!purpose || !profile) return;
+    saveGoodDay(purpose, c, `${profile.birth.year}${profile.birth.month}${profile.birth.day}`, result?.conditions.partner);
+    setSavedDate(c.date);
   };
 
-  const levelStyle = (r: DayRating, isToday: boolean, isSel: boolean) => {
-    const base: React.CSSProperties = {
-      border: `1.2px solid ${
-        isSel ? NAMSAEK : isToday ? JUHONG : `${GALSAEK}1A`
-      }`,
-    };
-    switch (r.level) {
-      case 'best':
-        return { ...base, background: `${JUHONG}14`, color: JUHONG };
-      case 'good':
-        return { ...base, background: `${SSUK}14`, color: SSUK };
-      case 'normal':
-        return { ...base, background: `${GALSAEK}06`, color: `${MEOK}99` };
-      case 'careful':
-        return { ...base, background: `${MEOK}08`, color: `${MEOK}55` };
+  const back = () => {
+    if (phase === 'result') setPhase('conditions');
+    else if (phase === 'conditions') {
+      setPhase('purpose');
+      setPurpose(null);
     }
   };
 
   return (
     <HanjiBackground>
-      <div className="mx-auto min-h-dvh max-w-lg pb-32">
-        <TraditionalHeader title="좋은 날 고르기" showSeal />
+      <div className="mx-auto min-h-dvh w-full max-w-lg pb-32">
+        <TraditionalHeader
+          title="좋은 날 고르기"
+          showSeal
+          left={
+            phase === 'purpose' ? undefined : (
+              <button onClick={back} aria-label="뒤로가기">
+                <BackIcon size={20} />
+              </button>
+            )
+          }
+        />
 
         <main className="px-5">
-          <p
-            className="text-[12px] leading-relaxed"
-            style={{ color: GALSAEK }}
-          >
-            전통 택일(擇日) 관습을 참고해, 나의 사주와 그날의
-            일진(日辰)이 맞는 날을 찾아드려요.
-          </p>
-
-          {/* 프로필 없음 → 온보딩 유도 */}
-          {loaded && !loaded.profile && (
+          {/* 사주가 없으면 온보딩으로 */}
+          {!profile ? (
             <div
-              className="hanji-card mt-5 rounded-2xl px-5 py-6 text-center"
-              style={{ border: `1px solid ${GALSAEK}30` }}
+              className="rounded-xl text-center"
+              style={{
+                marginTop: 20,
+                padding: '24px 20px',
+                background: 'rgba(255,253,248,0.82)',
+                border: '1px solid rgba(122,74,52,0.2)',
+              }}
             >
-              <p className="text-[28px]">📅</p>
-              <p
-                className="mt-2 font-serif-kr text-[15px] font-bold"
-                style={{ color: MEOK }}
-              >
+              <p className="font-serif-kr" style={{ fontSize: 15, color: MEOK }}>
                 내 사주를 알아야 날을 고를 수 있어요
               </p>
               <p
-                className="mt-1.5 text-[12px] leading-relaxed"
-                style={{ color: `${MEOK}99` }}
+                style={{ marginTop: 8, fontSize: 12, lineHeight: 1.8, color: `${MEOK}99` }}
               >
-                생년월일을 알려주시면 나에게 맞는
+                생년월일을 한 번만 알려주시면
                 <br />
-                좋은 날을 달력으로 보여드려요.
+                그 뒤로는 다시 묻지 않습니다.
               </p>
               <Link
                 href="/onboarding"
-                className="mt-4 inline-block rounded-full px-6 py-2.5 text-[13px] font-bold"
-                style={{ background: JUHONG, color: '#F6EDD9' }}
+                className="mt-4 inline-block rounded-lg"
+                style={{
+                  padding: '11px 22px',
+                  fontSize: 13,
+                  background: JUHONG,
+                  color: '#FBF3E0',
+                }}
               >
                 사주 입력하러 가기
               </Link>
             </div>
-          )}
-
-          {my && (
-            <>
-              {/* 목적 필터 */}
-              <div className="-mx-5 mt-4 overflow-x-auto px-5">
-                <div className="flex w-max gap-1.5">
-                  {TAEGIL_PURPOSES.map((p) => {
-                    const on = p === purpose;
-                    return (
-                      <button
-                        key={p}
-                        onClick={() => {
-                          setPurpose(p);
-                          setSelectedDay(null);
-                        }}
-                        className="rounded-full px-3.5 py-1.5 text-[12px] font-bold transition-all active:scale-95"
-                        style={{
-                          background: on ? JUHONG : `${GALSAEK}0E`,
-                          color: on ? '#F6EDD9' : GALSAEK,
-                          border: `1px solid ${on ? JUHONG : `${GALSAEK}26`}`,
-                        }}
-                      >
-                        {p}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 이번 달 베스트 */}
-              {best3.length > 0 && (
-                <div
-                  className="mt-4 rounded-xl px-4 py-3"
-                  style={{
-                    background: `${JUHONG}0A`,
-                    border: `1px solid ${JUHONG}2A`,
-                  }}
+          ) : (
+            <AnimatePresence mode="wait">
+              {/* ── 목적 고르기 ── */}
+              {phase === 'purpose' && (
+                <motion.div
+                  key="purpose"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  style={{ paddingTop: 8 }}
                 >
-                  <p
-                    className="text-[11.5px] font-bold"
-                    style={{ color: JUHONG }}
+                  <PurposeSelector
+                    onSelect={(p) => {
+                      setPurpose(p);
+                      setPhase('conditions');
+                    }}
+                  />
+                  <Link
+                    href="/days/month"
+                    className="mt-5 block text-center"
+                    style={{ fontSize: 12.5, color: `${GALSAEK}CC` }}
                   >
-                    ⭐ {viewMonth}월의 좋은 날
-                    {purpose !== '전체' ? ` · ${purpose}` : ''}
-                  </p>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {best3.map((r) => (
-                      <button
-                        key={r.date.getDate()}
-                        onClick={() => setSelectedDay(r.date.getDate())}
-                        className="rounded-full px-3 py-1 text-[12px] font-bold active:scale-95"
-                        style={{
-                          background: `${JUHONG}14`,
-                          color: JUHONG,
-                          border: `1px solid ${JUHONG}30`,
-                        }}
-                      >
-                        {r.date.getDate()}일 ·{' '}
-                        {r.iljinGan.name}
-                        {r.iljinJi.name}일
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                    목적 없이 이번 달 흐름만 볼래요
+                  </Link>
+                </motion.div>
               )}
 
-              {/* 달력 헤더 */}
-              <div className="mt-5 flex items-center justify-between">
-                <button
-                  onClick={() => moveMonth(-1)}
-                  aria-label="이전 달"
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-[16px] active:scale-90"
-                  style={{ background: `${GALSAEK}0E`, color: GALSAEK }}
+              {/* ── 조건 넣기 ── */}
+              {phase === 'conditions' && purpose && (
+                <motion.div
+                  key="conditions"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  style={{ paddingTop: 8 }}
                 >
-                  ◀
-                </button>
-                <p
-                  className="font-serif-kr text-[16px] font-bold"
-                  style={{ color: MEOK }}
-                >
-                  {viewYear}년 {viewMonth}월
-                </p>
-                <button
-                  onClick={() => moveMonth(1)}
-                  aria-label="다음 달"
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-[16px] active:scale-90"
-                  style={{ background: `${GALSAEK}0E`, color: GALSAEK }}
-                >
-                  ▶
-                </button>
-              </div>
+                  <h2
+                    className="font-serif-kr"
+                    style={{ fontSize: 18, color: MEOK, marginBottom: 14 }}
+                  >
+                    {PURPOSE_LABEL[purpose]} — 언제쯤 보실까요?
+                  </h2>
+                  <DateConditionForm purpose={purpose} onSubmit={run} />
+                  {error && (
+                    <p
+                      className="rounded-lg"
+                      style={{
+                        marginTop: 12,
+                        padding: '12px 14px',
+                        fontSize: 12,
+                        lineHeight: 1.7,
+                        color: JUHONG,
+                        background: 'rgba(167,43,33,0.06)',
+                        border: '1px solid rgba(167,43,33,0.25)',
+                      }}
+                    >
+                      {error}
+                    </p>
+                  )}
+                </motion.div>
+              )}
 
-              {/* 요일 헤더 */}
-              <div className="mt-3 grid grid-cols-7 gap-1">
-                {WEEKDAYS.map((w, i) => (
+              {/* ── 결과 ── */}
+              {phase === 'result' && result && (
+                <motion.div
+                  key="result"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  style={{ paddingTop: 8 }}
+                >
+                  {result.candidates.length === 0 ? (
+                    <div
+                      className="rounded-xl text-center"
+                      style={{
+                        padding: '24px 20px',
+                        background: 'rgba(255,253,248,0.82)',
+                        border: '1px solid rgba(122,74,52,0.2)',
+                      }}
+                    >
+                      <p style={{ fontSize: 13.5, lineHeight: 1.8, color: MEOK }}>
+                        고르신 조건에 맞는 날이 없어요.
+                        <br />
+                        기간을 늘리거나 조건을 조금 풀어보세요.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex flex-col gap-2.5">
+                        {top3.map((c, i) => (
+                          <RecommendationCard
+                            key={c.date}
+                            candidate={c}
+                            rank={i}
+                            onClick={() => setDetail(c)}
+                          />
+                        ))}
+                      </div>
+
+                      <div style={{ marginTop: 16 }}>
+                        <GoodDayCalendar
+                          candidates={result.candidates}
+                          onPick={setDetail}
+                        />
+                      </div>
+
+                      {result.excludedCount > 0 && (
+                        <p
+                          style={{
+                            marginTop: 10,
+                            fontSize: 11.5,
+                            lineHeight: 1.7,
+                            color: `${GALSAEK}AA`,
+                          }}
+                        >
+                          조건에 맞지 않아 {result.excludedCount}일은 후보에서
+                          제외했어요.
+                        </p>
+                      )}
+                      {(result.hourUnknown.me || result.hourUnknown.partner) && (
+                        <p
+                          style={{
+                            marginTop: 6,
+                            fontSize: 11.5,
+                            lineHeight: 1.7,
+                            color: `${GALSAEK}AA`,
+                          }}
+                        >
+                          태어난 시간을 모르셔서 시주(時柱)는 빼고 계산했습니다.
+                        </p>
+                      )}
+                    </>
+                  )}
+
+                  {/* 안내 */}
                   <p
-                    key={w}
-                    className="text-center text-[10.5px] font-bold"
                     style={{
-                      color:
-                        i === 0 ? JUHONG : i === 6 ? NAMSAEK : `${GALSAEK}AA`,
+                      marginTop: 20,
+                      fontSize: 11,
+                      lineHeight: 1.8,
+                      color: `${GALSAEK}99`,
                     }}
                   >
-                    {w}
+                    좋은 날 고르기는 전통 민속과 명리 해석을 바탕으로 날짜 선택을
+                    돕는 참고 기능입니다. 특정한 결과나 효험을 보장하지 않으며,
+                    계약·이사·결혼과 관련한 현실적인 조건도 함께 확인해 주세요.
                   </p>
-                ))}
-              </div>
-
-              {/* 날짜 그리드 */}
-              <div className="mt-1 grid grid-cols-7 gap-1">
-                {Array.from({ length: firstWeekday }).map((_, i) => (
-                  <div key={`empty-${i}`} />
-                ))}
-                {ratings.map((r) => {
-                  const d = r.date.getDate();
-                  const isToday =
-                    viewYear === today.getFullYear() &&
-                    viewMonth === today.getMonth() + 1 &&
-                    d === today.getDate();
-                  const isSel = selectedDay === d;
-                  return (
-                    <button
-                      key={d}
-                      onClick={() => setSelectedDay(isSel ? null : d)}
-                      className="flex aspect-square flex-col items-center justify-center rounded-lg transition-transform active:scale-90"
-                      style={levelStyle(r, isToday, isSel)}
-                    >
-                      <span className="text-[12.5px] font-bold tabular-nums leading-none">
-                        {d}
-                      </span>
-                      <span className="mt-0.5 text-[8px] leading-none">
-                        {r.level === 'best'
-                          ? '★'
-                          : r.level === 'good'
-                            ? '●'
-                            : r.level === 'careful'
-                              ? '—'
-                              : '·'}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* 범례 */}
-              <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-                {(
-                  [
-                    ['best', '★ 아주 좋음', JUHONG],
-                    ['good', '● 좋음', SSUK],
-                    ['normal', '· 무난', `${MEOK}88`],
-                    ['careful', '— 쉬어가기', `${MEOK}55`],
-                  ] as const
-                ).map(([k, label, color]) => (
-                  <span
-                    key={k}
-                    className="text-[10.5px] font-medium"
-                    style={{ color }}
+                  <p
+                    style={{ marginTop: 6, fontSize: 10.5, color: `${GALSAEK}99` }}
                   >
-                    {label}
-                  </span>
-                ))}
-              </div>
-
-              {/* 선택한 날 상세 */}
-              <AnimatePresence mode="wait">
-                {selected && (
-                  <motion.div
-                    key={`${viewMonth}-${selected.date.getDate()}-${purpose}`}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.25 }}
-                    className="hanji-card mt-4 rounded-2xl px-5 py-4"
-                    style={{ border: `1px solid ${GALSAEK}30` }}
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p
-                        className="font-serif-kr text-[15px] font-bold"
-                        style={{ color: MEOK }}
-                      >
-                        {viewMonth}월 {selected.date.getDate()}일
-                      </p>
-                      <span
-                        className="rounded-full px-2 py-[2px] text-[10.5px] font-bold"
-                        style={{
-                          background: `${NAMSAEK}10`,
-                          color: NAMSAEK,
-                        }}
-                      >
-                        {selected.iljinGan.name}
-                        {selected.iljinJi.name}(
-                        {selected.iljinGan.hanja}
-                        {selected.iljinJi.hanja})일
-                      </span>
-                      <span
-                        className="rounded-full px-2 py-[2px] text-[10.5px] font-bold"
-                        style={{
-                          background:
-                            selected.level === 'best'
-                              ? `${JUHONG}14`
-                              : selected.level === 'good'
-                                ? `${SSUK}14`
-                                : selected.level === 'careful'
-                                  ? `${MEOK}0C`
-                                  : `${GALSAEK}10`,
-                          color:
-                            selected.level === 'best'
-                              ? JUHONG
-                              : selected.level === 'good'
-                                ? SSUK
-                                : selected.level === 'careful'
-                                  ? `${MEOK}77`
-                                  : GALSAEK,
-                        }}
-                      >
-                        {LEVEL_LABEL[selected.level]}
-                      </span>
-                    </div>
-
-                    <ul className="mt-3 space-y-1.5">
-                      {selected.reasons.map((reason, i) => (
-                        <li
-                          key={i}
-                          className="flex gap-1.5 text-[12.5px] leading-relaxed"
-                          style={{ color: `${MEOK}CC` }}
-                        >
-                          <span style={{ color: `${GALSAEK}88` }}>·</span>
-                          {reason}
-                        </li>
-                      ))}
-                    </ul>
-
-                    {(selected.level === 'best' ||
-                      selected.level === 'good') && (
-                      <Link
-                        href="/talisman"
-                        className="mt-4 block rounded-full py-2.5 text-center text-[12.5px] font-bold active:scale-[0.98]"
-                        style={{
-                          background: JUHONG,
-                          color: '#F6EDD9',
-                        }}
-                      >
-                        ✨ 이 날을 위한 부적 준비하기
-                      </Link>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <p
-                className="mt-4 text-[10.5px] leading-relaxed"
-                style={{ color: `${GALSAEK}88` }}
-              >
-                전통 택일 관습을 참고한 재미·참고용 정보예요. 중요한 결정은
-                여러 사정을 두루 살펴 정하시길 바라요.
-              </p>
-            </>
+                    달력 출처 · {result.calendarSource}
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           )}
         </main>
       </div>
+
+      {/* ── 날짜 상세 ── */}
+      <AnimatePresence>
+        {detail && result && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-end"
+            style={{ background: 'rgba(46,46,46,0.35)' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setDetail(null)}
+          >
+            <motion.div
+              className="max-h-[82dvh] w-full overflow-y-auto"
+              style={{
+                background: '#FDFAF0',
+                borderTopLeftRadius: 18,
+                borderTopRightRadius: 18,
+                padding: '20px 20px 34px',
+              }}
+              initial={{ y: 40 }}
+              animate={{ y: 0 }}
+              exit={{ y: 40 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                className="mx-auto mb-4"
+                style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(122,74,52,0.25)' }}
+              />
+              <p className="font-serif-kr" style={{ fontSize: 19, color: MEOK }}>
+                {formatDate(detail)}
+              </p>
+              <p style={{ marginTop: 5, fontSize: 12, color: `${GALSAEK}CC` }}>
+                {formatLunar(detail)}
+                {detail.calendar.iljin ? ` · 일진 ${detail.calendar.iljin}` : ''}
+                {detail.calendar.solarTerm ? ` · ${detail.calendar.solarTerm}` : ''}
+              </p>
+
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <span
+                  className="rounded-full"
+                  style={{
+                    padding: '3px 10px',
+                    fontSize: 11,
+                    color: detail.son === 'none' ? JUHONG : GALSAEK,
+                    border: `1px solid ${detail.son === 'none' ? 'rgba(167,43,33,0.3)' : 'rgba(122,74,52,0.26)'}`,
+                  }}
+                >
+                  {detail.son === 'none'
+                    ? '손 없는 날'
+                    : `${SON_DIRECTION_LABEL[detail.son]}에 손`}
+                </span>
+                {detail.calendar.holiday && (
+                  <span
+                    className="rounded-full"
+                    style={{
+                      padding: '3px 10px',
+                      fontSize: 11,
+                      color: GALSAEK,
+                      border: '1px solid rgba(122,74,52,0.26)',
+                    }}
+                  >
+                    {detail.calendar.holidayName}
+                  </span>
+                )}
+              </div>
+
+              {detail.reasons.length > 0 && (
+                <ul className="mt-4 flex flex-col gap-2">
+                  {detail.reasons.map((r) => (
+                    <li
+                      key={r}
+                      style={{ fontSize: 13, lineHeight: 1.85, color: `${MEOK}CC` }}
+                    >
+                      {r}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {detail.caution && (
+                <div
+                  className="rounded-lg"
+                  style={{
+                    marginTop: 12,
+                    padding: '12px 14px',
+                    background: 'rgba(218,160,23,0.1)',
+                    border: '1px solid rgba(218,160,23,0.34)',
+                  }}
+                >
+                  <p className="font-bold" style={{ fontSize: 11.5, color: '#9A6F0F' }}>
+                    한 가지만 살펴두세요
+                  </p>
+                  <p
+                    style={{ marginTop: 6, fontSize: 12.5, lineHeight: 1.7, color: `${MEOK}DD` }}
+                  >
+                    {detail.caution}
+                  </p>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowReason(true)}
+                className="mt-4 w-full rounded-lg"
+                style={{
+                  padding: '12px 0',
+                  fontSize: 13,
+                  color: JUHONG,
+                  border: '1px solid rgba(167,43,33,0.35)',
+                }}
+              >
+                왜 이 날인가요?
+              </button>
+
+              <div style={{ marginTop: 10 }}>
+                <TraditionalButton
+                  onClick={() => handleSave(detail)}
+                  disabled={savedDate === detail.date}
+                  className="rounded-lg"
+                >
+                  {savedDate === detail.date ? '이 날로 정했어요' : '이 날로 정하기'}
+                </TraditionalButton>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── 근거 보기 ── */}
+      <AnimatePresence>
+        {showReason && detail && result && (
+          <ReasonSheet
+            candidate={detail}
+            source={result.calendarSource}
+            rulesVersion={result.rulesVersion}
+            onClose={() => setShowReason(false)}
+          />
+        )}
+      </AnimatePresence>
+
       <BottomTab />
     </HanjiBackground>
   );

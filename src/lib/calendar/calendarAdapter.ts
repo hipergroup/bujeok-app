@@ -116,11 +116,11 @@ export function getCalendarDay(date: string): CalendarDay {
   };
 }
 
-export function getCalendarSource(_year?: number): string {
+export function getCalendarSource(): string {
   return LUNAR_SOURCE;
 }
 
-export function getCalendarVersion(_year?: number): string {
+export function getCalendarVersion(): string {
   return CALENDAR_VERSION;
 }
 

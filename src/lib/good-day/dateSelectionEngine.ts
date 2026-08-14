@@ -70,7 +70,7 @@ function scoreForPerson(
   person: PersonSaju,
   dayBranchName: string,
   dayBranchOheng: string,
-  who: '' | '상대방 ' = ''
+  who: '회원님' | '상대방' = '회원님'
 ): { score: number; factors: ScoreFactor[]; relation: string } {
   const factors: ScoreFactor[] = [];
   let score = 0;
@@ -84,7 +84,7 @@ function scoreForPerson(
     score += delta;
     factors.push({
       rule: `relation:${relation}`,
-      label: `${who}일지와 그날 지지가 ${RELATION_LABEL[relation]}`,
+      label: `${who}의 일지와 그날 지지가 ${RELATION_LABEL[relation]}`,
       delta,
       kind: 'interpretation',
     });
@@ -103,7 +103,7 @@ function scoreForPerson(
     score += OHENG_SCORE.huisin;
     factors.push({
       rule: 'oheng:huisin',
-      label: `${who}용신을 돕는 ${person.yongsin.huisin} 기운이 드는 날`,
+      label: `${who}의 용신을 돕는 ${person.yongsin.huisin} 기운이 드는 날`,
       delta: OHENG_SCORE.huisin,
       kind: 'interpretation',
     });
@@ -173,6 +173,8 @@ export function recommendDates(input: RecommendInput): RecommendationResult {
 
     const factors: ScoreFactor[] = [];
     const reasons: string[] = [];
+    /** 손 없는 날 설명 — 사주 근거 뒤에 붙이려고 따로 담아 둔다 */
+    let sonReason: string | undefined;
 
     // 그날의 일진 — 공식 데이터에 있으면 그 값을, 없으면 만세력으로 구한다
     const [y, m, d] = date.split('-').map(Number);
@@ -192,7 +194,7 @@ export function recommendDates(input: RecommendInput): RecommendationResult {
         partner,
         dayBranch.name,
         dayBranch.oheng,
-        '상대방 '
+        '상대방'
       );
       factors.push(...theirs.factors);
 
@@ -228,13 +230,14 @@ export function recommendDates(input: RecommendInput): RecommendationResult {
           kind: 'calendar',
         });
       }
-      reasons.push(
+      // 손 없는 날 문구는 카드 배지로도 보이므로 맨 뒤에 붙인다 —
+      // 앞자리는 이 날짜에만 해당하는 사주 근거에 내준다.
+      sonReason =
         purpose === 'move'
           ? conditions.moveDirection && conditions.moveDirection !== 'unknown'
             ? `손 없는 날에 해당하며, 선택하신 ${directionLabel(conditions.moveDirection)} 이사 방향과도 충돌하지 않습니다.`
             : '손 없는 날에 해당해 이사 날로 많이 고르는 날입니다.'
-          : '손 없는 날에 해당합니다.'
-      );
+          : '손 없는 날에 해당합니다.';
     }
 
     // ── 일정 조건 ──
@@ -284,6 +287,8 @@ export function recommendDates(input: RecommendInput): RecommendationResult {
         reasons.push('두 분 모두에게 치우침이 적어 무난한 날입니다.');
       }
     }
+    // 사주 근거가 하나도 없을 때만 손 없는 날을 앞세운다
+    if (sonReason) reasons.push(sonReason);
 
     let caution: string | undefined;
     if (mine.relation === 'chung') {
@@ -314,7 +319,6 @@ export function recommendDates(input: RecommendInput): RecommendationResult {
     b.score !== a.score ? b.score - a.score : a.date.localeCompare(b.date)
   );
 
-  const year = Number(conditions.from.slice(0, 4));
   return {
     purpose,
     conditions,
@@ -322,7 +326,7 @@ export function recommendDates(input: RecommendInput): RecommendationResult {
     excludedCount,
     hourUnknown: { me: me.hourUnknown, partner: partner?.hourUnknown ?? false },
     rulesVersion: RULES_VERSION,
-    calendarSource: input.source ?? getCalendarSource(year),
+    calendarSource: input.source ?? getCalendarSource(),
   };
 }
 
