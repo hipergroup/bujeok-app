@@ -11,7 +11,7 @@ import type { BranchRelation } from './branch-relations';
 import type { GoodDayPurpose } from '@/types/good-day';
 
 /** 저장된 추천이 어떤 기준으로 계산됐는지 남기기 위한 버전 */
-export const RULES_VERSION = '1.0.0';
+export const RULES_VERSION = '1.1.0';
 
 /** 모든 날짜가 여기서 출발한다 */
 export const BASE_SCORE = 50;
@@ -55,6 +55,17 @@ export const SON_SCORE: Record<GoodDayPurpose, number> = {
   contract: 3,
   confession: 0,
   wedding: 3,
+};
+
+/**
+ * 살(煞) — 전통적으로 큰일을 피하는 날.
+ * 결혼처럼 무게가 큰 일일수록 크게 본다.
+ */
+export const SAL_SCORE: Record<GoodDayPurpose, number> = {
+  wedding: -18,
+  move: -10,
+  contract: -10,
+  confession: -5,
 };
 
 /** 추천 등급을 가르는 점수 경계 */

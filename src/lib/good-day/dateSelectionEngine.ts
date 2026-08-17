@@ -19,6 +19,7 @@ import {
   eachDate,
 } from '@/lib/calendar/calendarAdapter';
 import { getSonDirection, conflictsWithMove } from '@/lib/calendar/sonnal';
+import { isWolgiil } from '@/lib/calendar/sal';
 import { getBranchRelation, RELATION_LABEL } from './branch-relations';
 import { isFilteredOut } from './purposeRules';
 import {
@@ -26,6 +27,7 @@ import {
   OHENG_SCORE,
   RELATION_SCORE,
   RULES_VERSION,
+  SAL_SCORE,
   SCHEDULE_SCORE,
   SON_SCORE,
   TIER_THRESHOLD,
@@ -238,6 +240,18 @@ export function recommendDates(input: RecommendInput): RecommendationResult {
             ? `손 없는 날에 해당하며, 선택하신 ${directionLabel(conditions.moveDirection)} 이사 방향과도 충돌하지 않습니다.`
             : '손 없는 날에 해당해 이사 날로 많이 고르는 날입니다.'
           : '손 없는 날에 해당합니다.';
+    }
+
+    // ── 살(煞) — 지금은 월기일만 반영한다 ──
+    if (isWolgiil(cal.lunarDay)) {
+      const delta = SAL_SCORE[purpose];
+      score += delta;
+      factors.push({
+        rule: 'sal:wolgiil',
+        label: '월기일 (음력 5·14·23일)',
+        delta,
+        kind: 'calendar',
+      });
     }
 
     // ── 일정 조건 ──

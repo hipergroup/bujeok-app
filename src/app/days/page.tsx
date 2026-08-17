@@ -24,6 +24,7 @@ import RecommendationCard, {
 import GoodDayCalendar from '@/components/good-day/GoodDayCalendar';
 import ReasonSheet from '@/components/good-day/ReasonSheet';
 import { SON_DIRECTION_LABEL } from '@/lib/calendar/sonnal';
+import { APPLIED_SAL, PENDING_SAL } from '@/lib/calendar/sal';
 import { CalendarDataMissingError } from '@/lib/calendar/calendarAdapter';
 import {
   buildPersonSaju,
@@ -264,6 +265,37 @@ export default function DaysPage() {
                   >
                     {PURPOSE_LABEL[purpose]} — 언제쯤 보실까요?
                   </h2>
+
+                  {/* 결혼은 전통 택일의 살(煞)을 다 보지 못하므로 미리 밝힌다 */}
+                  {purpose === 'wedding' && (
+                    <div
+                      className="rounded-xl"
+                      style={{
+                        marginBottom: 14,
+                        padding: '13px 15px',
+                        background: 'rgba(218,160,23,0.1)',
+                        border: '1px solid rgba(218,160,23,0.34)',
+                      }}
+                    >
+                      <p className="font-bold" style={{ fontSize: 11.5, color: '#9A6F0F' }}>
+                        먼저 알려드려요
+                      </p>
+                      <p
+                        style={{
+                          marginTop: 6,
+                          fontSize: 12,
+                          lineHeight: 1.75,
+                          color: `${MEOK}CC`,
+                        }}
+                      >
+                        예식장에서 받아오는 정식 혼인택일과는 다릅니다. 지금은
+                        두 분의 사주가 크게 부딪히지 않는 날을 골라드리고, 전통
+                        택일에서 보는 살(煞) 중에는 {APPLIED_SAL.join('·')}만
+                        반영했어요. {PENDING_SAL.join('·')}은 자료를 더 확인한
+                        뒤에 넣을 예정입니다.
+                      </p>
+                    </div>
+                  )}
                   <DateConditionForm purpose={purpose} onSubmit={run} />
                   {error && (
                     <p
