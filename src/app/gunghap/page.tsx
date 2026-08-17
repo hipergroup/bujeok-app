@@ -7,14 +7,15 @@
 // 상대방(B)의 생년월일은 저장하지 않는다 — 세션에서만 사용.
 // ============================================================
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import BottomTab from '@/components/BottomTab';
 import HanjiBackground from '@/components/hanji/HanjiBackground';
 import TraditionalHeader from '@/components/hanji/TraditionalHeader';
 import { BackIcon, KnotMotif } from '@/components/hanji/motifs';
-import { getAnimal } from '@/data/saju';
+import { getAnimal, getSajuYear, isSamjae } from '@/data/saju';
+import { decodeInvite, buildInviteUrl } from '@/lib/inyeon';
 import {
   getGunghap,
   type GunghapResult,
@@ -303,43 +304,113 @@ function ScoreCircle({ score, grade }: { score: number; grade: GunghapGrade }) {
 
 // ─── 페이지 ────────────────────────────────────────────────
 
-export default function GunghapPage() {
+function GunghapContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  /* 초대 링크(?i=) — 초대자의 이름·생년월일시가 링크에 실려 온다 */
+  const invite = useMemo(
+    () => decodeInvite(searchParams.get('i') ?? ''),
+    [searchParams]
+  );
+
   const [ready, setReady] = useState(false);
   const [hasProfile, setHasProfile] = useState(false);
   const [editingA, setEditingA] = useState(false);
   const [formA, setFormA] = useState<BirthForm>(EMPTY_FORM);
   const [formB, setFormB] = useState<BirthForm>({ ...EMPTY_FORM, year: 1995 });
-  const [relation, setRelation] = useState<RelationType>('연인');
+  const [relation, setRelation] = useState<RelationType>(
+    invite ? '친구' : '연인'
+  );
   const [result, setResult] = useState<GunghapResult | null>(null);
+  const [inviteStatus, setInviteStatus] = useState<'shared' | 'copied' | null>(
+    null
+  );
   const resultRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const p = loadMyProfile();
-    if (p) {
-      setFormA(p);
-      setHasProfile(true);
-    } else {
-      setEditingA(true);
+    if (!invite) {
+      const p = loadMyProfile();
+      if (p) {
+        setFormA(p);
+        setHasProfile(true);
+      } else {
+        setEditingA(true);
+      }
     }
     setReady(true);
-  }, []);
+  }, [invite]);
+
+  /* A = 초대 모드면 링크에 실려 온 초대자, 아니면 내 프로필/입력 */
+  const aForm: BirthForm = invite
+    ? {
+        name: invite.f,
+        year: invite.y,
+        month: invite.mo,
+        day: invite.d,
+        hour: invite.h,
+      }
+    : formA;
+
+  /* 초대 모드에서 결과가 나오면, 문 여는 사람(B)의 올해 삼재도 짚어준다 */
+  const samjaeB = useMemo(() => {
+    if (!invite || !result) return null;
+    return isSamjae(
+      new Date().getFullYear(),
+      getSajuYear(
+        formB.year,
+        formB.month,
+        formB.day,
+        formB.hour < 0 ? 12 : formB.hour
+      )
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invite, result]);
+
+  /* 내 사주를 실은 초대 링크 공유 (프로필 있는 사용자용) */
+  const handleInviteShare = async () => {
+    const url = buildInviteUrl({
+      v: 1,
+      f: formA.name,
+      y: formA.year,
+      mo: formA.month,
+      d: formA.day,
+      h: formA.hour,
+    });
+    const text = `${formA.name || '친구'}님과 나의 인연 궁합, 열어볼래요?`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: '수호부 — 두 사람의 인연', text, url });
+        setInviteStatus('shared');
+        return;
+      }
+    } catch {
+      // 공유 시트 닫힘 등 — 클립보드로 폴백하지 않고 조용히 종료
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setInviteStatus('copied');
+    } catch {
+      prompt('링크를 복사해 친구에게 보내주세요', url);
+    }
+  };
 
   const animalA = useMemo(
-    () => getAnimal(formA.year, formA.month, formA.day),
-    [formA.year, formA.month, formA.day]
+    () => getAnimal(aForm.year, aForm.month, aForm.day),
+    [aForm.year, aForm.month, aForm.day]
   );
 
   const handleSubmit = () => {
     // B 의 생년월일은 저장하지 않는다 (개인정보) — 이 화면 안에서만 사용
     const r = getGunghap({
       a: {
-        name: formA.name || undefined,
+        name: aForm.name || undefined,
         birth: {
-          year: formA.year,
-          month: formA.month,
-          day: formA.day,
-          hour: formA.hour < 0 ? 12 : formA.hour,
+          year: aForm.year,
+          month: aForm.month,
+          day: aForm.day,
+          hour: aForm.hour < 0 ? 12 : aForm.hour,
         },
       },
       b: {
@@ -380,11 +451,25 @@ export default function GunghapPage() {
       />
 
       <main className="mx-auto w-full max-w-md flex-1 px-5 pb-32 pt-1">
-        <p className="mb-5 text-center text-[11px]" style={{ color: `${GALSAEK}99` }}>
-          궁합(宮合) — 여덟 글자로 두 사람의 결을 읽어요
-        </p>
+        {invite ? (
+          <p
+            className="mb-5 text-center font-serif-kr text-[14px] leading-relaxed"
+            style={{ color: MEOK }}
+          >
+            <span className="font-bold">{invite.f || '누군가'}</span>님이
+            당신과의 인연 풀이를 청했어요
+            <br />
+            <span className="text-[11px]" style={{ color: `${GALSAEK}99` }}>
+              생년월일을 넣으면 두 사람의 결을 읽어드려요
+            </span>
+          </p>
+        ) : (
+          <p className="mb-5 text-center text-[11px]" style={{ color: `${GALSAEK}99` }}>
+            궁합(宮合) — 여덟 글자로 두 사람의 결을 읽어요
+          </p>
+        )}
 
-        {/* ── 나 (A) ── */}
+        {/* ── 나 (A) / 초대 모드에서는 초대한 사람 ── */}
         <motion.section
           initial={{ y: 16, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -393,9 +478,9 @@ export default function GunghapPage() {
         >
           <div className="mb-2 flex items-center justify-between">
             <h2 className="font-serif-kr text-[14px] font-bold" style={{ color: MEOK }}>
-              나의 사주
+              {invite ? '초대한 사람' : '나의 사주'}
             </h2>
-            {hasProfile && (
+            {!invite && hasProfile && (
               <button
                 onClick={() => setEditingA((v) => !v)}
                 className="rounded-full px-2.5 py-1 text-[11px] font-bold"
@@ -416,14 +501,14 @@ export default function GunghapPage() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-bold" style={{ color: MEOK }}>
-                  {formA.name ? `${formA.name}님` : '나'}
+                  {aForm.name ? `${aForm.name}님` : invite ? '초대한 분' : '나'}
                   <span className="ml-1.5 text-[11px] font-normal" style={{ color: GALSAEK }}>
                     {animalA.name}띠
                   </span>
                 </p>
                 <p className="text-[11px]" style={{ color: `${GALSAEK}AA` }}>
-                  {formA.year}년 {formA.month}월 {formA.day}일 ·{' '}
-                  {formA.hour < 0 ? '시 모름' : `${formA.hour}시`}
+                  {aForm.year}년 {aForm.month}월 {aForm.day}일 ·{' '}
+                  {aForm.hour < 0 ? '시 모름' : `${aForm.hour}시`}
                 </p>
               </div>
             </div>
@@ -440,7 +525,7 @@ export default function GunghapPage() {
           className="hanji-card mb-4 rounded-2xl px-4 py-4"
         >
           <h2 className="mb-2 font-serif-kr text-[14px] font-bold" style={{ color: MEOK }}>
-            상대의 사주
+            {invite ? '나의 사주' : '상대의 사주'}
           </h2>
 
           {/* 관계 유형 선택 — 해석의 언어가 달라져요 */}
@@ -477,9 +562,15 @@ export default function GunghapPage() {
             </div>
           </div>
 
-          <BirthFields form={formB} onChange={setFormB} namePlaceholder="상대 이름" />
+          <BirthFields
+            form={formB}
+            onChange={setFormB}
+            namePlaceholder={invite ? '내 이름' : '상대 이름'}
+          />
           <p className="mt-2.5 text-[10.5px] leading-relaxed" style={{ color: `${GALSAEK}88` }}>
-            상대방의 생년월일은 저장되지 않고, 이 화면에서만 사용돼요.
+            {invite
+              ? '입력한 생년월일은 저장되지 않고, 이 화면에서만 사용돼요.'
+              : '상대방의 생년월일은 저장되지 않고, 이 화면에서만 사용돼요.'}
           </p>
         </motion.section>
 
@@ -495,6 +586,38 @@ export default function GunghapPage() {
         >
           <KnotMotif size={20} /> 인연 보기
         </motion.button>
+
+        {/* ── 인연 초대장 — 내 사주를 실은 링크를 친구에게 (초대 모드에선 숨김) ── */}
+        {!invite && hasProfile && (
+          <motion.div
+            initial={{ y: 16, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.35, delay: 0.2 }}
+            className="-mt-2 mb-6"
+          >
+            <button
+              onClick={handleInviteShare}
+              className="w-full rounded-xl py-3 font-serif-kr text-[13px] font-bold"
+              style={{
+                color: JUHONG,
+                border: `1.5px solid ${JUHONG}55`,
+                background: 'rgba(167,43,33,0.05)',
+              }}
+            >
+              💌 친구에게 인연 풀이 청하기
+            </button>
+            <p
+              className="mt-1.5 text-center text-[10.5px]"
+              style={{ color: `${GALSAEK}88` }}
+            >
+              {inviteStatus === 'copied'
+                ? '링크를 복사했어요 — 친구에게 붙여넣어 보내주세요'
+                : inviteStatus === 'shared'
+                  ? '초대장을 보냈어요'
+                  : '내 사주를 실은 링크가 만들어져요. 친구는 생년월일만 넣으면 돼요.'}
+            </p>
+          </motion.div>
+        )}
 
         {/* ── 결과 ── */}
         <AnimatePresence mode="wait">
@@ -575,6 +698,32 @@ export default function GunghapPage() {
                 </p>
               </section>
 
+              {/* 초대받은 사람의 올해 삼재 — 부적으로 이어지는 다리 */}
+              {invite && samjaeB && (
+                <section
+                  className="hanji-card rounded-2xl px-4 py-5"
+                  style={
+                    samjaeB.is
+                      ? { borderColor: 'rgba(31,62,99,0.45)' }
+                      : undefined
+                  }
+                >
+                  <h3
+                    className="mb-2 font-serif-kr text-[14px] font-bold"
+                    style={{ color: samjaeB.is ? NAMSAEK : MEOK }}
+                  >
+                    {samjaeB.is
+                      ? `⚠️ 올해 당신은 ${samjaeB.type ?? '삼재'}의 해`
+                      : '🌿 올해 당신은 삼재가 아니에요'}
+                  </h3>
+                  <p className="text-[12px] leading-relaxed" style={{ color: GALSAEK }}>
+                    {samjaeB.is
+                      ? '삼재의 해에는 예로부터 몸과 마음을 지키는 부적을 곁에 두었어요. 사주 풀이와 함께 나만의 부적을 만들어 보세요.'
+                      : '평온한 흐름이에요. 소중한 사람과 나눌 부적 하나로 이 인연을 붙들어 보세요.'}
+                  </p>
+                </section>
+              )}
+
               {/* 두 사람을 위한 부적 */}
               <section
                 className="hanji-card rounded-2xl px-4 py-5"
@@ -617,7 +766,9 @@ export default function GunghapPage() {
                   className="w-full rounded-xl py-3 font-serif-kr text-[14px] font-bold text-white"
                   style={{ background: JUHONG }}
                 >
-                  이 부적 받기 →
+                  {invite
+                    ? `이 부적 만들어 ${invite.f ? `${invite.f}님께` : '친구에게'} 보내기 →`
+                    : '이 부적 받기 →'}
                 </motion.button>
               </section>
 
@@ -637,5 +788,14 @@ export default function GunghapPage() {
 
       <BottomTab />
     </HanjiBackground>
+  );
+}
+
+export default function GunghapPage() {
+  // useSearchParams 는 정적 내보내기에서 Suspense 경계가 필요하다 (gift 페이지와 동일)
+  return (
+    <Suspense fallback={null}>
+      <GunghapContent />
+    </Suspense>
   );
 }

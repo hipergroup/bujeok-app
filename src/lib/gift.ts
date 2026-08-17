@@ -32,13 +32,13 @@ export const GIFT_NAME_MAX = 12;
 
 /* ── base64url (한글 안전: TextEncoder/TextDecoder 경유) ── */
 
-function toBase64Url(bytes: Uint8Array): string {
+export function toBase64Url(bytes: Uint8Array): string {
   let bin = '';
   for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
   return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function fromBase64Url(s: string): Uint8Array | null {
+export function fromBase64Url(s: string): Uint8Array | null {
   try {
     const b64 =
       s.replace(/-/g, '+').replace(/_/g, '/') +
@@ -53,7 +53,7 @@ function fromBase64Url(s: string): Uint8Array | null {
 }
 
 /** HTML/제어문자 흔적을 제거하고 평문만 남긴다 */
-function sanitizeText(raw: unknown, maxLen: number): string {
+export function sanitizeText(raw: unknown, maxLen: number): string {
   if (typeof raw !== 'string') return '';
   return raw
     .replace(/<[^>]*>/g, '') // 태그 형태 제거
