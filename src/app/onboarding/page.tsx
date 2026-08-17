@@ -38,6 +38,8 @@ import {
 } from '@/data/saju-interpretation';
 // 용신(用神) — 나에게 필요한 기운
 import { getYongsin, ohengLabel } from '@/data/yongsin';
+// 음력 → 양력 변환 (KASI 기준표)
+import { lunarToSolar, solarToLunar } from '@/lib/calendar/lunarCalendar';
 import { saveProfile } from '@/lib/store';
 
 // ─────────────────────────────────────────────
@@ -505,6 +507,59 @@ function StepBirthInfo({
     onChange(next);
   };
 
+  // ── 음력 입력 지원 ──
+  // info(부모 상태)는 항상 "양력"이 정본이다. 음력 모드에서는 사용자가
+  // 음력 날짜(lunar)를 입력하면 그 자리에서 양력으로 변환해 info 에 반영한다.
+  const [calendarType, setCalendarType] = useState<'solar' | 'lunar'>('solar');
+  const [leap, setLeap] = useState(false);
+  const [lunar, setLunar] = useState({
+    year: info.year,
+    month: info.month,
+    day: info.day,
+  });
+
+  /** 현재 음력 입력의 양력 변환 결과 — 없는 날짜(윤달 등)면 null */
+  const lunarConverted = useMemo(() => {
+    if (calendarType !== 'lunar') return null;
+    const s = lunarToSolar(lunar.year, lunar.month, lunar.day, leap);
+    if (!s) return null;
+    const [y, m, d] = s.split('-').map(Number);
+    return { y, m, d };
+  }, [calendarType, lunar, leap]);
+
+  const lunarInvalid = calendarType === 'lunar' && !lunarConverted;
+
+  /** 음력 입력 변경 → 변환되면 즉시 부모(양력)에 반영 */
+  const patchLunar = (
+    p: Partial<{ year: number; month: number; day: number }>,
+    nextLeap: boolean = leap
+  ) => {
+    const nl = { ...lunar, ...p };
+    setLunar(nl);
+    setLeap(nextLeap);
+    const s = lunarToSolar(nl.year, nl.month, nl.day, nextLeap);
+    if (s) {
+      const [y, m, d] = s.split('-').map(Number);
+      patch({ year: y, month: m, day: d });
+    }
+  };
+
+  /** 양력 ↔ 음력 전환 — 지금 고른 날짜를 그대로 이어서 보여준다 */
+  const switchCalendar = (type: 'solar' | 'lunar') => {
+    if (type === calendarType) return;
+    if (type === 'lunar') {
+      try {
+        const l = solarToLunar(info.year, info.month, info.day);
+        setLunar({ year: l.year, month: l.month, day: l.day });
+        setLeap(l.leapMonth);
+      } catch {
+        setLunar({ year: info.year, month: info.month, day: info.day });
+        setLeap(false);
+      }
+    }
+    setCalendarType(type);
+  };
+
   const hour = effectiveHour(info.hour);
 
   // 입춘(立春) 기준 정확한 띠 — 만세력 모듈 사용
@@ -566,30 +621,24 @@ function StepBirthInfo({
                 border: '1px solid rgba(122,74,52,0.24)',
               }}
             >
-              <span
-                style={{
-                  padding: '4px 10px',
-                  fontSize: 10.5,
-                  background: JUHONG,
-                  color: '#FBF3E0',
-                }}
-              >
-                양력
-              </span>
-              {/* 음→양 변환이 아직 없어 고를 수 없다 — 되는 척하지 않는다 */}
-              <button
-                type="button"
-                disabled
-                title="준비 중"
-                style={{
-                  padding: '4px 10px',
-                  fontSize: 10.5,
-                  color: 'rgba(122,74,52,0.45)',
-                  cursor: 'not-allowed',
-                }}
-              >
-                음력 (준비 중)
-              </button>
+              {(['solar', 'lunar'] as const).map((type) => {
+                const on = calendarType === type;
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => switchCalendar(type)}
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: 10.5,
+                      background: on ? JUHONG : 'transparent',
+                      color: on ? '#FBF3E0' : 'rgba(122,74,52,0.75)',
+                    }}
+                  >
+                    {type === 'solar' ? '양력' : '음력'}
+                  </button>
+                );
+              })}
             </span>
           }
         />
@@ -600,32 +649,105 @@ function StepBirthInfo({
             gridTemplateColumns: '1.5fr 1fr 1fr',
           }}
         >
-          <UnderlineNumber
-            label="태어난 해"
-            value={info.year}
-            min={1900}
-            max={thisYear}
-            unit="年"
-            onCommit={(v) => patch({ year: v })}
-          />
-          <UnderlineNumber
-            label="태어난 달"
-            value={info.month}
-            min={1}
-            max={12}
-            unit="月"
-            onCommit={(v) => patch({ month: v })}
-          />
-          <UnderlineNumber
-            key={`${info.year}-${info.month}`}
-            label="태어난 날"
-            value={info.day}
-            min={1}
-            max={daysInMonth(info.year, info.month)}
-            unit="日"
-            onCommit={(v) => patch({ day: v })}
-          />
+          {calendarType === 'solar' ? (
+            <>
+              <UnderlineNumber
+                label="태어난 해"
+                value={info.year}
+                min={1900}
+                max={thisYear}
+                unit="年"
+                onCommit={(v) => patch({ year: v })}
+              />
+              <UnderlineNumber
+                label="태어난 달"
+                value={info.month}
+                min={1}
+                max={12}
+                unit="月"
+                onCommit={(v) => patch({ month: v })}
+              />
+              <UnderlineNumber
+                key={`${info.year}-${info.month}`}
+                label="태어난 날"
+                value={info.day}
+                min={1}
+                max={daysInMonth(info.year, info.month)}
+                unit="日"
+                onCommit={(v) => patch({ day: v })}
+              />
+            </>
+          ) : (
+            <>
+              <UnderlineNumber
+                label="태어난 해 (음력)"
+                value={lunar.year}
+                min={1900}
+                max={thisYear}
+                unit="年"
+                onCommit={(v) => patchLunar({ year: v })}
+              />
+              <UnderlineNumber
+                label="태어난 달 (음력)"
+                value={lunar.month}
+                min={1}
+                max={12}
+                unit="月"
+                onCommit={(v) => patchLunar({ month: v })}
+              />
+              <UnderlineNumber
+                key={`lunar-${lunar.year}-${lunar.month}`}
+                label="태어난 날 (음력)"
+                value={lunar.day}
+                min={1}
+                max={30}
+                unit="日"
+                onCommit={(v) => patchLunar({ day: v })}
+              />
+            </>
+          )}
         </div>
+
+        {/* 음력 모드: 윤달 토글 + 변환 결과/안내 */}
+        {calendarType === 'lunar' && (
+          <div
+            className="flex items-center justify-between"
+            style={{
+              padding: '10px 16px 14px',
+              borderTop: '1px dashed rgba(122,74,52,0.18)',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => patchLunar({}, !leap)}
+              aria-pressed={leap}
+              style={{
+                padding: '4px 10px',
+                fontSize: 10.5,
+                borderRadius: 6,
+                border: `1px solid ${leap ? JUHONG : 'rgba(122,74,52,0.3)'}`,
+                background: leap ? 'rgba(167,43,33,0.08)' : 'transparent',
+                color: leap ? JUHONG : 'rgba(122,74,52,0.7)',
+              }}
+            >
+              윤달 {leap ? '✓' : ''}
+            </button>
+            <span
+              style={{
+                fontSize: 10.5,
+                color: lunarInvalid ? JUHONG : 'rgba(122,74,52,0.75)',
+              }}
+            >
+              {lunarInvalid
+                ? leap
+                  ? '그 해에 없는 윤달이에요'
+                  : '없는 날짜예요 — 날짜를 확인해 주세요'
+                : lunarConverted
+                  ? `양력 ${lunarConverted.y}년 ${lunarConverted.m}월 ${lunarConverted.d}일`
+                  : ''}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 時辰 */}
@@ -788,7 +910,7 @@ function StepBirthInfo({
       <div style={{ marginTop: 24 }}>
         <TraditionalButton
           onClick={onNext}
-          disabled={!info.gender}
+          disabled={!info.gender || lunarInvalid}
           className="rounded-lg"
         >
           사주 풀이 보기
