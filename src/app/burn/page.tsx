@@ -11,7 +11,7 @@
 //  · 위기 신호가 감지되면 CrisisSupport 로 전문가 연결을 안내합니다.
 // ============================================================
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import HanjiBackground from "@/components/hanji/HanjiBackground";
@@ -19,6 +19,7 @@ import TraditionalHeader from "@/components/hanji/TraditionalHeader";
 import TraditionalButton from "@/components/hanji/TraditionalButton";
 import CrisisSupport from "@/components/CrisisSupport";
 import { BackIcon, BrushStroke, FlameMotif } from "@/components/hanji/motifs";
+import { assetPath } from "@/lib/assetPath";
 import { detectCrisis } from "@/lib/crisis-detection";
 
 /* ───────── 상수 ───────── */
@@ -64,117 +65,20 @@ const CLOSING_MESSAGES = [
   "모든 걱정이 사라지지 않아도 괜찮아요.\n오늘 하나를 보낸 것만으로 충분합니다.",
 ];
 
-/* ───────── 불꽃 · 재 · 연기 (순수 SVG/CSS + framer-motion) ───────── */
+/* ───────── 태우기 애니메이션 (향로 영상, ~6.2초) ───────── */
+//
+// 영상은 빈 종이가 향로에서 아래부터 타들어가 재와 연기만 남는 8초짜리다.
+// 타이밍(초): 0 온전함 · 0.7 발화 · 2 삼분의 일 · 4.5 종이 사라짐 · 이후 연기
+//
+// 사용자가 쓴 걱정은 영상 속 종이 위에 얹고, 불선이 올라오는 속도에 맞춰
+// 아래에서 위로 지워지게 한다 — 자기가 쓴 글이 실제로 타는 것처럼 보이도록.
 
-/** 주홍→황 그라데이션 불꽃 한 갈래 */
-function Flame({
-  left,
-  width,
-  height,
-  delay,
-  flickerDuration,
-}: {
-  left: string;
-  width: number;
-  height: number;
-  delay: number;
-  flickerDuration: number;
-}) {
-  return (
-    <motion.div
-      aria-hidden
-      className="absolute bottom-0"
-      style={{ left, width, height, originY: 1, originX: 0.5 }}
-      initial={{ scaleY: 0, opacity: 0 }}
-      animate={{
-        scaleY: [0, 1, 1.22, 0.88, 1.12, 0.95, 1.18, 1],
-        scaleX: [1, 1, 0.92, 1.06, 0.95, 1.04, 0.9, 1],
-        opacity: [0, 0.95, 1, 0.9, 1, 0.92, 1, 0.95],
-      }}
-      transition={{
-        delay,
-        duration: flickerDuration,
-        repeat: Infinity,
-        repeatType: "mirror",
-        ease: "easeInOut",
-      }}
-    >
-      <svg viewBox="0 0 24 34" className="h-full w-full" preserveAspectRatio="none">
-        {/* 겉불꽃: 주홍 → 황 */}
-        <path
-          d="M12 0 C13 6 22 12 22 21 C22 28.8 17.4 34 12 34 C6.6 34 2 28.8 2 21 C2 12 11 6 12 0 Z"
-          fill="url(#burn-flame-grad)"
-        />
-        {/* 속불꽃: 밝은 황 */}
-        <path
-          d="M12 12 C12.5 16 17 18.5 17 23.5 C17 28.4 14.7 31 12 31 C9.3 31 7 28.4 7 23.5 C7 18.5 11.5 16 12 12 Z"
-          fill="#F3CE6B"
-          opacity="0.9"
-        />
-      </svg>
-    </motion.div>
-  );
-}
+/** 영상 속 종이의 위치 (프레임 대비 %) — 글자를 이 안에 앉힌다 */
+const PAPER = { left: 21, right: 14, top: 20, bottom: 34 };
 
-/** 위로 떠오르는 불티 */
-function Ember({
-  left,
-  size,
-  delay,
-  duration,
-  drift,
-  rise,
-  color,
-}: {
-  left: string;
-  size: number;
-  delay: number;
-  duration: number;
-  drift: number;
-  rise: number;
-  color: string;
-}) {
-  return (
-    <motion.span
-      aria-hidden
-      className="absolute bottom-0 rounded-full"
-      style={{ left, width: size, height: size, backgroundColor: color }}
-      initial={{ y: 0, x: 0, opacity: 0 }}
-      animate={{ y: [-4, -rise], x: [0, drift], opacity: [0, 1, 0.8, 0] }}
-      transition={{ delay, duration, repeat: Infinity, ease: "easeOut" }}
-    />
-  );
-}
-
-/** 흩어지는 연기 */
-function Smoke({
-  left,
-  size,
-  delay,
-  duration,
-}: {
-  left: string;
-  size: number;
-  delay: number;
-  duration: number;
-}) {
-  return (
-    <motion.span
-      aria-hidden
-      className="absolute bottom-6 rounded-full blur-md"
-      style={{ left, width: size, height: size, backgroundColor: "#8B8578" }}
-      initial={{ y: 0, opacity: 0, scale: 0.6 }}
-      animate={{ y: [-20, -150], x: [0, size * 0.4, -size * 0.3], opacity: [0, 0.22, 0], scale: [0.6, 1.9] }}
-      transition={{ delay, duration, repeat: Infinity, ease: "easeOut" }}
-    />
-  );
-}
-
-/* ───────── 태우기 애니메이션 (~4초) ───────── */
-
-const IGNITE = 0.7; // 종이가 자리잡은 뒤 불이 붙기까지
-const BURN = 2.6; // 종이가 타들어가는 시간
-const TOTAL_MS = 4200;
+const IGNITE = 0.7; // 불이 붙는 시각
+const BURN = 3.6; // 종이가 다 타는 데 걸리는 시간
+const TOTAL_MS = 6200; // 종이가 사라진 뒤 연기를 잠시 보여주고 마무리
 
 function BurnAnimation({ text, onDone }: { text: string; onDone: () => void }) {
   useEffect(() => {
@@ -182,134 +86,59 @@ function BurnAnimation({ text, onDone }: { text: string; onDone: () => void }) {
     return () => clearTimeout(t);
   }, [onDone]);
 
-  // 불티 파라미터는 마운트 시 1회 생성 (burn 단계는 클라이언트 상호작용 후에만 렌더됨)
-  const embers = useMemo(
-    () =>
-      Array.from({ length: 12 }, (_, i) => ({
-        left: `${8 + Math.random() * 84}%`,
-        size: 2 + Math.random() * 3,
-        delay: IGNITE + 0.2 + Math.random() * 2,
-        duration: 1.1 + Math.random() * 1.1,
-        drift: (Math.random() - 0.5) * 44,
-        rise: 90 + Math.random() * 110,
-        color: i % 3 === 0 ? "#DAA017" : "#A72B21",
-      })),
-    []
-  );
-
-  const burnTransition = { delay: IGNITE, duration: BURN, ease: "easeInOut" as const };
-
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-8 pb-24">
-      {/* 그라데이션 정의 (한 번만) */}
-      <svg width="0" height="0" aria-hidden className="absolute">
-        <defs>
-          <linearGradient id="burn-flame-grad" x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0%" stopColor="#A72B21" />
-            <stop offset="55%" stopColor="#DAA017" />
-            <stop offset="100%" stopColor="#DAA017" stopOpacity="0.1" />
-          </linearGradient>
-        </defs>
-      </svg>
-
+    <div className="flex flex-1 flex-col items-center justify-center px-6 pb-24">
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: [0, 1, 1, 0] }}
-        transition={{ duration: TOTAL_MS / 1000, times: [0, 0.15, 0.75, 1] }}
-        className="mb-8 font-serif-kr text-sm text-[var(--color-galsaek)]"
+        transition={{ duration: TOTAL_MS / 1000, times: [0, 0.12, 0.7, 1] }}
+        className="mb-5 font-serif-kr text-sm text-[var(--color-galsaek)]"
       >
         걱정을 태워 보내는 중이에요…
       </motion.p>
 
-      {/* 종이가 중앙으로 떠오른다 */}
       <motion.div
-        initial={{ y: 36, scale: 0.94, opacity: 0 }}
-        animate={{ y: 0, scale: 1, opacity: 1 }}
-        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-[300px]"
+        initial={{ opacity: 0, scale: 0.97 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full max-w-[320px] overflow-hidden rounded-xl"
+        style={{ aspectRatio: '720 / 1280' }}
       >
-        {/* 연기 */}
-        <Smoke left="20%" size={34} delay={IGNITE + 0.6} duration={2.4} />
-        <Smoke left="52%" size={46} delay={IGNITE + 1.1} duration={2.8} />
-        <Smoke left="72%" size={28} delay={IGNITE + 1.6} duration={2.2} />
+        <video
+          src={assetPath('/burn/burn-paper.mp4')}
+          poster={assetPath('/burn/burn-paper-poster.jpg')}
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
 
-        {/* 종이 본체 — 아래에서 위로 타들어가며 사라진다 */}
+        {/* 내가 쓴 걱정 — 불선을 따라 아래에서 위로 지워진다 */}
         <motion.div
-          initial={{ clipPath: "inset(0% 0% 0% 0%)" }}
-          animate={{ clipPath: "inset(0% 0% 100% 0%)" }}
-          transition={burnTransition}
-          className="hanji-card relative min-h-[220px] rounded-lg px-6 py-8"
+          aria-hidden
+          className="absolute flex items-center justify-center overflow-hidden px-2"
+          style={{
+            left: `${PAPER.left}%`,
+            right: `${PAPER.right}%`,
+            top: `${PAPER.top}%`,
+            bottom: `${PAPER.bottom}%`,
+          }}
+          initial={{ clipPath: 'inset(0% 0% 0% 0%)' }}
+          animate={{ clipPath: 'inset(0% 0% 100% 0%)' }}
+          transition={{ delay: IGNITE, duration: BURN, ease: 'easeInOut' }}
         >
-          <motion.p
-            initial={{ opacity: 1 }}
-            animate={{ opacity: 0 }}
-            transition={{ delay: IGNITE + 0.4, duration: BURN * 0.7, ease: "easeIn" }}
-            className="whitespace-pre-wrap break-words font-serif-kr text-[15px] leading-[1.9] text-[var(--color-meok)]"
+          <p
+            className="whitespace-pre-wrap break-words text-center font-serif-kr text-[var(--color-meok)]"
+            style={{ fontSize: 12, lineHeight: 1.85, opacity: 0.88 }}
           >
             {text}
-          </motion.p>
-        </motion.div>
-
-        {/* 불선(燃線): 그을린 가장자리 + 불꽃 + 불티 — 종이와 같은 속도로 위로 이동 */}
-        <motion.div
-          initial={{ bottom: "0%" }}
-          animate={{ bottom: "100%" }}
-          transition={burnTransition}
-          className="pointer-events-none absolute left-0 right-0 h-0"
-        >
-          {/* 은은한 불빛 */}
-          <motion.div
-            aria-hidden
-            className="absolute -bottom-5 left-1/2 h-16 w-[115%] -translate-x-1/2 rounded-full"
-            style={{
-              background:
-                "radial-gradient(ellipse at center, rgba(218,160,23,0.4), rgba(167,43,33,0.18) 55%, transparent 75%)",
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 1, 0.85, 1] }}
-            transition={{ delay: IGNITE - 0.15, duration: 1.2, repeat: Infinity, repeatType: "mirror" }}
-          />
-
-          {/* 그을린 종이 가장자리 (짙은 갈색 #3B2317) */}
-          <motion.svg
-            aria-hidden
-            viewBox="0 0 300 20"
-            preserveAspectRatio="none"
-            className="absolute bottom-0 left-0 h-5 w-full"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: IGNITE - 0.1, duration: 0.4 }}
-          >
-            <path
-              d="M0 20 L0 11 L14 6 L27 13 L42 5 L58 12 L70 7 L88 14 L102 6 L118 12 L134 5 L150 13 L165 7 L181 14 L196 6 L212 12 L228 5 L244 13 L259 7 L274 12 L288 6 L300 11 L300 20 Z"
-              fill="#3B2317"
-            />
-            <path
-              d="M0 11 L14 6 L27 13 L42 5 L58 12 L70 7 L88 14 L102 6 L118 12 L134 5 L150 13 L165 7 L181 14 L196 6 L212 12 L228 5 L244 13 L259 7 L274 12 L288 6 L300 11"
-              fill="none"
-              stroke="#A72B21"
-              strokeWidth="1.6"
-              opacity="0.75"
-            />
-          </motion.svg>
-
-          {/* 불꽃들 */}
-          <Flame left="6%" width={26} height={44} delay={IGNITE - 0.1} flickerDuration={0.5} />
-          <Flame left="24%" width={34} height={62} delay={IGNITE} flickerDuration={0.42} />
-          <Flame left="44%" width={40} height={74} delay={IGNITE - 0.05} flickerDuration={0.55} />
-          <Flame left="64%" width={32} height={56} delay={IGNITE + 0.08} flickerDuration={0.46} />
-          <Flame left="82%" width={24} height={40} delay={IGNITE + 0.04} flickerDuration={0.6} />
-
-          {/* 불티 */}
-          {embers.map((e, i) => (
-            <Ember key={i} {...e} />
-          ))}
+          </p>
         </motion.div>
       </motion.div>
     </div>
   );
 }
-
 /* ───────── 페이지 ───────── */
 
 type Step = "write" | "burn" | "done";
