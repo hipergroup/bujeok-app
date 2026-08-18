@@ -19,15 +19,24 @@ import {
   eachDate,
 } from '@/lib/calendar/calendarAdapter';
 import { getSonDirection, conflictsWithMove } from '@/lib/calendar/sonnal';
-import { isWolgiil } from '@/lib/calendar/sal';
+import {
+  animalOfBranch,
+  isDaeriwol,
+  isGochoil,
+  isSalbuDaegiwol,
+  isSipakDaepaeil,
+  isWolgiil,
+} from '@/lib/calendar/sal';
 import { getBranchRelation, RELATION_LABEL } from './branch-relations';
 import { isFilteredOut } from './purposeRules';
 import {
   BASE_SCORE,
   OHENG_SCORE,
   RELATION_SCORE,
+  DAERIWOL_SCORE,
   RULES_VERSION,
   SAL_SCORE,
+  SAL_WEIGHT,
   SCHEDULE_SCORE,
   SON_SCORE,
   TIER_THRESHOLD,
@@ -50,6 +59,8 @@ export interface PersonSaju {
   yongsin: YongsinResult;
   /** 태어난 시간을 몰라 시주를 뺐는지 */
   hourUnknown: boolean;
+  /** 가취월·살부대기월은 신부(여성) 띠로 보므로 성별이 필요하다 */
+  gender?: 'M' | 'F';
 }
 
 /** 생년월일시로 사주·용신을 만든다. 시간을 모르면 정오로 계산하고 표시만 남긴다 */
@@ -57,12 +68,23 @@ export function buildPersonSaju(
   year: number,
   month: number,
   day: number,
-  hour: number | null
+  hour: number | null,
+  gender?: 'M' | 'F'
 ): PersonSaju {
   const hourUnknown = hour === null || hour < 0;
   const saju = getSaju(year, month, day, hourUnknown ? 12 : hour);
   const oheng = getOheng(saju);
-  return { saju, yongsin: getYongsin(saju, oheng), hourUnknown };
+  return { saju, yongsin: getYongsin(saju, oheng), hourUnknown, gender };
+}
+
+/** 두 사람 중 신부(여성)의 띠. 성별을 모르면 undefined — 그 경우 관련 규칙을 건너뛴다 */
+function findBrideAnimal(
+  me: PersonSaju,
+  partner?: PersonSaju
+): string | undefined {
+  const bride = [me, partner].find((p) => p?.gender === 'F');
+  if (!bride) return undefined;
+  return animalOfBranch(bride.saju.yearBranch.hanja);
 }
 
 const branchIndex = (name: string) => JIJI.findIndex((j) => j.name === name);
@@ -144,6 +166,8 @@ export interface RecommendInput {
 export function recommendDates(input: RecommendInput): RecommendationResult {
   const { purpose, conditions, me, partner } = input;
   const readDay = input.getDay ?? getCalendarDay;
+  // 가취월·살부대기월은 신부(여성) 띠로 본다. 성별을 모르면 건너뛴다.
+  const brideAnimal = findBrideAnimal(me, partner);
   const candidates: DayCandidate[] = [];
   let excludedCount = 0;
 
@@ -242,16 +266,54 @@ export function recommendDates(input: RecommendInput): RecommendationResult {
           : '손 없는 날에 해당합니다.';
     }
 
-    // ── 살(煞) — 지금은 월기일만 반영한다 ──
-    if (isWolgiil(cal.lunarDay)) {
-      const delta = SAL_SCORE[purpose];
+    // ── 살(煞) ──
+    // 표는 출처가 있는 것만 쓴다. 대공망일은 묘지·장사용 길일이라 넣지 않는다.
+    const salBase = SAL_SCORE[purpose];
+    const addSal = (rule: string, label: string, weight: number) => {
+      const delta = Math.round(salBase * weight);
       score += delta;
-      factors.push({
-        rule: 'sal:wolgiil',
-        label: '월기일 (음력 5·14·23일)',
-        delta,
-        kind: 'calendar',
-      });
+      factors.push({ rule, label, delta, kind: 'calendar' });
+    };
+
+    if (isWolgiil(cal.lunarDay)) {
+      addSal('sal:wolgiil', '월기일 (음력 5·14·23일)', SAL_WEIGHT.wolgiil);
+    }
+    if (isGochoil(cal.lunarMonth, dayBranch.hanja)) {
+      addSal(
+        'sal:gochoil',
+        `고초일 (음력 ${cal.lunarMonth}월의 ${dayBranch.hanja}일)`,
+        SAL_WEIGHT.gochoil
+      );
+    }
+    if (cal.iljin && isSipakDaepaeil(cal.iljin)) {
+      addSal(
+        'sal:sipakDaepae',
+        `십악대패일 (${cal.iljin})`,
+        SAL_WEIGHT.sipakDaepae
+      );
+    }
+
+    // ── 신부 띠로 보는 달 — 혼인에만 쓴다 ──
+    if (purpose === 'wedding' && brideAnimal) {
+      if (isSalbuDaegiwol(brideAnimal, cal.lunarMonth)) {
+        addSal(
+          'sal:salbuDaegiwol',
+          `살부대기월 (${brideAnimal}띠 · 음력 ${cal.lunarMonth}월)`,
+          SAL_WEIGHT.salbuDaegiwol
+        );
+      }
+      if (isDaeriwol(brideAnimal, cal.lunarMonth)) {
+        score += DAERIWOL_SCORE;
+        factors.push({
+          rule: 'sal:daeriwol',
+          label: `대리월 (${brideAnimal}띠에게 혼인이 이로운 음력 ${cal.lunarMonth}월)`,
+          delta: DAERIWOL_SCORE,
+          kind: 'calendar',
+        });
+        reasons.push(
+          `신부 ${brideAnimal}띠 기준으로 혼인에 이롭다고 보는 대리월(大利月)에 듭니다.`
+        );
+      }
     }
 
     // ── 일정 조건 ──

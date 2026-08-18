@@ -24,7 +24,7 @@ import RecommendationCard, {
 import GoodDayCalendar from '@/components/good-day/GoodDayCalendar';
 import ReasonSheet from '@/components/good-day/ReasonSheet';
 import { SON_DIRECTION_LABEL } from '@/lib/calendar/sonnal';
-import { APPLIED_SAL, PENDING_SAL } from '@/lib/calendar/sal';
+import { APPLIED_SAL, SAL_EXCLUDED, SAL_SOURCES } from '@/lib/calendar/sal';
 import { CalendarDataMissingError } from '@/lib/calendar/calendarAdapter';
 import {
   buildPersonSaju,
@@ -46,6 +46,8 @@ const GALSAEK = '#7A4A34';
 interface Profile {
   name: string;
   birth: { year: number; month: number; day: number; hour: number | null };
+  /** 가취월·살부대기월은 신부 띠로 보므로 성별이 필요하다 */
+  gender?: 'M' | 'F';
 }
 
 /** 온보딩이 저장한 사주 프로필을 그대로 재사용한다 (다시 묻지 않는다) */
@@ -57,6 +59,7 @@ function loadProfile(): Profile | null {
       if (u?.birth?.year) {
         return {
           name: (u.name || '').trim(),
+          gender: u.gender === 'M' || u.gender === 'F' ? u.gender : undefined,
           birth: {
             year: u.birth.year,
             month: u.birth.month ?? 1,
@@ -72,6 +75,7 @@ function loadProfile(): Profile | null {
       if (u?.birthYear) {
         return {
           name: (u.name || '').trim(),
+          gender: u.gender === 'M' || u.gender === 'F' ? u.gender : undefined,
           birth: {
             year: u.birthYear,
             month: u.birthMonth ?? 1,
@@ -130,14 +134,16 @@ export default function DaysPage() {
           profile.birth.year,
           profile.birth.month,
           profile.birth.day,
-          profile.birth.hour
+          profile.birth.hour,
+          profile.gender
         );
         const partner = conditions.partner
           ? buildPersonSaju(
               conditions.partner.year,
               conditions.partner.month,
               conditions.partner.day,
-              conditions.partner.hour
+              conditions.partner.hour,
+              conditions.partner.gender
             )
           : undefined;
         setResult(recommendDates({ purpose, conditions, me, partner }));
@@ -288,11 +294,34 @@ export default function DaysPage() {
                           color: `${MEOK}CC`,
                         }}
                       >
-                        예식장에서 받아오는 정식 혼인택일과는 다릅니다. 지금은
-                        두 분의 사주가 크게 부딪히지 않는 날을 골라드리고, 전통
-                        택일에서 보는 살(煞) 중에는 {APPLIED_SAL.join('·')}만
-                        반영했어요. {PENDING_SAL.join('·')}은 자료를 더 확인한
-                        뒤에 넣을 예정입니다.
+                        예식장에서 받아오는 정식 혼인택일과는 다릅니다. 두 분의
+                        사주가 크게 부딪히지 않는 날을 고르고, 전통 택일의
+                        살(煞) 중 {APPLIED_SAL.join('·')}을 함께 봅니다.
+                      </p>
+                      <ul className="mt-2.5 flex flex-col gap-1">
+                        {SAL_SOURCES.map((s) => (
+                          <li
+                            key={s.name}
+                            style={{ fontSize: 11, lineHeight: 1.65, color: `${GALSAEK}CC` }}
+                          >
+                            <b style={{ color: `${MEOK}AA` }}>{s.name}</b> · {s.source}
+                            {s.note ? ` (${s.note})` : ''}
+                          </li>
+                        ))}
+                        {SAL_EXCLUDED.map((s) => (
+                          <li
+                            key={s.name}
+                            style={{ fontSize: 11, lineHeight: 1.65, color: `${GALSAEK}AA` }}
+                          >
+                            <b>{s.name}</b> · 넣지 않음 — {s.reason}
+                          </li>
+                        ))}
+                      </ul>
+                      <p
+                        style={{ marginTop: 8, fontSize: 11, lineHeight: 1.65, color: `${GALSAEK}AA` }}
+                      >
+                        가취월·살부대기월은 신부(여성) 띠로 봅니다. 두 분의 성별을
+                        모두 넣어주셔야 반영돼요.
                       </p>
                     </div>
                   )}

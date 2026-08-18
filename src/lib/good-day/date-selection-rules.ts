@@ -58,8 +58,10 @@ export const SON_SCORE: Record<GoodDayPurpose, number> = {
 };
 
 /**
- * 살(煞) — 전통적으로 큰일을 피하는 날.
- * 결혼처럼 무게가 큰 일일수록 크게 본다.
+ * 살(煞) — 전통적으로 큰일을 피하는 날. 목적이 무거울수록 크게 본다.
+ *
+ * ⚠ 감점 폭은 전통 자료가 정해 준 값이 아니라 수호부가 정한 무게다.
+ *   표(어떤 날이 해당하는가)는 출처가 있지만, 몇 점을 뺄지는 해석이다.
  */
 export const SAL_SCORE: Record<GoodDayPurpose, number> = {
   wedding: -18,
@@ -67,6 +69,19 @@ export const SAL_SCORE: Record<GoodDayPurpose, number> = {
   contract: -10,
   confession: -5,
 };
+
+/** 살 종류별 무게 배수 — 위 목적별 점수에 곱한다 */
+export const SAL_WEIGHT = {
+  wolgiil: 1,
+  gochoil: 1,
+  /** 십악대패일은 택일에서 가장 무겁게 보는 축이다 */
+  sipakDaepae: 1.4,
+  /** 살부대기월은 원전 미확인 통용표라 무게를 낮춰 잡는다 */
+  salbuDaegiwol: 0.8,
+};
+
+/** 신부 띠의 대리월(大利月)에 드는 달 — 혼인에만 쓰는 가점 */
+export const DAERIWOL_SCORE = 12;
 
 /** 추천 등급을 가르는 점수 경계 */
 export const TIER_THRESHOLD = {

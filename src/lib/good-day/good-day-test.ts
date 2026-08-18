@@ -14,6 +14,18 @@ import {
   getCalendarDay,
 } from '@/lib/calendar/calendarAdapter';
 import { getBranchRelation } from './branch-relations';
+import {
+  animalOfBranch,
+  DAEGONGMANG_ILJIN,
+  DAERIWOL_BY_ANIMAL,
+  GOCHOIL_BRANCH_BY_LUNAR_MONTH,
+  isDaeriwol,
+  isGochoil,
+  isSalbuDaegiwol,
+  isSipakDaepaeil,
+  isWolgiil,
+  SIPAK_DAEPAE_ILJIN,
+} from '@/lib/calendar/sal';
 import { buildPersonSaju, recommendDates } from './dateSelectionEngine';
 import { isFilteredOut } from './purposeRules';
 import { JIJI } from '@/data/saju';
@@ -301,8 +313,104 @@ function testRealCalendar() {
   check('2051년은 범위 밖 오류', ranged);
 }
 
+// ── 7. 살(煞) ────────────────────────────────────────────────
+
+function testSal() {
+  // 월기일 — 음력 5·14·23일
+  eq('월기일', [5, 14, 23].map(isWolgiil), [true, true, true]);
+  eq('월기일 아님', [4, 15, 24].map(isWolgiil), [false, false, false]);
+
+  // 고초일 — 음력 월별 일지. 정월=辰
+  eq('정월 辰일은 고초일', isGochoil(1, '辰'), true);
+  eq('정월 巳일은 아님', isGochoil(1, '巳'), false);
+  eq('12월은 巳', isGochoil(12, '巳'), true);
+  eq('6월은 子', isGochoil(6, '子'), true);
+  eq('고초일 표는 12개월', Object.keys(GOCHOIL_BRANCH_BY_LUNAR_MONTH).length, 12);
+
+  // 십악대패일 — 고정 10간지, 여섯 번째는 己丑
+  eq('십악대패일 개수', SIPAK_DAEPAE_ILJIN.length, 10);
+  eq('십악대패일 여섯 번째는 己丑', SIPAK_DAEPAE_ILJIN[5], '己丑');
+  eq('乙丑은 십악대패일 아님', isSipakDaepaeil('乙丑'), false);
+  eq('甲辰은 십악대패일', isSipakDaepaeil('甲辰'), true);
+  eq('癸亥는 십악대패일', isSipakDaepaeil('癸亥'), true);
+
+  // 대공망일 — 목록은 있으나 점수에 쓰지 않는다
+  eq('대공망일 개수', DAEGONGMANG_ILJIN.length, 12);
+  eq('乙丑은 대공망일', DAEGONGMANG_ILJIN.includes('乙丑'), true);
+
+  // 가취월(대리월) · 살부대기월 — 신부 띠 기준
+  eq('쥐띠 대리월', isDaeriwol('쥐', 6), true);
+  eq('쥐띠 대리월 아님', isDaeriwol('쥐', 7), false);
+  eq('토끼띠 대리월 1·7월', [isDaeriwol('토끼', 1), isDaeriwol('토끼', 7)], [true, true]);
+  eq('쥐띠 살부대기월 1·2월', [isSalbuDaegiwol('쥐', 1), isSalbuDaegiwol('쥐', 2)], [true, true]);
+  eq('닭띠 살부대기월 8월', isSalbuDaegiwol('닭', 8), true);
+  eq('띠 표는 12개', Object.keys(DAERIWOL_BY_ANIMAL).length, 12);
+
+  // 지지 한자 → 띠
+  eq('子는 쥐띠', animalOfBranch('子'), '쥐');
+  eq('亥는 돼지띠', animalOfBranch('亥'), '돼지');
+}
+
+// ── 8. 살이 추천에 반영되는지 ────────────────────────────────
+
+function testSalInEngine() {
+  const day = (solar: string, lunarMonth: number, lunarDay: number): CalendarDay => ({
+    solar,
+    lunarYear: 2026,
+    lunarMonth,
+    lunarDay,
+    leapMonth: false,
+    weekday: 3,
+    holiday: false,
+  });
+
+  const me = buildPersonSaju(1990, 5, 20, 10, 'F');
+  const conditions: DateConditions = {
+    from: '2026-03-04',
+    to: '2026-03-04',
+    weekdays: [],
+    preferWeekend: false,
+    includeHolidays: true,
+  };
+
+  // 음력 14일 → 월기일
+  const wolgi = recommendDates({
+    purpose: 'wedding',
+    conditions,
+    me,
+    getDay: () => day('2026-03-04', 3, 14),
+    source: '테스트',
+  });
+  check(
+    '월기일이 감점 요인으로 잡힌다',
+    wolgi.candidates[0].factors.some((f) => f.rule === 'sal:wolgiil')
+  );
+
+  // 신부 성별을 모르면 가취월·살부대기월을 건너뛴다
+  const noGender = buildPersonSaju(1990, 5, 20, 10);
+  const skipped = recommendDates({
+    purpose: 'wedding',
+    conditions,
+    me: noGender,
+    getDay: () => day('2026-03-04', 3, 14),
+    source: '테스트',
+  });
+  check(
+    '성별 모르면 신부 띠 규칙을 건너뛴다',
+    !skipped.candidates[0].factors.some(
+      (f) => f.rule === 'sal:daeriwol' || f.rule === 'sal:salbuDaegiwol'
+    )
+  );
+
+  // 대공망일은 어떤 목적에서도 점수에 쓰이지 않는다
+  const allRules = wolgi.candidates.flatMap((c) => c.factors.map((f) => f.rule));
+  check('대공망일은 점수에 쓰이지 않는다', !allRules.some((r) => r.includes('daegongmang')));
+}
+
 export function runGoodDayTests() {
   results.length = 0;
+  testSal();
+  testSalInEngine();
   testSonnal();
   testRelations();
   testFilters();
