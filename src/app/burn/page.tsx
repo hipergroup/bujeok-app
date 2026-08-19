@@ -81,10 +81,29 @@ const BURN = 3.6; // 종이가 다 타는 데 걸리는 시간
 const TOTAL_MS = 6200; // 종이가 사라진 뒤 연기를 잠시 보여주고 마무리
 
 function BurnAnimation({ text, onDone }: { text: string; onDone: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   useEffect(() => {
     const t = setTimeout(onDone, TOTAL_MS);
     return () => clearTimeout(t);
   }, [onDone]);
+
+  // 소리와 함께 재생을 시도한다.
+  // 브라우저는 소리 있는 자동재생을 막지만, 이 화면은 "태워 보내기" 를 누른
+  // 직후에만 뜨므로 그 조작이 재생을 허용해 준다. 그래도 막히는 환경이 있어
+  // (설정으로 소리를 끈 브라우저 등) 그때는 무음으로라도 반드시 틀어
+  // 영상이 멈춰 서는 일은 없게 한다.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.volume = 0.7;
+    v.play().catch(() => {
+      v.muted = true;
+      v.play().catch(() => {
+        /* 재생 자체가 막혀도 포스터가 남고 타이머는 그대로 흐른다 */
+      });
+    });
+  }, []);
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-6 pb-24">
@@ -104,11 +123,11 @@ function BurnAnimation({ text, onDone }: { text: string; onDone: () => void }) {
         className="relative w-full max-w-[320px] overflow-hidden rounded-xl"
         style={{ aspectRatio: '720 / 1280' }}
       >
+        {/* autoPlay·muted 를 두지 않는다 — 위 effect 가 소리와 함께 재생을 건다 */}
         <video
+          ref={videoRef}
           src={assetPath('/burn/burn-paper.mp4')}
           poster={assetPath('/burn/burn-paper-poster.jpg')}
-          autoPlay
-          muted
           playsInline
           preload="auto"
           className="absolute inset-0 h-full w-full object-cover"
