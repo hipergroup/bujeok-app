@@ -3,7 +3,7 @@
 // ============================================================
 // 좋은 날 고르기 — 생활 택일
 //
-// 목적 고르기 → 조건 넣기 → 추천 보기 → 상세·근거
+// 목적 고르기 → 조건 넣기 → (결혼이면 궁합) → 추천 보기 → 상세·근거
 // 공식 달력(음양력·공휴일)과 앱의 만세력 해석을 나눠서 보여준다.
 // ============================================================
 
@@ -31,6 +31,8 @@ import {
   recommendDates,
 } from '@/lib/good-day/dateSelectionEngine';
 import { saveGoodDay } from '@/lib/good-day/savedDays';
+import { getGunghap, type GunghapResult } from '@/data/gunghap';
+import GunghapScoreCircle from '@/components/gunghap/GunghapScoreCircle';
 import { PURPOSE_LABEL } from '@/types/good-day';
 import type {
   DateConditions,
@@ -112,7 +114,9 @@ function subscribeProfile(onChange: () => void) {
   return () => window.removeEventListener('storage', handler);
 }
 
-type Phase = 'purpose' | 'conditions' | 'result';
+// 결혼은 날짜를 정하기 전에 두 사람이 어떤 결인지 먼저 본다 —
+// 같은 생년월일을 이미 받아놓고 궁합을 건너뛰면 순서가 거꾸로다.
+type Phase = 'purpose' | 'conditions' | 'gunghap' | 'result';
 
 export default function DaysPage() {
   const [phase, setPhase] = useState<Phase>('purpose');
@@ -122,10 +126,14 @@ export default function DaysPage() {
   const [showReason, setShowReason] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedDate, setSavedDate] = useState<string | null>(null);
+  /** 결혼 흐름에서 조건 입력을 마친 뒤 잠시 들고 있는 값 (궁합 단계를 거쳐 추천으로 넘긴다) */
+  const [pending, setPending] = useState<DateConditions | null>(null);
+  const [gunghap, setGunghap] = useState<GunghapResult | null>(null);
 
   const profile = useSyncExternalStore(subscribeProfile, readProfile, () => null);
 
-  const run = useCallback(
+  /** 조건 → 추천 계산. 실패하면 에러만 세우고 화면은 그대로 둔다. */
+  const recommend = useCallback(
     (conditions: DateConditions) => {
       if (!profile || !purpose) return;
       setError(null);
@@ -161,6 +169,45 @@ export default function DaysPage() {
     [profile, purpose]
   );
 
+  const run = useCallback(
+    (conditions: DateConditions) => {
+      if (!profile) return;
+      // 결혼이면 날짜보다 궁합이 먼저다. 상대 정보가 없으면(선택 해제) 그냥 넘어간다.
+      if (purpose === 'wedding' && conditions.partner) {
+        const p = conditions.partner;
+        setGunghap(
+          getGunghap({
+            a: {
+              name: profile.name || undefined,
+              // 궁합 계산은 시(時)를 반드시 받는다 — 모르면 정오로 두고 아래에 밝힌다
+              birth: {
+                year: profile.birth.year,
+                month: profile.birth.month,
+                day: profile.birth.day,
+                hour: profile.birth.hour ?? 12,
+              },
+            },
+            b: {
+              birth: {
+                year: p.year,
+                month: p.month,
+                day: p.day,
+                hour: p.hour ?? 12,
+              },
+            },
+            relation: '부부',
+          })
+        );
+        setPending(conditions);
+        setError(null);
+        setPhase('gunghap');
+        return;
+      }
+      recommend(conditions);
+    },
+    [profile, purpose, recommend]
+  );
+
   const top3 = result?.candidates.slice(0, 3) ?? [];
 
   const handleSave = (c: DayCandidate) => {
@@ -170,10 +217,13 @@ export default function DaysPage() {
   };
 
   const back = () => {
-    if (phase === 'result') setPhase('conditions');
+    if (phase === 'result') setPhase(pending ? 'gunghap' : 'conditions');
+    else if (phase === 'gunghap') setPhase('conditions');
     else if (phase === 'conditions') {
       setPhase('purpose');
       setPurpose(null);
+      setPending(null);
+      setGunghap(null);
     }
   };
 
@@ -326,6 +376,155 @@ export default function DaysPage() {
                     </div>
                   )}
                   <DateConditionForm purpose={purpose} onSubmit={run} />
+                  {error && (
+                    <p
+                      className="rounded-lg"
+                      style={{
+                        marginTop: 12,
+                        padding: '12px 14px',
+                        fontSize: 12,
+                        lineHeight: 1.7,
+                        color: JUHONG,
+                        background: 'rgba(167,43,33,0.06)',
+                        border: '1px solid rgba(167,43,33,0.25)',
+                      }}
+                    >
+                      {error}
+                    </p>
+                  )}
+                </motion.div>
+              )}
+
+              {/* ── 궁합 (결혼 전용) — 날짜를 고르기 전에 두 분의 결부터 ── */}
+              {phase === 'gunghap' && gunghap && pending && (
+                <motion.div
+                  key="gunghap"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  style={{ paddingTop: 8 }}
+                >
+                  <h2
+                    className="font-serif-kr"
+                    style={{ fontSize: 18, color: MEOK, marginBottom: 4 }}
+                  >
+                    먼저, 두 분의 결을 봅니다
+                  </h2>
+                  <p
+                    style={{
+                      fontSize: 12,
+                      lineHeight: 1.75,
+                      color: `${GALSAEK}CC`,
+                      marginBottom: 18,
+                    }}
+                  >
+                    날을 받기 전에 두 분이 서로 어떤 결인지 먼저 보는 것이
+                    순서예요.
+                  </p>
+
+                  <div
+                    className="rounded-2xl"
+                    style={{
+                      padding: '22px 18px',
+                      background: 'rgba(255,253,248,0.82)',
+                      border: '1px solid rgba(122,74,52,0.2)',
+                    }}
+                  >
+                    <GunghapScoreCircle
+                      score={gunghap.score}
+                      grade={gunghap.grade}
+                      size={116}
+                    />
+                    <p
+                      style={{
+                        marginTop: 16,
+                        fontSize: 13,
+                        lineHeight: 1.85,
+                        color: MEOK,
+                      }}
+                    >
+                      {gunghap.summary}
+                    </p>
+
+                    {gunghap.aspects.length > 0 && (
+                      <ul
+                        className="flex flex-col"
+                        style={{ marginTop: 14, gap: 9 }}
+                      >
+                        {gunghap.aspects.slice(0, 3).map((a) => (
+                          <li
+                            key={a.kind + a.title}
+                            className="flex items-start"
+                            style={{ gap: 7 }}
+                          >
+                            <span
+                              className="shrink-0"
+                              style={{
+                                marginTop: 6,
+                                fontSize: 6,
+                                color: JUHONG,
+                                opacity: 0.7,
+                              }}
+                            >
+                              ●
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 12,
+                                lineHeight: 1.7,
+                                color: `${MEOK}CC`,
+                              }}
+                            >
+                              <b style={{ color: MEOK }}>{a.title}</b> —{' '}
+                              {a.detail}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* 시(時)를 모르면 궁합도 정오 기준 어림이라는 걸 밝힌다 */}
+                  {(profile.birth.hour === null ||
+                    pending.partner?.hour === null) && (
+                    <p
+                      style={{
+                        marginTop: 10,
+                        fontSize: 11,
+                        lineHeight: 1.7,
+                        color: `${GALSAEK}AA`,
+                      }}
+                    >
+                      태어난 시각을 모르는 분이 있어 정오(12시) 기준으로 어림해
+                      본 결과예요.
+                    </p>
+                  )}
+
+                  <Link
+                    href="/gunghap"
+                    className="flex items-center justify-center rounded-xl"
+                    style={{
+                      marginTop: 12,
+                      padding: '11px 0',
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      color: JUHONG,
+                      border: `1px solid ${JUHONG}44`,
+                      background: 'rgba(167,43,33,0.05)',
+                    }}
+                  >
+                    두 사람의 인연에서 자세히 보기 →
+                  </Link>
+
+                  <div style={{ marginTop: 18 }}>
+                    <TraditionalButton
+                      onClick={() => recommend(pending)}
+                      className="rounded-lg"
+                    >
+                      이제 좋은 날 고르기
+                    </TraditionalButton>
+                  </div>
                   {error && (
                     <p
                       className="rounded-lg"
