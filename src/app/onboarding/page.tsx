@@ -750,6 +750,39 @@ function StepBirthInfo({
         )}
       </div>
 
+      {/* 띠 미리보기 — 날짜를 넣은 그 자리에서 바로 띠가 보이도록
+          반드시 생년월일 카드 다음에 온다. */}
+      <div
+        className="flex items-center"
+        style={{
+          marginTop: 14,
+          gap: 14,
+          padding: '14px 16px',
+          borderRadius: 12,
+          border: '1px solid rgba(143,107,20,0.35)',
+          background: 'rgba(255,250,236,0.55)',
+        }}
+      >
+        <AnimalMotif animal={animal.name} size={46} />
+        <div className="min-w-0">
+          <p className="font-serif-kr" style={{ fontSize: 16, color: MEOK }}>
+            {ganji}년 · {animal.name}띠
+          </p>
+          <p
+            style={{
+              marginTop: 3,
+              fontSize: 11,
+              lineHeight: 1.6,
+              color: 'rgba(46,46,46,0.45)',
+            }}
+          >
+            {sajuYear === info.year
+              ? `입춘(立春) 이후 출생이라 사주 연도도 ${info.year}년입니다`
+              : `입춘(立春) 전 출생이라 사주상 ${sajuYear}년생으로 봅니다`}
+          </p>
+        </div>
+      </div>
+
       {/* 時辰 */}
       <div className="mt-3 overflow-hidden rounded-xl" style={CARD_STYLE}>
         <CardHead hanja="時辰" sub="태어난 시각" />
@@ -872,38 +905,6 @@ function StepBirthInfo({
               color: MEOK,
             }}
           />
-        </div>
-      </div>
-
-      {/* 띠 미리보기 */}
-      <div
-        className="flex items-center"
-        style={{
-          marginTop: 20,
-          gap: 14,
-          padding: '14px 16px',
-          borderRadius: 12,
-          border: '1px solid rgba(143,107,20,0.35)',
-          background: 'rgba(255,250,236,0.55)',
-        }}
-      >
-        <AnimalMotif animal={animal.name} size={46} />
-        <div className="min-w-0">
-          <p className="font-serif-kr" style={{ fontSize: 16, color: MEOK }}>
-            {ganji}년 · {animal.name}띠
-          </p>
-          <p
-            style={{
-              marginTop: 3,
-              fontSize: 11,
-              lineHeight: 1.6,
-              color: 'rgba(46,46,46,0.45)',
-            }}
-          >
-            {sajuYear === info.year
-              ? `입춘(立春) 이후 출생이라 사주 연도도 ${info.year}년입니다`
-              : `입춘(立春) 전 출생이라 사주상 ${sajuYear}년생으로 봅니다`}
-          </p>
         </div>
       </div>
 
@@ -1249,43 +1250,26 @@ function StepSajuResult({
                 key={m?.label ?? i}
                 type="button"
                 onClick={() => setOpenPillar(i)}
-                className="flex flex-col items-center gap-1.5 text-center"
-                style={{
-                  padding: '6px 2px 6px',
-                  borderRadius: 10,
-                  background: open ? 'rgba(167,43,33,0.06)' : 'transparent',
-                  boxShadow: open
-                    ? 'inset 0 0 0 1px rgba(167,43,33,0.28)'
-                    : undefined,
-                }}
+                className="flex flex-col items-center text-center"
+                style={{ gap: 6 }}
               >
+                {/* 네 칸의 높이는 반드시 같다 — 높이를 72px 로 고정하고,
+                    테두리는 박스 크기를 밀어내지 않는 inset 그림자로 그린다. */}
                 <div
-                  className="relative flex w-full flex-col items-center gap-1"
+                  className="flex w-full flex-col items-center justify-center gap-1"
                   style={{
-                    padding: '11px 0',
+                    height: 72,
+                    boxSizing: 'border-box',
                     borderRadius: 8,
-                    background: isDay
-                      ? 'rgba(167,43,33,0.08)'
-                      : 'rgba(122,74,52,0.05)',
-                    border: isDay
-                      ? '1.5px solid rgba(167,43,33,0.42)'
-                      : '1.5px solid rgba(122,74,52,0.16)',
+                    background: open
+                      ? 'rgba(167,43,33,0.09)'
+                      : 'rgba(122,74,52,0.04)',
+                    boxShadow: open
+                      ? 'inset 0 0 0 1.5px rgba(167,43,33,0.45)'
+                      : 'inset 0 0 0 1px rgba(122,74,52,0.18)',
                     opacity: estimated ? 0.5 : 1,
                   }}
                 >
-                  {isDay && (
-                    <span
-                      className="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full font-bold"
-                      style={{
-                        padding: '1px 6px',
-                        fontSize: 8.5,
-                        background: JUHONG,
-                        color: '#F6EDD9',
-                      }}
-                    >
-                      나 자신
-                    </span>
-                  )}
                   <span
                     className="font-serif-kr leading-none"
                     style={{ fontSize: 20, color: OHENG_COLORS[p.gan.oheng] }}
@@ -1308,14 +1292,36 @@ function StepSajuResult({
                 </div>
                 <span
                   className="font-bold leading-none"
-                  style={{ fontSize: 11, color: isDay ? JUHONG : `${MEOK}AA` }}
+                  style={{ fontSize: 11, color: open ? JUHONG : `${MEOK}AA` }}
                 >
                   {m?.label}
                   {estimated ? '*' : ''}
                 </span>
+                {/* `나 자신` 알약은 박스 밖 아래에 둔다. 없는 칸도 자리를 비워
+                    같은 높이를 유지하도록 15px 로 고정한다. */}
+                <div className="flex items-center" style={{ height: 15 }}>
+                  {isDay && (
+                    <span
+                      className="whitespace-nowrap rounded-full font-bold leading-none"
+                      style={{
+                        padding: '2px 7px',
+                        fontSize: 9,
+                        background: JUHONG,
+                        color: '#F6EDD9',
+                      }}
+                    >
+                      나 자신
+                    </span>
+                  )}
+                </div>
+                {/* 두 줄까지 늘어나도 칸마다 어긋나지 않도록 자리를 고정한다. */}
                 <span
                   className="leading-tight"
-                  style={{ fontSize: 9, color: 'rgba(122,74,52,0.6)' }}
+                  style={{
+                    height: 24,
+                    fontSize: 9,
+                    color: 'rgba(122,74,52,0.6)',
+                  }}
                 >
                   {m?.lifeArea}
                 </span>
