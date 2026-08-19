@@ -46,10 +46,6 @@ import { saveProfile } from '@/lib/store';
 // Constants & Data
 // ─────────────────────────────────────────────
 
-// 한지 테마 팔레트 — 기존 변수명을 유지한 채 색만 교체 (알파 접미사 호환)
-const GOLD = '#A72B21'; // 주홍 (포인트)
-const GOLD_DARK = '#8A231B';
-
 /**
  * 12지시의 실제 "시(hour)" 값은 아래 HOUR_CELLS 가 갖는다.
  * (사주 모듈은 23:00~00:59 를 자시로 처리하므로 자시는 0시로 둔다)
@@ -1633,156 +1629,14 @@ function StepSajuResult({
 }
 
 // ─────────────────────────────────────────────
-// Step 4: Love Status (마음 상태) — 애정운 개인화용, 선택은 자유
-// ─────────────────────────────────────────────
-
-/** user_profile.loveStatus 저장 계약 — 다른 화면(운세/홈)에서 읽는다 */
-type LoveStatus = 'single' | 'crush' | 'dating' | 'married' | 'private';
-
-const LOVE_STATUS_OPTIONS: {
-  value: LoveStatus;
-  emoji: string;
-  label: string;
-  desc: string;
-}[] = [
-  { value: 'single', emoji: '🌱', label: '솔로', desc: '좋은 인연을 기다려요' },
-  { value: 'crush', emoji: '🌸', label: '짝사랑·썸', desc: '마음에 둔 사람이 있어요' },
-  { value: 'dating', emoji: '💕', label: '연애 중', desc: '연인과 함께하고 있어요' },
-  { value: 'married', emoji: '🏡', label: '기혼', desc: '배우자와 함께해요' },
-  { value: 'private', emoji: '🔒', label: '비공개', desc: '말하지 않을래요' },
-];
-
-function StepLoveStatus({
-  value,
-  onChange,
-  onNext,
-}: {
-  value: LoveStatus | null;
-  onChange: (v: LoveStatus) => void;
-  onNext: () => void;
-}) {
-  const handleSkip = () => {
-    onChange('private');
-    onNext();
-  };
-
-  return (
-    <motion.div
-      className="relative flex min-h-full flex-col px-6 pb-8 pt-14"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
-
-      <motion.h1
-        className="relative z-10 mb-2 text-center text-2xl font-bold"
-        style={{ color: GOLD }}
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2 }}
-      >
-        지금 마음은 어떤가요?
-      </motion.h1>
-      <motion.p
-        className="relative z-10 mb-8 text-center text-sm"
-        style={{ color: `${GOLD}66` }}
-        initial={{ y: -10, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.3 }}
-      >
-        애정운을 당신에게 맞게 전해드려요 · 나만 볼 수 있어요
-      </motion.p>
-
-      {/* 5개 칩 — 2열 그리드 + 비공개는 한 줄 전체 */}
-      <div className="relative z-10 grid grid-cols-2 gap-3">
-        {LOVE_STATUS_OPTIONS.map((opt, i) => {
-          const selected = value === opt.value;
-          const fullWidth = opt.value === 'private';
-          return (
-            <motion.button
-              key={opt.value}
-              type="button"
-              className={`flex flex-col items-center gap-1.5 rounded-2xl px-3 py-5 text-center transition-colors duration-200 ${
-                fullWidth ? 'col-span-2' : ''
-              }`}
-              style={{
-                background: selected ? `${GOLD}14` : `${GOLD}06`,
-                border: `1.5px solid ${selected ? `${GOLD}66` : `${GOLD}14`}`,
-              }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => onChange(opt.value)}
-              initial={{ y: 16, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4 + i * 0.08 }}
-            >
-              <span className="text-2xl leading-none">{opt.emoji}</span>
-              <span
-                className="font-serif-kr text-[15px] font-bold leading-tight"
-                style={{ color: selected ? GOLD : MEOK }}
-              >
-                {opt.label}
-              </span>
-              <span
-                className="text-[11px] leading-snug"
-                style={{ color: `${GALSAEK}AA` }}
-              >
-                {opt.desc}
-              </span>
-            </motion.button>
-          );
-        })}
-      </div>
-
-      <div className="flex-1" />
-
-      {/* 다음 */}
-      <motion.button
-        className="relative z-10 mt-8 w-full rounded-2xl px-8 py-4 text-base font-bold tracking-wider"
-        style={{
-          background: value
-            ? `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})`
-            : `${GOLD}22`,
-          color: value ? '#F6EDD9' : `${GOLD}77`,
-          boxShadow: value ? `0 4px 30px ${GOLD}40` : 'none',
-        }}
-        whileHover={value ? { scale: 1.02 } : {}}
-        whileTap={value ? { scale: 0.97 } : {}}
-        onClick={value ? onNext : undefined}
-        disabled={!value}
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.9 }}
-      >
-        다음
-      </motion.button>
-
-      {/* 건너뛰기 = 비공개로 존중 */}
-      <motion.button
-        type="button"
-        className="relative z-10 mt-3 w-full py-2 text-xs"
-        style={{ color: `${GALSAEK}AA` }}
-        onClick={handleSkip}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-      >
-        건너뛰기
-      </motion.button>
-    </motion.div>
-  );
-}
-
-// ─────────────────────────────────────────────
-// Step 5: First Talisman Gift
+// Step 4: First Talisman Gift
 // ─────────────────────────────────────────────
 
 function StepTalismanGift({
   info,
-  loveStatus,
   onComplete,
 }: {
   info: BirthInfo;
-  loveStatus: LoveStatus | null;
   onComplete: () => void;
 }) {
   const [saved, setSaved] = useState(false);
@@ -1829,7 +1683,8 @@ function StepTalismanGift({
       },
       oheng,
       samjae,
-      loveStatus: loveStatus ?? 'private',
+      // 온보딩에서 마음 상태는 묻지 않는다 — 홈·마이페이지에서 직접 고를 때까지 비공개
+      loveStatus: 'private',
       onboardingCompleted: true,
       firstTalisman: {
         type: 'hosinbu',
@@ -1867,7 +1722,7 @@ function StepTalismanGift({
         saju: userData.saju,
         oheng,
         samjae,
-        loveStatus: loveStatus ?? 'private',
+        loveStatus: 'private',
       })
     );
     localStorage.setItem('onboarding_completed', 'true');
@@ -1944,7 +1799,7 @@ function StepTalismanGift({
         onComplete();
       }, 2200);
     }
-  }, [info, loveStatus, onComplete]);
+  }, [info, onComplete]);
 
   /* 위젯에 담기 / 나중에 하기 */
   const handleWidgetYes = useCallback(() => {
@@ -2197,9 +2052,7 @@ export default function OnboardingPage() {
     name: '',
     gender: null,
   });
-  const [loveStatus, setLoveStatus] = useState<LoveStatus | null>(null);
-
-  const totalSteps = 5;
+  const totalSteps = 4;
 
   const goNext = useCallback(() => {
     setDirection(1);
@@ -2279,18 +2132,7 @@ export default function OnboardingPage() {
           )}
           {step === 2 && <StepSajuResult info={birthInfo} onNext={goNext} />}
           {step === 3 && (
-            <StepLoveStatus
-              value={loveStatus}
-              onChange={setLoveStatus}
-              onNext={goNext}
-            />
-          )}
-          {step === 4 && (
-            <StepTalismanGift
-              info={birthInfo}
-              loveStatus={loveStatus}
-              onComplete={handleComplete}
-            />
+            <StepTalismanGift info={birthInfo} onComplete={handleComplete} />
           )}
         </motion.div>
       </AnimatePresence>
