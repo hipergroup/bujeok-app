@@ -1,7 +1,7 @@
 'use client';
 
 // ============================================================
-// 호신부 다시 모시기 — 사흘을 지키고 떠난 호신부를 새로 모시는 구매 루트
+// 호신부 다시 모시기 — 호신부를 새로 모시는 구매 루트
 // ------------------------------------------------------------
 // ⚠️ 실제 결제는 아직 미연동 — 지금은 버튼을 누르면 바로 지급된다.
 //    (kkumi 와 같은 순서: 플로우 먼저, 결제 연동은 나중에)
@@ -17,7 +17,7 @@ import TraditionalHeader from '@/components/hanji/TraditionalHeader';
 import TraditionalButton from '@/components/hanji/TraditionalButton';
 import { BackIcon } from '@/components/hanji/motifs';
 import { getTalismanById } from '@/data/talismans';
-import { GIFT_ID, clearGiftDeparted, loadCollection } from '@/lib/collection';
+import { GIFT_ID, loadCollection } from '@/lib/collection';
 import { hasWidgetBridge, pushTalismanToWidget } from '@/lib/widget-bridge';
 import hosinbuImg from '../../../public/talismans/hosinbu-gift.png';
 
@@ -58,13 +58,11 @@ export default function HosinbuPage() {
         'bujeok-collection',
         JSON.stringify([entry, ...list.filter((t) => t.id !== GIFT_ID)])
       );
-      clearGiftDeparted();
       if (hasWidgetBridge()) {
         void pushTalismanToWidget(svg, {
           name: '호신부',
           hanja: '護身符',
           savedAt: now,
-          agingDays: 3, // 새로 모신 호신부도 사흘에 걸쳐 낡아간다
         });
       }
       setGranted(true);
@@ -139,8 +137,8 @@ export default function HosinbuPage() {
           {granted
             ? '호신부가 다시 곁에 왔습니다. 부적함으로 모셔갈게요.'
             : alreadyHave
-              ? '호신부가 아직 곁을 지키고 있어요. 사흘이 지나 떠난 뒤에 다시 모실 수 있습니다.'
-              : '사흘을 지키고 떠난 호신부를 다시 모실 수 있어요. 새로 모신 호신부도 사흘 동안 곁을 지킵니다.'}
+              ? '호신부가 이미 곁을 지키고 있어요.'
+              : '곁을 떠난 호신부를 다시 모실 수 있어요. 몸과 마음의 평안을 지켜드릴게요.'}
         </p>
 
         <div className="w-full" style={{ marginTop: 32, maxWidth: 320 }}>

@@ -1947,7 +1947,6 @@ function StepTalismanGift({
         name: '호신부',
         hanja: '護身符',
         savedAt: new Date().toISOString(),
-        agingDays: 3, // 서비스로 드리는 부적 — 사흘에 걸쳐 낡아간다
       });
     }
     setWidgetDone(true);
@@ -2028,15 +2027,14 @@ function StepTalismanGift({
           }}
         >
           몸과 마음을 지키는 부적이에요. 예로부터 먼 길을 떠나는 이의 품에 넣어
-          보내던 것으로, 삼재의 해를 지날 때 곁에 두었습니다. 이 호신부는 사흘
-          동안 곁을 지킨 뒤 조용히 자리를 비웁니다.
+          보내던 것으로, 삼재의 해를 지날 때 곁에 두었습니다.
         </p>
 
         <div
           className="flex flex-wrap items-center justify-center gap-1.5"
           style={{ marginTop: 20 }}
         >
-          {['삼재의 해', '몸과 마음', '사흘의 동행'].map((t) => (
+          {['삼재의 해', '몸과 마음', '늘 지니는 부적'].map((t) => (
             <span
               key={t}
               className="rounded-full"
@@ -2150,8 +2148,7 @@ function StepTalismanGift({
                     }}
                   >
                     홈 화면을 길게 눌러 &lsquo;수호부&rsquo; 위젯을 추가하면 바로
-                    만날 수 있어요. 선물 부적은 사흘에 걸쳐 조금씩 낡아가요 — 새
-                    부적으로 마음을 다시 채워보세요.
+                    만날 수 있어요.
                   </p>
                 </motion.div>
               )}

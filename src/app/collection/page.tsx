@@ -12,7 +12,7 @@ import TraditionalButton from '@/components/hanji/TraditionalButton';
 import CollectionSegment from '@/components/hanji/CollectionSegment';
 import { BackIcon, GearIcon } from '@/components/hanji/motifs';
 import { SavedTalisman } from '@/lib/types';
-import { loadCollection, giftDeparted } from '@/lib/collection';
+import { loadCollection } from '@/lib/collection';
 import { ENERGIES } from '@/data/energies';
 
 /** 필터 칩 — 전체 + 기운(카테고리 중복 제거) */
@@ -37,12 +37,8 @@ export default function CollectionPage() {
   const [selected, setSelected] = useState<SavedTalisman | null>(null);
   const [filter, setFilter] = useState('all');
 
-  const [departed, setDeparted] = useState(false);
-
   useEffect(() => {
-    const list = loadCollection();
-    setCollection(list);
-    setDeparted(giftDeparted(list));
+    setCollection(loadCollection());
   }, []);
 
   const handleDelete = () => {
@@ -83,23 +79,6 @@ export default function CollectionPage() {
         <p className="mb-4 text-center text-xs text-[var(--color-galsaek)]">
           당신이 만든 부적들을 보관해 보세요.
         </p>
-
-        {/* 호신부가 사흘을 지키고 떠났으면 다시 모시기 안내 */}
-        {departed && (
-          <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            onClick={() => router.push('/hosinbu')}
-            className="hanji-card mb-4 w-full rounded-lg px-4 py-3 text-left"
-          >
-            <p className="font-serif-kr text-sm font-bold text-[var(--color-meok)]">
-              호신부가 사흘을 지키고 떠났어요
-            </p>
-            <p className="mt-0.5 text-xs text-[var(--color-galsaek)]">
-              다시 모셔올 수 있어요 →
-            </p>
-          </motion.button>
-        )}
 
         {/* 필터 */}
         <div className="energy-scroll mb-4">

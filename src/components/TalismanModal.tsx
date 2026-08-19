@@ -155,8 +155,6 @@ export default function TalismanModal({
       hanja: talisman.hanja,
       note: talisman.note,
       savedAt: talisman.savedAt,
-      // 선물 호신부는 서비스 부적 — 사흘에 걸쳐 낡아 새 부적을 만들 동기가 된다
-      ...(talisman.id === 'hosinbu-gift' ? { agingDays: 3 } : {}),
     });
     setWidgetDone(true);
     setTimeout(() => setWidgetDone(false), 2400);
