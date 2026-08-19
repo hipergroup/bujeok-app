@@ -8,14 +8,12 @@ import BottomTab from "@/components/BottomTab";
 import { getUpcomingLine } from "@/lib/good-day/savedDays";
 import HanjiBackground from "@/components/hanji/HanjiBackground";
 import TraditionalHeader from "@/components/hanji/TraditionalHeader";
-import TalismanCategoryCard from "@/components/hanji/TalismanCategoryCard";
 import {
   MenuIcon,
   BellIcon,
   SealLogo,
   BrushStroke,
 } from "@/components/hanji/motifs";
-import { HOME_ENERGIES } from "@/data/energies";
 import { getSaju, getSajuDetail, getOheng, getAnimal, isSamjae } from "@/data/saju";
 import {
   getDailyFortune,
@@ -340,8 +338,10 @@ export default function HomePage() {
           <div className="mt-2 text-[var(--color-juhong)]">
             <BrushStroke width={110} />
           </div>
+          {/* 아래 마음 카테고리 칸을 가리키던 문구였다 — 그 칸을 빼면서
+              고르라고 하지 않고 오늘 운세로 이어지는 말로 바꿨다. */}
           <p className="mt-2 font-serif-kr text-sm text-[var(--color-galsaek)]">
-            마음의 방향을 선택해 보세요.
+            오늘의 기운을 살펴드릴게요.
           </p>
         </motion.section>
 
@@ -554,42 +554,12 @@ export default function HomePage() {
           </div>
         </motion.section>
 
-        {/* ── 마음 카테고리 (대표 4개 + 전체 보기) ── */}
-        <motion.section variants={fadeUp} className="mb-6">
-          <div className="grid grid-cols-2 gap-3">
-            {HOME_ENERGIES.slice(0, 4).map((energy) => (
-              <TalismanCategoryCard
-                key={energy.id}
-                energy={energy}
-                onClick={() => router.push(`/talisman?energy=${energy.id}`)}
-              />
-            ))}
-          </div>
-          <Link
-            href="/talisman"
-            className="mt-2.5 flex items-center justify-center gap-1 rounded-full py-2 text-[12px] font-bold text-[var(--color-galsaek)] transition-colors hover:text-[var(--color-juhong)]"
-            style={{ border: '1px dashed rgba(122,74,52,0.35)' }}
-          >
-            건강·소원·가정·학업 — 모든 마음 보기 <span aria-hidden>→</span>
-          </Link>
-        </motion.section>
+        {/* 마음 카테고리(액운 막기·인연의 기운…) 칸은 뺐다 —
+            눌러도 결국 부적 만들기로 가서 아래 만들기 입구와 겹쳤다. */}
 
-        {/* ── 부적 청하기 — 핵심 공유 루프 진입점 ── */}
+        {/* ── 부적 청하기는 잠시 내렸다. /cheong 경로는 살려둔다 —
+            이미 나눠준 "부적 써줄래?" 링크가 열려야 한다. ── */}
         <motion.section variants={fadeUp} className="mb-6">
-          <button
-            onClick={() => router.push("/cheong")}
-            className="hanji-card w-full rounded-xl px-5 py-4 text-left"
-            style={{ borderColor: "rgba(167,43,33,0.4)" }}
-          >
-            <p className="font-serif-kr text-sm font-bold text-[var(--color-juhong)]">
-              🙏 부적 청하기
-            </p>
-            <p className="mt-1 text-[12px] leading-relaxed text-[var(--color-galsaek)]">
-              부적은 아끼는 사람이 써줄 때 가장 영험하대요.
-              <br />
-              친구에게 내 부적 한 장을 청해보세요 →
-            </p>
-          </button>
           <button
             onClick={() => router.push("/rolling")}
             className="hanji-card mt-2.5 w-full rounded-xl px-5 py-3.5 text-left"
