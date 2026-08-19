@@ -109,6 +109,9 @@ function getTodayFortune(birthData?: BirthData, loveStatus?: LoveStatus) {
       overall: fortune.overall,
       luckyColor: fortune.luckyColor,
       colorReason: `부족한 ${OHENG_LABEL[weakEl]} 기운을 채워주는 색`,
+      luckyDirection: fortune.luckyDirection as string | null,
+      luckyNumber: fortune.luckyNumber as number | null,
+      dailyMantra: fortune.dailyMantra as string | null,
       loveDetail: fortune.loveDetail as LoveFortuneDetail | null,
     };
   }
@@ -129,9 +132,35 @@ function getTodayFortune(birthData?: BirthData, loveStatus?: LoveStatus) {
     overall: overalls[hash % overalls.length],
     luckyColor: colors[hash % colors.length],
     colorReason: null as string | null,
+    luckyDirection: null as string | null,
+    luckyNumber: null as number | null,
+    dailyMantra: null as string | null,
     loveDetail: null as LoveFortuneDetail | null,
   };
 }
+
+/** 행운색 이름 → 표시용 색 견본 (모르는 색이면 표시 생략) */
+const COLOR_SWATCH: Record<string, string> = {
+  청색: '#2B5F8E',
+  초록색: '#3E7A4C',
+  연두색: '#8FB35B',
+  적색: '#A72B21',
+  붉은색: '#A72B21',
+  분홍색: '#D4788C',
+  주황색: '#C9752E',
+  황색: '#DAA017',
+  금색: '#C99A2C',
+  갈색: '#7A4A34',
+  베이지색: '#DCC9A5',
+  백색: '#F4EFE4',
+  흰색: '#F4EFE4',
+  은색: '#B9BCC1',
+  흑색: '#33312D',
+  남색: '#1F3E63',
+  쪽빛: '#1F3E63',
+  보라색: '#6C4A7C',
+  쑥색: '#6B7D63',
+};
 
 const fadeUp = {
   hidden: { opacity: 0, y: 14 },
@@ -336,10 +365,6 @@ export default function HomePage() {
             <p className="text-[13px] leading-relaxed text-[var(--color-galsaek)]">
               {fortune.overall}
             </p>
-            <p className="mt-2 text-[11px] text-[var(--color-galsaek)] opacity-70">
-              오늘의 행운색 · {fortune.luckyColor}
-              {fortune.colorReason && ` — ${fortune.colorReason}`}
-            </p>
 
             {/* ── 애정운 (일진 × 일지 배우자궁) — 탭하면 근거·실천 힌트 펼침 ── */}
             {fortune.loveDetail && (
@@ -440,6 +465,95 @@ export default function HomePage() {
           </div>
         </motion.section>
 
+        {/* ── 오늘의 개운 — 오늘 현실에서 받아가는 것 ── */}
+        <motion.section variants={fadeUp} className="mb-6">
+          <div className="hanji-card rounded-xl px-5 py-4">
+            <div className="mb-2.5 flex items-baseline justify-between">
+              <span className="font-serif-kr text-sm font-bold text-[var(--color-meok)]">
+                오늘의 개운
+                <span className="ml-1.5 text-[11px] font-normal text-[var(--color-galsaek)] opacity-60">
+                  開運
+                </span>
+              </span>
+              <span className="text-[10px] text-[var(--color-galsaek)] opacity-60">
+                오늘 하루 지니고 가세요
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {/* 행운색 */}
+              <div
+                className="flex flex-col items-center rounded-lg py-2.5"
+                style={{ background: "rgba(122,74,52,0.05)" }}
+              >
+                <span className="text-[10px] text-[var(--color-galsaek)] opacity-70">
+                  행운색
+                </span>
+                <span className="mt-1 flex items-center gap-1.5">
+                  {COLOR_SWATCH[fortune.luckyColor] && (
+                    <span
+                      className="inline-block h-3 w-3 rounded-full"
+                      style={{
+                        background: COLOR_SWATCH[fortune.luckyColor],
+                        border: "1px solid rgba(46,46,46,0.18)",
+                      }}
+                    />
+                  )}
+                  <span className="font-serif-kr text-[13px] font-bold text-[var(--color-meok)]">
+                    {fortune.luckyColor}
+                  </span>
+                </span>
+              </div>
+              {/* 행운 방위 */}
+              <div
+                className="flex flex-col items-center rounded-lg py-2.5"
+                style={{ background: "rgba(122,74,52,0.05)" }}
+              >
+                <span className="text-[10px] text-[var(--color-galsaek)] opacity-70">
+                  행운 방위
+                </span>
+                <span className="mt-1 font-serif-kr text-[13px] font-bold text-[var(--color-meok)]">
+                  {fortune.luckyDirection ?? "—"}
+                </span>
+              </div>
+              {/* 행운 숫자 */}
+              <div
+                className="flex flex-col items-center rounded-lg py-2.5"
+                style={{ background: "rgba(122,74,52,0.05)" }}
+              >
+                <span className="text-[10px] text-[var(--color-galsaek)] opacity-70">
+                  행운 숫자
+                </span>
+                <span className="mt-1 font-serif-kr text-[13px] font-bold text-[var(--color-meok)]">
+                  {fortune.luckyNumber ?? "—"}
+                </span>
+              </div>
+            </div>
+
+            {fortune.colorReason && (
+              <p className="mt-2 text-[10.5px] text-[var(--color-galsaek)] opacity-70">
+                {fortune.colorReason} — 옷·소품 하나면 충분해요
+              </p>
+            )}
+
+            {/* 오늘의 주문 — 한 줄 개운 주문 */}
+            {fortune.dailyMantra && (
+              <p
+                className="mt-3 border-t pt-2.5 text-center font-serif-kr text-[12px] leading-relaxed text-[var(--color-galsaek)]"
+                style={{ borderColor: "rgba(122,74,52,0.15)" }}
+              >
+                {fortune.dailyMantra}
+              </p>
+            )}
+
+            {!birthData && (
+              <p className="mt-2 text-[10.5px] text-[var(--color-galsaek)] opacity-60">
+                사주를 입력하면 내 오행에 맞춘 개운법을 드려요
+              </p>
+            )}
+          </div>
+        </motion.section>
+
         {/* ── 마음 카테고리 (대표 4개 + 전체 보기) ── */}
         <motion.section variants={fadeUp} className="mb-6">
           <div className="grid grid-cols-2 gap-3">
@@ -460,6 +574,34 @@ export default function HomePage() {
           </Link>
         </motion.section>
 
+        {/* ── 부적 청하기 — 핵심 공유 루프 진입점 ── */}
+        <motion.section variants={fadeUp} className="mb-6">
+          <button
+            onClick={() => router.push("/cheong")}
+            className="hanji-card w-full rounded-xl px-5 py-4 text-left"
+            style={{ borderColor: "rgba(167,43,33,0.4)" }}
+          >
+            <p className="font-serif-kr text-sm font-bold text-[var(--color-juhong)]">
+              🙏 부적 청하기
+            </p>
+            <p className="mt-1 text-[12px] leading-relaxed text-[var(--color-galsaek)]">
+              부적은 아끼는 사람이 써줄 때 가장 영험하대요.
+              <br />
+              친구에게 내 부적 한 장을 청해보세요 →
+            </p>
+          </button>
+          <button
+            onClick={() => router.push("/rolling")}
+            className="hanji-card mt-2.5 w-full rounded-xl px-5 py-3.5 text-left"
+          >
+            <p className="font-serif-kr text-[13px] font-bold text-[var(--color-meok)]">
+              📜 롤링 부적
+            </p>
+            <p className="mt-0.5 text-[11.5px] text-[var(--color-galsaek)]">
+              수능·생일·면접 앞둔 사람에게, 여럿의 기원을 겹쳐 쓴 부적을 →
+            </p>
+          </button>
+        </motion.section>
 
         {/* ── 오늘 당신에게 필요한 부적 (사주 기반 추천) ── */}
         <motion.section variants={fadeUp} className="mt-4">
