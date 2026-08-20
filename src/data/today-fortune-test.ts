@@ -120,5 +120,57 @@ export function runTodayFortuneTests(): {
     );
   }
 
+  // ── 반복감 — 1년을 매일 봐도 같은 문장이 자주 돌아오지 않아야 한다 ──
+  // 문구는 계산 결과 두 가지에 묶여 있어서, 자주 오는 칸은 문구를 넉넉히
+  // 두어야 한다. 문구를 줄이면 이 테스트가 먼저 알려준다.
+  {
+    let repeats = 0;
+    let slots = 0;
+    const cards = new Set<string>();
+    let dayCount = 0;
+
+    for (const who of PEOPLE) {
+      const log: string[][] = [];
+      const lastUsed: Record<string, number> = {};
+      for (let i = 0; i < 365; i++) {
+        const d = new Date('2026-08-20T09:00:00');
+        d.setDate(d.getDate() + i);
+        const { fortune, usedKeys } = computeTodayFortune({
+          ...who,
+          today: d,
+          recentKeys: log.slice(-14).flat(),
+        });
+        log.push(usedKeys);
+        dayCount++;
+        for (const k of usedKeys) {
+          slots++;
+          if (lastUsed[k] !== undefined && i - lastUsed[k] <= 14) repeats++;
+          lastUsed[k] = i;
+        }
+        cards.add(
+          [
+            fortune.headline,
+            fortune.energy,
+            ...Object.values(fortune.areas),
+            fortune.doThis,
+            fortune.avoidThis,
+          ].join('|')
+        );
+      }
+    }
+
+    const rate = repeats / slots;
+    t(
+      '1년을 매일 봐도 14일 안에 같은 문장이 거의 없다',
+      rate < 0.03,
+      `${(rate * 100).toFixed(1)}% (${repeats}/${slots})`
+    );
+    t(
+      '거의 매일 다른 카드가 나온다',
+      cards.size / dayCount > 0.9,
+      `${cards.size}가지 / ${dayCount}일`
+    );
+  }
+
   return { passed: results.filter((r) => r.pass).length, total: results.length, results };
 }
