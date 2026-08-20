@@ -115,6 +115,15 @@ function Card({
                   <b>지침</b> {t.design.notes}
                 </p>
               )}
+              {t.mantra && (
+                <p>
+                  <b>주문</b> {t.mantra}
+                  <span style={{ color: `${GALSAEK}99` }}>
+                    {' '}
+                    — 부적에 쓰는 글귀
+                  </span>
+                </p>
+              )}
               <p style={{ marginTop: 2, color: `${GALSAEK}99` }}>
                 파일명: {t.name}-전통.png (600×900)
               </p>
@@ -172,6 +181,7 @@ export default function AtelierPage() {
           </p>
           <p>· 세로형 600×900 (비율 2:3), 파일명 「부적이름-전통.png」</p>
           <p>· 상단 勅令 · 하단 急急如律令 · 중앙 글자를 부적 문법대로 배치</p>
+          <p>· 먹은 주사(朱砂) 붉은색, 종이는 황지(黃紙) — 47종 공통</p>
           <p>
             · <b style={{ color: JUHONG }}>오른쪽 아래(가로 79% · 세로 82% 언저리)는
             비워둘 것</b> — 완성 때 사용자의 이름 인장이 그 자리에 찍힌다
