@@ -59,6 +59,9 @@ export const TALISMAN_ASSETS: Record<
   "초복부": {
     "traditional": "/talismans/%EC%B4%88%EB%B3%B5%EB%B6%80-%EC%A0%84%ED%86%B5.png"
   },
+  "호신부": {
+    "traditional": "/talismans/%ED%98%B8%EC%8B%A0%EB%B6%80-%EC%A0%84%ED%86%B5.png"
+  },
   "횡재부": {
     "traditional": "/talismans/%ED%9A%A1%EC%9E%AC%EB%B6%80-%EC%A0%84%ED%86%B5.png"
   }
