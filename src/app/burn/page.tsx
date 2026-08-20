@@ -90,15 +90,27 @@ function inkFontSize(len: number): string {
 
 const RATE = 0.75; // 재생 배속
 const PAPER_GONE = 4.5 / RATE; // 종이가 사라지는 실제 시각(초)
-const TOTAL_MS = 6200 / RATE; // 연기를 잠시 보여주고 마무리 (~8.3초)
+const VIDEO_S = 8.08; // 원본 영상 길이(초) — 재·연기 꼬리까지 전부
+/** 배속 반영한 전체 상영 시간 (~10.8초). 마무리는 ended 이벤트가 하고,
+    재생이 막힌 환경을 위한 예비 타이머로만 쓴다 */
+const TOTAL_MS = Math.round((VIDEO_S / RATE) * 1000) + 700;
 
 function BurnAnimation({ text, onDone }: { text: string; onDone: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const doneRef = useRef(false);
+
+  // 영상이 끝까지(재·연기까지) 흐른 뒤에만 마무리한다.
+  // 한 번만 부르도록 막고, 재생이 아예 막힌 환경은 예비 타이머가 거둔다.
+  const finish = useCallback(() => {
+    if (doneRef.current) return;
+    doneRef.current = true;
+    onDone();
+  }, [onDone]);
 
   useEffect(() => {
-    const t = setTimeout(onDone, TOTAL_MS);
+    const t = setTimeout(finish, TOTAL_MS);
     return () => clearTimeout(t);
-  }, [onDone]);
+  }, [finish]);
 
   // 소리와 함께 재생을 시도한다.
   // 브라우저는 소리 있는 자동재생을 막지만, 이 화면은 "태워 보내기" 를 누른
@@ -146,6 +158,7 @@ function BurnAnimation({ text, onDone }: { text: string; onDone: () => void }) {
           poster={assetPath('/burn/burn-paper-poster.jpg')}
           playsInline
           preload="auto"
+          onEnded={finish}
           className="absolute inset-0 h-full w-full object-cover"
         />
 
