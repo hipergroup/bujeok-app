@@ -11,6 +11,15 @@ export const TALISMAN_ASSETS: Record<
   string,
   Partial<Record<TalismanStyle, string>>
 > = {
+  "소아부": {
+    "traditional": "/talismans/%E1%84%89%E1%85%A9%E1%84%8B%E1%85%A1%E1%84%87%E1%85%AE-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%90%E1%85%A9%E1%86%BC.png"
+  },
+  "수명장수부": {
+    "traditional": "/talismans/%E1%84%89%E1%85%AE%E1%84%86%E1%85%A7%E1%86%BC%E1%84%8C%E1%85%A1%E1%86%BC%E1%84%89%E1%85%AE%E1%84%87%E1%85%AE-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%90%E1%85%A9%E1%86%BC.png"
+  },
+  "안태부": {
+    "traditional": "/talismans/%E1%84%8B%E1%85%A1%E1%86%AB%E1%84%90%E1%85%A2%E1%84%87%E1%85%AE-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%90%E1%85%A9%E1%86%BC.png"
+  },
   "개업대길부": {
     "traditional": "/talismans/%EA%B0%9C%EC%97%85%EB%8C%80%EA%B8%B8%EB%B6%80-%EC%A0%84%ED%86%B5.png"
   },
