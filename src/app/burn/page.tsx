@@ -332,7 +332,7 @@ export default function BurnPage() {
 
           <div className="mt-9 flex w-full max-w-xs flex-col gap-2.5">
             <TraditionalButton onClick={() => router.push("/talisman")}>
-              마음을 지켜줄 부적 받기
+              마음을 지켜줄 부적 청하기
             </TraditionalButton>
             <TraditionalButton variant="ghost" onClick={resetToWrite}>
               한 번 더

@@ -13,6 +13,33 @@ export type { TalismanType };
  */
 export type TalismanInfo = TalismanType;
 
+/**
+ * 개인 부적 기록 — 원형 부적(도감 47종) 위에 얹는 개인화 정보.
+ *
+ * 이미지 전체를 복사해 저장하지 않는다. 원형 부적은 sourceId 로 가리키고,
+ * 여기 담긴 값만으로 화면을 열 때마다 다시 합성한다. (저장 용량 보호)
+ */
+export interface PersonalMeta {
+  /** 부적을 청한 사람 (온보딩 이름, 없으면 '') */
+  ownerName: string;
+  /** 사용자가 직접 적은 염원 (최대 50자) */
+  wishText: string;
+  /** 이 부적이 권해진 까닭 — 화면에 그대로 보여준다 */
+  recommendationReason: string;
+  /** 사용자에게 보이는 부적 번호 — 예: 財-20260820-017 (기기 안에서만 유일) */
+  serialNumber: string;
+  /** 인장에 새길 이름 (빈 이름이면 '수호부') */
+  stampText: string;
+  /** 인장 회전 (도, -2 ~ 2) — visualSeed 에서 한 번 정해 고정 */
+  stampRotation: number;
+  /** 인장 먹 농도 (0.88 ~ 0.98) */
+  stampOpacity: number;
+  /** 미세 개인화의 씨앗 — 다시 열어도 같은 모습을 유지하는 근거 */
+  visualSeed: number;
+  /** 홈 화면(위젯)에 모신 대표 부적인지 */
+  isPlacedOnHome?: boolean;
+}
+
 /** 사용자가 수집(수령)한 부적 */
 export interface SavedTalisman extends TalismanType {
   /**
@@ -27,6 +54,8 @@ export interface SavedTalisman extends TalismanType {
   svg?: string;
   /** 선물로 받은 부적의 출처 표식 — 같은 선물을 두 번 담지 않도록 */
   giftKey?: string;
+  /** 개인 부적 기록 — 있으면 원형 이미지 + 이름 인장으로 다시 합성해 그린다 */
+  personal?: PersonalMeta;
 }
 
 /** 카테고리 표시 색상 */

@@ -20,6 +20,9 @@ import { getTodayFortune as loadTodayFortune } from "@/lib/todayFortuneStore";
 import { FORTUNE_AREAS, TIER_STYLE } from "@/data/today-fortune-view";
 import type { TodayFortune } from "@/data/today-fortune";
 import { RELATION_LABEL } from "@/lib/good-day/branch-relations";
+import { getPlacedTalisman } from "@/lib/personal-talisman";
+import PersonalTalismanView from "@/components/PersonalTalismanView";
+import type { SavedTalisman } from "@/lib/types";
 import { collectedCatalogIds } from "@/lib/collection";
 import { isWidgetInstalled } from "@/lib/widget-bridge";
 // 첫 실행 사용자 대부분이 온보딩을 보므로 별도 청크 분리(추가 왕복) 대신 함께 번들
@@ -41,6 +44,25 @@ function subscribeGoodDays(onChange: () => void) {
   onChange();
   const handler = () => {
     cachedUpcoming = undefined;
+    onChange();
+  };
+  window.addEventListener("storage", handler);
+  return () => window.removeEventListener("storage", handler);
+}
+
+// ── 홈 화면에 모신 대표 부적 (localStorage) ──
+let cachedPlaced: SavedTalisman | null | undefined;
+
+function readPlaced(): SavedTalisman | null {
+  if (cachedPlaced === undefined) cachedPlaced = getPlacedTalisman();
+  return cachedPlaced;
+}
+
+function subscribePlaced(onChange: () => void) {
+  cachedPlaced = undefined;
+  onChange();
+  const handler = () => {
+    cachedPlaced = undefined;
     onChange();
   };
   window.addEventListener("storage", handler);
@@ -222,6 +244,14 @@ export default function HomePage() {
       return null;
     }
   }, [birthData]);
+
+  /* 홈 화면에 모신 대표 부적 — 이름 인장이 얹힌 개인 부적을 그대로 보여준다.
+     localStorage 는 서버에 없으므로 useSyncExternalStore 로 읽는다. */
+  const placedTalisman = useSyncExternalStore(
+    subscribePlaced,
+    readPlaced,
+    () => null
+  );
 
   /* 추천 부적을 이미 부적함에 갖고 있는지 / 위젯을 쓰고 있는지 —
      버튼 문구가 달라진다. 화면에 그릴 때만 필요하므로 함께 계산한다. */
@@ -559,6 +589,39 @@ export default function HomePage() {
           </button>
         </motion.section>
 
+        {/* ── 내 곁의 수호부 — 홈 화면에 모신 개인 부적 ── */}
+        {placedTalisman?.personal && (
+          <motion.section variants={fadeUp} className="mt-4">
+            <h2 className="mb-2 px-0.5 font-serif-kr text-sm font-bold text-[var(--color-meok)]">
+              내 곁의 수호부
+            </h2>
+            <Link
+              href="/collection"
+              className="hanji-card flex items-center gap-4 rounded-xl px-5 py-4"
+            >
+              <div className="w-16 shrink-0 overflow-hidden rounded-md">
+                <PersonalTalismanView talisman={placedTalisman} width="100%" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-serif-kr text-[14px] font-bold text-[var(--color-meok)]">
+                  {placedTalisman.name}
+                </p>
+                {placedTalisman.personal.wishText && (
+                  <p className="mt-0.5 truncate font-serif-kr text-[12px] text-[var(--color-galsaek)]">
+                    “{placedTalisman.personal.wishText}”
+                  </p>
+                )}
+                <p className="mt-1 text-[10px] text-[var(--color-galsaek)] opacity-70">
+                  {placedTalisman.personal.serialNumber}
+                </p>
+              </div>
+              <span aria-hidden className="text-[var(--color-galsaek)] opacity-50">
+                →
+              </span>
+            </Link>
+          </motion.section>
+        )}
+
         {/* ── ⑤ 오늘의 추천 부적 ──
             매일 새로 만들게 하면 부적함이 복잡해진다. 43종 중 오늘 맞는
             부적을 권하고, 이미 갖고 있으면 다시 지니게 한다. */}
@@ -608,7 +671,7 @@ export default function HomePage() {
                 }}
               >
                 {!talismanState?.owned
-                  ? "나만의 부적 만들기"
+                  ? "나만의 부적 짓기"
                   : talismanState.widget
                     ? "위젯에 지니기"
                     : "오늘의 부적으로 지니기"}

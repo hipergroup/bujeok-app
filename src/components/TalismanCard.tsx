@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { SavedTalisman, TalismanInfo } from '@/lib/types';
 import { getEnergyByCategory } from '@/data/energies';
 import TalismanThumbnail from './TalismanThumbnail';
+import PersonalTalismanView from './PersonalTalismanView';
 
 interface TalismanCardProps {
   talisman: SavedTalisman | TalismanInfo;
@@ -24,6 +25,16 @@ export function TalismanVisual({
   /** 픽셀 값 또는 '100%' 등 CSS 폭 */
   width: number | string;
 }) {
+  // 개인 부적 — 저장된 이미지가 아니라 원형 + 이름 인장으로 매번 다시 합성
+  if (isSaved(talisman) && talisman.personal) {
+    return (
+      <PersonalTalismanView
+        talisman={talisman}
+        width={width}
+        className="rounded-lg"
+      />
+    );
+  }
   const customSvg = isSaved(talisman) ? talisman.svg : undefined;
   if (customSvg) {
     return (

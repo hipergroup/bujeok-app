@@ -135,7 +135,7 @@ function GiftReceive() {
             </p>
             <div className="mt-6 w-full max-w-[220px]">
               <TraditionalButton onClick={() => router.push('/talisman')}>
-                나만의 부적 만들기
+                나만의 부적 짓기
               </TraditionalButton>
             </div>
           </motion.div>

@@ -244,7 +244,7 @@ export default function EncyclopediaPage() {
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-juhong)] py-3.5 font-serif-kr text-sm font-bold text-[#F6EDD9] transition active:scale-[0.98]"
               style={{ border: '1px solid rgba(220,201,165,0.9)' }}
             >
-              이 부적 받기 →
+              이 부적 청하기 →
             </Link>
           }
         />

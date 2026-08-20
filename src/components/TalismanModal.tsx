@@ -6,6 +6,9 @@ import { SavedTalisman, TalismanInfo } from '@/lib/types';
 import { getEnergyByCategory } from '@/data/energies';
 import { hasWidgetBridge, pushTalismanToWidget } from '@/lib/widget-bridge';
 import TalismanThumbnail from './TalismanThumbnail';
+import PersonalTalismanView, { NameStamp } from './PersonalTalismanView';
+import { buildPersonalSVG, markPlacedOnHome } from '@/lib/personal-talisman';
+import { composeShareImage, shareOrDownload } from '@/lib/share-card';
 import { ShareMotif, DownloadMotif, TrashMotif, PinTalismanMotif } from './hanji/motifs';
 
 interface TalismanModalProps {
@@ -125,6 +128,21 @@ export default function TalismanModal({
   };
 
   const handleDownload = () => {
+    // 개인 부적 — 인장까지 담긴 모습 그대로 PNG 합성
+    if (saved && talisman.personal) {
+      void (async () => {
+        try {
+          const blob = await composeShareImage(buildPersonalSVG(talisman), 'original', {
+            name: talisman.name,
+            hanja: talisman.hanja,
+          });
+          await shareOrDownload(blob, `수호부_${talisman.name}`, '');
+        } catch {
+          /* 합성 실패 — 다음 시도 가능 */
+        }
+      })();
+      return;
+    }
     const svgEl = document.querySelector('#talisman-modal-svg svg') as SVGSVGElement | null;
     if (!svgEl) return;
     const serializer = new XMLSerializer();
@@ -147,10 +165,14 @@ export default function TalismanModal({
     setConfirmDelete(false);
   };
 
-  /* 이 부적을 홈 화면 위젯으로 보낸다 (네이티브 앱 전용) */
+  /* 이 부적을 홈 화면 위젯으로 보낸다 (네이티브 앱 전용)
+     개인 부적은 저장된 이미지가 없으므로 원형 + 인장으로 그때 합성한다 */
   const handleWidget = async () => {
-    if (!saved || !talisman.svg || widgetDone) return;
-    await pushTalismanToWidget(talisman.svg, {
+    if (!saved || widgetDone) return;
+    const svg = talisman.personal ? buildPersonalSVG(talisman) : talisman.svg;
+    if (!svg) return;
+    if (talisman.personal) markPlacedOnHome(talisman.id);
+    await pushTalismanToWidget(svg, {
       name: talisman.name,
       hanja: talisman.hanja,
       note: talisman.note,
@@ -209,7 +231,13 @@ export default function TalismanModal({
           <div className="flex flex-col items-center px-6 pt-2">
             {/* Talisman SVG */}
             <div id="talisman-modal-svg">
-              {saved && talisman.svg ? (
+              {saved && talisman.personal ? (
+                <PersonalTalismanView
+                  talisman={talisman}
+                  width={200}
+                  className="rounded-xl"
+                />
+              ) : saved && talisman.svg ? (
                 <div
                   style={{ width: 200, aspectRatio: '360 / 560' }}
                   className="overflow-hidden rounded-xl"
@@ -254,6 +282,59 @@ export default function TalismanModal({
               >
                 &ldquo;{talisman.note}&rdquo;
               </p>
+            )}
+
+            {/* 개인 부적 기록 — 원형 위에 담긴 한 사람의 기록 */}
+            {saved && talisman.personal && (
+              <div
+                className="mt-4 w-full rounded-xl px-4 py-3.5"
+                style={{
+                  border: '1px solid rgba(122,74,52,0.3)',
+                  backgroundColor: 'rgba(255,251,240,0.75)',
+                }}
+              >
+                {talisman.personal.wishText && (
+                  <div className="flex items-start gap-3 py-1">
+                    <span className="w-14 shrink-0 text-[11px] font-bold text-[var(--color-galsaek)]">
+                      담은 염원
+                    </span>
+                    <span className="min-w-0 flex-1 font-serif-kr text-[12.5px] leading-relaxed text-[var(--color-meok)]">
+                      {talisman.personal.wishText}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-start gap-3 py-1">
+                  <span className="w-14 shrink-0 text-[11px] font-bold text-[var(--color-galsaek)]">
+                    추천 이유
+                  </span>
+                  <span className="min-w-0 flex-1 text-[12px] leading-relaxed text-[var(--color-galsaek)]">
+                    {talisman.personal.recommendationReason}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 py-1">
+                  <span className="w-14 shrink-0 text-[11px] font-bold text-[var(--color-galsaek)]">
+                    부적 번호
+                  </span>
+                  <span className="font-serif-kr text-[12.5px] text-[var(--color-meok)]">
+                    {talisman.personal.serialNumber}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 py-1">
+                  <span className="w-14 shrink-0 text-[11px] font-bold text-[var(--color-galsaek)]">
+                    이름 인장
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <NameStamp
+                      text={talisman.personal.stampText}
+                      side={26}
+                      rotation={talisman.personal.stampRotation}
+                    />
+                    <span className="font-serif-kr text-[12.5px] text-[var(--color-meok)]">
+                      {talisman.personal.ownerName || '수호부'}
+                    </span>
+                  </span>
+                </div>
+              </div>
             )}
 
             {/* Expandable sections */}
@@ -302,7 +383,7 @@ export default function TalismanModal({
             <div className="mt-6 flex w-full flex-col gap-3">
               {actionButton}
 
-              {saved && canWidget && talisman.svg && (
+              {saved && canWidget && (talisman.svg || talisman.personal) && (
                 <button
                   onClick={handleWidget}
                   className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition active:scale-95"
@@ -315,9 +396,9 @@ export default function TalismanModal({
                   }}
                 >
                   {widgetDone ? (
-                    <>✓ 위젯에 담았어요 — 홈 화면에서 확인해 보세요</>
+                    <>✓ 홈 화면에 모셨어요 — 위젯에서 확인해 보세요</>
                   ) : (
-                    <><PinTalismanMotif size={17} /> 위젯에 담기</>
+                    <><PinTalismanMotif size={17} /> 홈 화면에 모시기</>
                   )}
                 </button>
               )}

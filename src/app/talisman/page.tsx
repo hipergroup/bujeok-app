@@ -21,7 +21,6 @@ import {
 import { getAnimal } from "@/data/saju";
 import { ENERGIES, getEnergyById, type Energy } from "@/data/energies";
 import ChatBubble, { type DialogueOption } from "@/components/ChatBubble";
-import TalismanPreview from "@/components/TalismanPreview";
 import CrisisSupport from "@/components/CrisisSupport";
 import HanjiBackground from "@/components/hanji/HanjiBackground";
 import TraditionalHeader from "@/components/hanji/TraditionalHeader";
@@ -30,7 +29,6 @@ import TalismanCategoryCard from "@/components/hanji/TalismanCategoryCard";
 import { BackIcon, GearIcon, KnotMotif } from "@/components/hanji/motifs";
 import { buildGiftUrl, GIFT_MESSAGE_MAX, GIFT_NAME_MAX } from "@/lib/gift";
 import { generateTalismanSVG } from "@/lib/talisman-generator";
-import { getTalismanAsset } from "@/data/talisman-assets";
 import { detectCrisis, SAFETY_DISCLAIMER } from "@/lib/crisis-detection";
 import {
   composeShareImage,
@@ -45,6 +43,15 @@ import {
 } from "@/lib/widget-bridge";
 import WidgetGuideSheet from "@/components/hanji/WidgetGuideSheet";
 import type { SavedTalisman } from "@/lib/types";
+import {
+  createPersonalTalisman,
+  saveToCollection,
+  markPlacedOnHome,
+  buildPersonalSVG,
+} from "@/lib/personal-talisman";
+import { WISH_SUGGESTIONS, ORIGIN_CONCEPT_LINES } from "@/data/talisman-origin";
+import PersonalTalismanView, { NameStamp } from "@/components/PersonalTalismanView";
+import CraftingRitual from "@/components/CraftingRitual";
 
 /* ───────── types ───────── */
 
@@ -55,49 +62,10 @@ type ChatMessage = {
   options?: DialogueOption[];
 };
 
-type Phase = "category" | "chat" | "reveal";
+/* 사주·고민 확인(chat) → 염원 적기(wish) → 짓는 연출(crafting) → 완성(reveal) */
+type Phase = "category" | "chat" | "wish" | "crafting" | "reveal";
 
 /* ───────── constants ───────── */
-
-const ENCOURAGEMENT_MESSAGES: Record<string, string[]> = {
-  [TalismanCategory.Protection]: [
-    "나쁜 기운은 물러가고 평안만 깃들기를",
-    "안전하고 평화로운 하루가 되기를",
-    "모든 액운이 사라지기를 기원합니다",
-  ],
-  [TalismanCategory.Wealth]: [
-    "재물과 복이 가득 들어오기를",
-    "풍요로운 하루하루가 되기를",
-    "하는 일마다 결실을 맺기를",
-  ],
-  [TalismanCategory.Health]: [
-    "몸도 마음도 편안하기를 기원합니다",
-    "오늘도 건강하게, 내일도 무탈하게",
-    "가족의 건강과 무사함을 기원합니다",
-  ],
-  [TalismanCategory.Family]: [
-    "가족의 평안과 화합을 기원합니다",
-    "사랑이 넘치는 가정이 되기를",
-    "좋은 인연이 찾아오기를",
-  ],
-  [TalismanCategory.Study]: [
-    "노력한 만큼 좋은 결과가 있기를",
-    "흔들림 없는 집중력이 함께하기를",
-    "바라는 시험에 반드시 합격하기를",
-  ],
-  [TalismanCategory.Other]: [
-    "간절한 소원이 이루어지기를",
-    "행운이 가득한 날들이 되기를",
-    "좋은 일만 가득하기를 기원합니다",
-  ],
-  [TalismanCategory.Love]: [
-    "당신의 마음이 가장 소중해요",
-    "좋은 인연은 먼 길을 돌아서도 만나집니다",
-    "설레는 마음 그대로 전해지기를",
-    "서로에게 다정한 날들이 이어지기를",
-    "어떤 마음이든 충분히 아름답습니다",
-  ],
-};
 
 /**
  * 마음이 무거운 분께 드리는 부적.
@@ -154,10 +122,10 @@ function loadUserContext(): { name: string; animal: string } {
 }
 
 /** 2단계 진행 표시 — 시안의 미니멀 점 슬라이더 (●─○) */
-function StepDots({ current }: { current: 1 | 2 }) {
+function StepDots({ current }: { current: 1 | 2 | 3 }) {
   return (
     <div className="flex items-center justify-center gap-0 pb-3">
-      {[1, 2].map((n) => {
+      {[1, 2, 3].map((n) => {
         const reached = n <= current;
         return (
           <div key={n} className="flex items-center">
@@ -278,6 +246,11 @@ function TalismanFlow() {
   const [encouragement, setEncouragement] = useState("");
   const [userCtx, setUserCtx] = useState({ name: "", animal: "" });
 
+  /* 염원 적기 + 개인 부적 */
+  const [wishText, setWishText] = useState("");
+  const [personalResult, setPersonalResult] = useState<SavedTalisman | null>(null);
+  const [placed, setPlaced] = useState(false);
+
   /* reveal state */
   const [saved, setSaved] = useState(false);
   const [shareStatus, setShareStatus] = useState<ShareFormat | null>(null);
@@ -353,16 +326,49 @@ function TalismanFlow() {
 
   /* ──────── phase handlers ──────── */
 
-  /* 상담이 끝나면 바로 완성된 부적으로 — 기원 문구는 마음에 맞춰 골라 얹는다 */
-  const goToReveal = useCallback(() => {
-    if (selectedCategory && !encouragement) {
-      const pool = supportiveMode
-        ? SUPPORTIVE_TALISMAN.messages
-        : ENCOURAGEMENT_MESSAGES[selectedCategory];
-      setEncouragement(pool[Math.floor(Math.random() * pool.length)]);
+  /* 상담이 끝나면 염원 적기로 — 부적에 담을 마음을 직접 적는다 */
+  const goToWish = useCallback(() => {
+    setPhase("wish");
+  }, []);
+
+  /** 홈의 사주 추천으로 들어온 경우, 그 추천 이유를 그대로 쓴다 (오늘 캐시) */
+  const sajuReasonFor = useCallback((talismanId: string): string | null => {
+    try {
+      const raw = localStorage.getItem("bujeok-today-fortune");
+      if (!raw) return null;
+      const cached = JSON.parse(raw);
+      if (
+        cached?.fortune?.talismanId === talismanId &&
+        typeof cached.fortune.talismanReason === "string"
+      ) {
+        return cached.fortune.talismanReason;
+      }
+    } catch {
+      /* ignore */
     }
-    setPhase("reveal");
-  }, [selectedCategory, encouragement, supportiveMode]);
+    return null;
+  }, []);
+
+  /* 염원을 담아 부적 짓기 — 개인 부적 기록을 만들고 짓는 연출로 */
+  const startCrafting = useCallback(() => {
+    const rec = recommended;
+    if (!rec || !wishText.trim()) return;
+    const reason = supportiveMode
+      ? "나눠주신 마음이 무거워 보여, 마음을 다독이는 부적을 먼저 권해드렸어요."
+      : sajuReasonFor(rec.id) ??
+        `「${selectedEnergy?.title ?? "마음"}」 이야기를 나눈 끝에, 지금의 마음에 가장 맞닿은 부적으로 골랐어요.`;
+    setPersonalResult(
+      createPersonalTalisman({
+        talisman: rec,
+        ownerName: userCtx.name,
+        wishText: wishText.trim(),
+        recommendationReason: reason,
+      })
+    );
+    setSaved(false);
+    setPlaced(false);
+    setPhase("crafting");
+  }, [recommended, wishText, supportiveMode, selectedEnergy, userCtx.name, sajuReasonFor]);
 
   /* 1. energy(마음) 선택 → chat */
   const handleEnergySelect = useCallback(
@@ -571,51 +577,42 @@ function TalismanFlow() {
     supportiveModeRef.current = false;
     setEncouragement("");
     setSaved(false);
+    setWishText("");
+    setPersonalResult(null);
+    setPlaced(false);
   }, [clearBotTimers]);
 
-  /* 3. save to 부적함 (bujeok-collection) */
+  /* 3. 내 수호부에 간직하기 — 개인 부적 기록만 저장한다 (이미지 복사 없음) */
   const handleSave = useCallback(() => {
-    if (!recommended) return;
+    if (!personalResult) return;
+    if (saveToCollection(personalResult)) setSaved(true);
+  }, [personalResult]);
 
-    // 추천 부적의 43종 상세 정보를 그대로 물려받고, 나만의 요소만 덧붙인다
-    const talisman: SavedTalisman = {
-      ...recommended,
-      id: `custom-${Date.now()}`,
-      sourceId: recommended.id, // 도감에서 어느 종인지 알아보게 원본 id를 남긴다
-      savedAt: new Date().toISOString(),
-      note: encouragement || undefined,
-      svg: generateTalismanSVG(talismanParams),
-    };
-
+  /* 3-1. 홈 화면에 모시기 — 대표 부적으로 지정하고 위젯에도 보낸다 */
+  const handlePlaceHome = useCallback(async () => {
+    if (!personalResult) return;
+    if (saveToCollection(personalResult)) setSaved(true);
+    markPlacedOnHome(personalResult.id);
+    setPlaced(true);
     // 네이티브 앱이면 홈 화면 위젯에도 반영 (웹에선 no-op)
-    void pushTalismanToWidget(talisman.svg!, {
-      name: talisman.name,
-      hanja: talisman.hanja,
-      note: talisman.note,
-      savedAt: talisman.savedAt,
+    void pushTalismanToWidget(buildPersonalSVG(personalResult), {
+      name: personalResult.name,
+      hanja: personalResult.hanja,
+      note: personalResult.personal?.wishText,
+      savedAt: personalResult.savedAt,
     });
-
-    try {
-      const existing: SavedTalisman[] = JSON.parse(
-        localStorage.getItem("bujeok-collection") || "[]"
-      );
-      existing.unshift(talisman);
-      localStorage.setItem("bujeok-collection", JSON.stringify(existing));
-      setSaved(true);
-      // 부적을 막 담은 순간 — 애착이 가장 높을 때 한 번만 안내한다
-      if (hasWidgetBridge() && isWidgetInstalled() === false) {
-        setTimeout(() => setShowWidgetGuide(true), 700);
-      }
-    } catch {
-      // storage full 등
+    if (widgetMissing) {
+      setTimeout(() => setShowWidgetGuide(true), 500);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recommended, encouragement, talismanStyle, background, animalChoice, userCtx, accent]);
+  }, [personalResult, widgetMissing]);
 
   /* 4. 공유 — 원본/스토리(9:16)/정사각(1:1) */
   const handleShare = useCallback(
     async (format: ShareFormat) => {
-      const svg = generateTalismanSVG(talismanParams);
+      // 인장까지 얹은 개인 부적으로 합성 — 화면과 같은 모습
+      const svg = personalResult
+        ? buildPersonalSVG(personalResult)
+        : generateTalismanSVG(talismanParams);
       try {
         const blob = await composeShareImage(svg, format, {
           name: talismanName,
@@ -635,7 +632,7 @@ function TalismanFlow() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [talismanName, recommended, talismanStyle, background, animalChoice, encouragement, userCtx, accent]
+    [talismanName, recommended, personalResult, talismanStyle, background, animalChoice, encouragement, userCtx, accent]
   );
 
   /* 5. 부적 선물 링크 — 정적 사이트라 선물 데이터를 URL 자체에 담는다 */
@@ -675,7 +672,8 @@ function TalismanFlow() {
     }
   }, [recommended, giftFrom, giftMessage]);
 
-  const stepNum: 1 | 2 = phase === "reveal" ? 2 : 1;
+  const stepNum: 1 | 2 | 3 =
+    phase === "crafting" || phase === "reveal" ? 3 : phase === "wish" ? 2 : 1;
 
   /* ══════════════════ RENDER ══════════════════ */
 
@@ -687,14 +685,22 @@ function TalismanFlow() {
             onClick={() => {
               if (phase === "category") router.push("/");
               else if (phase === "chat") resetToCategory();
-              else setPhase("chat");
+              else if (phase === "wish") setPhase("chat");
+              else if (phase === "reveal") {
+                // 완성본을 물리고 염원부터 다시 — 새 기록(새 번호)이 된다
+                setPersonalResult(null);
+                setSaved(false);
+                setPlaced(false);
+                setPhase("wish");
+              }
+              /* crafting 중에는 돌아가지 않는다 — 짧은 의식이 끝나길 기다린다 */
             }}
             aria-label="뒤로가기"
           >
             <BackIcon size={20} />
           </button>
         }
-        title="나만의 부적 만들기"
+        title="나만의 부적 짓기"
         right={
           <button
             onClick={() => alert("설정은 준비 중이에요")}
@@ -720,8 +726,8 @@ function TalismanFlow() {
             <h2 className="font-brush mb-1 text-center text-[22px] text-[var(--color-meok)]">
               어떤 마음을 담아볼까요?
             </h2>
-            <p className="mb-6 text-center text-xs text-[var(--color-galsaek)]">
-              마음의 방향을 고르면 짧은 대화 후 부적을 만들어 드려요.
+            <p className="mb-5 text-center text-xs text-[var(--color-galsaek)]">
+              마음의 방향을 고르면 짧은 대화 후 부적을 지어드려요.
             </p>
             <div className="grid grid-cols-2 gap-3">
               {ENERGIES.map((energy) => (
@@ -732,6 +738,13 @@ function TalismanFlow() {
                 />
               ))}
             </div>
+
+            {/* 서비스의 마음 — 원형 부적 위에 한 사람의 염원을 담는다 */}
+            <p
+              className="mt-8 whitespace-pre-line text-center font-serif-kr text-[11.5px] leading-[1.9] text-[var(--color-galsaek)] opacity-80"
+            >
+              {ORIGIN_CONCEPT_LINES.main}
+            </p>
           </motion.div>
         )}
 
@@ -784,8 +797,8 @@ function TalismanFlow() {
                   className="flex justify-center pt-4"
                 >
                   <div className="w-full max-w-[240px]">
-                    <TraditionalButton onClick={goToReveal}>
-                      부적 받기
+                    <TraditionalButton onClick={goToWish}>
+                      내 부적 청하기
                     </TraditionalButton>
                   </div>
                 </motion.div>
@@ -827,8 +840,123 @@ function TalismanFlow() {
           </motion.div>
         )}
 
-        {/* ─── Phase 4: 완성 ─── */}
-        {phase === "reveal" && (
+        {/* ─── Phase 3: 염원 적기 ─── */}
+        {phase === "wish" && (
+          <motion.div
+            key="wish"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.35 }}
+            className="mx-auto flex w-full max-w-md flex-1 flex-col px-5 pb-16"
+          >
+            <h2 className="font-brush mb-2 mt-2 text-center text-[21px] leading-snug text-[var(--color-meok)]">
+              이 부적에 어떤 마음을
+              <br />
+              담고 싶으신가요?
+            </h2>
+            <p className="mb-5 text-center text-xs leading-relaxed text-[var(--color-galsaek)]">
+              지금 가장 간절히 바라는 마음을 짧게 적어주세요.
+              <br />
+              적어주신 염원은 당신의 부적과 함께 간직됩니다.
+            </p>
+
+            {/* 어느 부적에 담기는지 */}
+            {recommended && (
+              <p
+                className="mx-auto mb-4 rounded-full px-4 py-1.5 text-center text-[11px] font-bold text-[var(--color-juhong)]"
+                style={{
+                  border: "1px solid rgba(167,43,33,0.3)",
+                  backgroundColor: "rgba(246,237,217,0.7)",
+                }}
+              >
+                {recommended.name} {recommended.hanja}
+              </p>
+            )}
+            {talismanDescription && (
+              <p className="mx-auto mb-4 max-w-xs whitespace-pre-line text-center text-[11px] leading-relaxed text-[var(--color-galsaek)] opacity-80">
+                {talismanDescription}
+              </p>
+            )}
+
+            <textarea
+              value={wishText}
+              onChange={(e) => setWishText(e.target.value.slice(0, 50))}
+              maxLength={50}
+              rows={3}
+              placeholder="예) 올해는 마음먹은 일들이 잘 풀리기를 바라요."
+              className="w-full resize-none rounded-xl px-4 py-3.5 font-serif-kr text-[15px] leading-relaxed text-[var(--color-meok)] placeholder-[var(--color-galsaek)]/40 focus:outline-none"
+              style={{
+                border: "1.5px solid rgba(122,74,52,0.4)",
+                backgroundColor: "rgba(255,251,240,0.9)",
+              }}
+            />
+            <p className="mt-1.5 text-right text-[11px] text-[var(--color-galsaek)] opacity-60">
+              {wishText.length}/50
+            </p>
+
+            {/* 추천 염원 — 누르면 입력창에 담기고, 고쳐 쓸 수 있다 */}
+            {selectedCategory && (
+              <div className="mt-3">
+                <p className="mb-2 text-[11px] font-bold text-[var(--color-galsaek)]">
+                  이런 염원은 어떠세요?
+                </p>
+                <div className="flex flex-col gap-2">
+                  {(WISH_SUGGESTIONS[selectedCategory] ?? []).map((w) => (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => setWishText(w)}
+                      className="rounded-lg px-3.5 py-2.5 text-left font-serif-kr text-[12.5px] leading-relaxed text-[var(--color-meok)] transition-colors active:scale-[0.99]"
+                      style={{
+                        border:
+                          wishText === w
+                            ? "1.5px solid var(--color-juhong)"
+                            : "1px solid rgba(122,74,52,0.3)",
+                        backgroundColor:
+                          wishText === w
+                            ? "rgba(167,43,33,0.06)"
+                            : "rgba(246,237,217,0.6)",
+                      }}
+                    >
+                      {w}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-7">
+              <TraditionalButton onClick={startCrafting} disabled={!wishText.trim()}>
+                염원을 담아 부적 짓기
+              </TraditionalButton>
+            </div>
+
+            <p className="mt-6 whitespace-pre-line text-center text-[10.5px] leading-[1.9] text-[var(--color-galsaek)] opacity-70">
+              {ORIGIN_CONCEPT_LINES.sub}
+            </p>
+          </motion.div>
+        )}
+
+        {/* ─── Phase 3.5: 부적을 짓는 연출 ─── */}
+        {phase === "crafting" && personalResult && (
+          <motion.div
+            key="crafting"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            className="mx-auto flex w-full max-w-md flex-1 flex-col items-center px-5 pb-16"
+          >
+            <CraftingRitual
+              talisman={personalResult}
+              onDone={() => setPhase("reveal")}
+            />
+          </motion.div>
+        )}
+
+        {/* ─── Phase 4: 개인 부적 완성 ─── */}
+        {phase === "reveal" && personalResult && (
           <motion.div
             key="reveal"
             initial={{ opacity: 0 }}
@@ -836,76 +964,127 @@ function TalismanFlow() {
             transition={{ duration: 0.5 }}
             className="mx-auto flex w-full max-w-md flex-1 flex-col items-center px-5 pb-16"
           >
+            {/* 완성된 개인 부적 — 원형 이미지 + 이름 인장 */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.85, y: 16 }}
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.6, type: "spring", damping: 18 }}
-              className="mb-5"
+              transition={{ duration: 0.6, type: "spring", damping: 20 }}
+              className="mb-5 overflow-hidden rounded-xl"
+              style={{ boxShadow: "0 10px 30px rgba(43,24,16,0.25)", width: "min(64vw, 250px)" }}
             >
-              <TalismanPreview
-                type={talismanType}
-                style={talismanStyle}
-                message={encouragement}
-                background={background}
-                accent={accent}
-                animal={animalChoice || undefined}
-                symbols={
-                  recommended
-                    ? [...recommended.design.patterns, ...recommended.design.symbols]
-                    : undefined
-                }
-                userName={userCtx.name || undefined}
-                title={talismanName}
-                hanja={recommended?.hanja}
-                mantra={recommended?.mantra}
-                size="lg"
-              />
+              <PersonalTalismanView talisman={personalResult} width="100%" />
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="mb-6 text-center"
+              transition={{ delay: 0.3 }}
+              className="mb-5 text-center"
             >
-              <h2 className="font-serif-kr text-xl font-bold text-[var(--color-meok)]">
-                「{talismanName}」
-                {recommended && (
-                  <span className="ml-1.5 text-sm font-normal text-[var(--color-galsaek)]">
-                    {recommended.hanja}
-                  </span>
-                )}
+              <h2 className="font-serif-kr text-lg font-bold leading-relaxed text-[var(--color-meok)]">
+                {personalResult.personal?.ownerName
+                  ? `${personalResult.personal.ownerName}님의 염원을 담은`
+                  : "당신의 염원을 담은"}
+                <br />한 장의 수호부가 완성되었습니다.
               </h2>
-              <p className="mx-auto mt-2 max-w-xs whitespace-pre-line text-sm leading-relaxed text-[var(--color-galsaek)]">
-                {talismanDescription}
+              <p className="mt-2 text-xs leading-relaxed text-[var(--color-galsaek)]">
+                이 부적은 지금 품고 있는 마음을 잊지 않도록
+                <br />
+                당신의 곁에서 함께합니다.
               </p>
             </motion.div>
 
+            {/* 개인 부적 기록 */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.9 }}
+              transition={{ delay: 0.5 }}
+              className="mb-6 w-full max-w-xs rounded-xl px-4 py-4"
+              style={{
+                border: "1px solid rgba(122,74,52,0.3)",
+                backgroundColor: "rgba(255,251,240,0.75)",
+              }}
+            >
+              {(
+                [
+                  ["부적명", `${personalResult.name} ${personalResult.hanja}`],
+                  ["담은 염원", personalResult.personal?.wishText ?? ""],
+                  ["추천 이유", personalResult.personal?.recommendationReason ?? ""],
+                  [
+                    "지은 날",
+                    new Date(personalResult.savedAt).toLocaleDateString("ko-KR", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    }),
+                  ],
+                  ["부적 번호", personalResult.personal?.serialNumber ?? ""],
+                ] as const
+              ).map(([label, value]) => (
+                <div key={label} className="flex items-start gap-3 py-1.5">
+                  <span className="w-14 shrink-0 pt-px text-[11px] font-bold text-[var(--color-galsaek)]">
+                    {label}
+                  </span>
+                  <span className="min-w-0 flex-1 font-serif-kr text-[12.5px] leading-relaxed text-[var(--color-meok)]">
+                    {value}
+                  </span>
+                </div>
+              ))}
+              <div className="flex items-center gap-3 py-1.5">
+                <span className="w-14 shrink-0 text-[11px] font-bold text-[var(--color-galsaek)]">
+                  이름 인장
+                </span>
+                <span className="flex items-center gap-2">
+                  <NameStamp
+                    text={personalResult.personal?.stampText ?? "수호부"}
+                    side={30}
+                    rotation={personalResult.personal?.stampRotation ?? 0}
+                  />
+                  <span className="font-serif-kr text-[12.5px] text-[var(--color-meok)]">
+                    {personalResult.personal?.ownerName || "수호부"}
+                  </span>
+                </span>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
               className="flex w-full max-w-xs flex-col gap-3"
             >
               {saved ? (
-                widgetMissing ? (
-                  <TraditionalButton onClick={() => setShowWidgetGuide(true)}>
-                    홈 화면에 지니기
-                  </TraditionalButton>
-                ) : (
-                  <div
-                    className="w-full rounded-lg py-3.5 text-center font-serif-kr text-base font-bold text-[var(--color-ssuk)]"
-                    style={{ border: "1px solid rgba(107,125,99,0.5)" }}
-                  >
-                    ✓ 부적함에 담았습니다
-                  </div>
-                )
+                <div
+                  className="w-full rounded-lg py-3.5 text-center font-serif-kr text-base font-bold text-[var(--color-ssuk)]"
+                  style={{ border: "1px solid rgba(107,125,99,0.5)" }}
+                >
+                  ✓ 내 수호부에 간직했습니다
+                </div>
               ) : (
                 <TraditionalButton onClick={handleSave}>
-                  부적함에 담기
+                  내 수호부에 간직하기
                 </TraditionalButton>
               )}
 
+              <button
+                onClick={handlePlaceHome}
+                disabled={placed}
+                className="w-full rounded-lg py-3 font-serif-kr text-sm font-bold transition-all active:scale-[0.99]"
+                style={{
+                  color: placed ? "var(--color-ssuk)" : "var(--color-juhong)",
+                  border: placed
+                    ? "1px solid rgba(107,125,99,0.5)"
+                    : "1.5px solid var(--color-juhong)",
+                  backgroundColor: "rgba(246,237,217,0.7)",
+                }}
+              >
+                {placed ? "✓ 홈 화면에 모셨습니다" : "홈 화면에 모시기"}
+              </button>
+
+              {/* 부적 이야기 나누기 — 인장까지 담긴 모습 그대로 */}
+              <p className="mt-1 text-center text-[11px] font-bold text-[var(--color-galsaek)]">
+                부적 이야기 나누기
+              </p>
               <div className="flex gap-2">
                 {(
                   [
@@ -934,9 +1113,6 @@ function TalismanFlow() {
                   </button>
                 ))}
               </div>
-              <p className="text-center text-[10px] text-[var(--color-galsaek)] opacity-60">
-                스토리 9:16 · 정사각 1:1 — 인스타·카톡 공유에 맞는 크기예요
-              </p>
 
               {/* 부적 선물하기 — 부적은 원래 남에게 건네는 것 */}
               {recommended && (
@@ -957,18 +1133,21 @@ function TalismanFlow() {
                 onClick={resetToCategory}
                 className="mt-1 text-center text-xs text-[var(--color-galsaek)] underline underline-offset-2 opacity-70"
               >
-                새 부적 만들기
+                새 부적 짓기
               </button>
             </motion.div>
 
-            {/* 안전 고지 */}
+            {/* 안내 + 안전 고지 */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1.4, duration: 0.6 }}
+              transition={{ delay: 1.1, duration: 0.6 }}
               className="mt-8 w-full max-w-xs"
             >
-              <p className="whitespace-pre-line text-center text-[10px] leading-[1.7] text-[var(--color-galsaek)] opacity-60">
+              <p className="text-center text-[10px] leading-[1.7] text-[var(--color-galsaek)] opacity-60">
+                {ORIGIN_CONCEPT_LINES.notice}
+              </p>
+              <p className="mt-3 whitespace-pre-line text-center text-[10px] leading-[1.7] text-[var(--color-galsaek)] opacity-60">
                 {SAFETY_DISCLAIMER}
               </p>
               <div className="mt-2 flex items-center justify-center gap-2 text-[10px] text-[var(--color-galsaek)] opacity-70">

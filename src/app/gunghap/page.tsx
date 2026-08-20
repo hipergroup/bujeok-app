@@ -637,7 +637,7 @@ function GunghapContent() {
                   </h3>
                   <p className="text-[12px] leading-relaxed" style={{ color: GALSAEK }}>
                     {samjaeB.is
-                      ? '삼재의 해에는 예로부터 몸과 마음을 지키는 부적을 곁에 두었어요. 사주 풀이와 함께 나만의 부적을 만들어 보세요.'
+                      ? '삼재의 해에는 예로부터 몸과 마음을 지키는 부적을 곁에 두었어요. 사주 풀이와 함께 나만의 부적을 지어 보세요.'
                       : '평온한 흐름이에요. 소중한 사람과 나눌 부적 하나로 이 인연을 붙들어 보세요.'}
                   </p>
                 </section>
@@ -687,7 +687,7 @@ function GunghapContent() {
                 >
                   {invite
                     ? `이 부적 만들어 ${invite.f ? `${invite.f}님께` : '친구에게'} 보내기 →`
-                    : '이 부적 받기 →'}
+                    : '이 부적 청하기 →'}
                 </motion.button>
               </section>
 

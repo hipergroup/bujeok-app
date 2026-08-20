@@ -14,7 +14,7 @@ const tabs = [
   { href: '/', label: '홈', Icon: HomeTabIcon, group: ['/'] },
   {
     href: '/talisman',
-    label: '부적 만들기',
+    label: '부적 짓기',
     Icon: BrushTabIcon,
     group: ['/talisman'],
   },

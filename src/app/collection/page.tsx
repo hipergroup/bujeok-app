@@ -76,8 +76,8 @@ export default function CollectionPage() {
       <CollectionSegment />
 
       <div className="mx-auto w-full max-w-md flex-1 px-5 pb-32">
-        <p className="mb-4 text-center text-xs text-[var(--color-galsaek)]">
-          당신이 만든 부적들을 보관해 보세요.
+        <p className="mb-4 whitespace-pre-line text-center font-serif-kr text-xs leading-[1.9] text-[var(--color-galsaek)]">
+          {'당신이 품었던 마음들이\n한 장씩 이곳에 머물러 있습니다.'}
         </p>
 
         {/* 필터 */}
@@ -121,11 +121,11 @@ export default function CollectionPage() {
                   : '이 종류의 부적이 아직 없어요'}
               </p>
               <p className="mt-1 text-xs text-[var(--color-galsaek)]">
-                마음을 담아 첫 부적을 만들어 볼까요?
+                마음을 담아 첫 부적을 지어 볼까요?
               </p>
               <div className="mt-6 w-full max-w-[220px]">
                 <TraditionalButton onClick={() => router.push('/talisman')}>
-                  부적 만들러 가기
+                  부적 지으러 가기
                 </TraditionalButton>
               </div>
             </motion.div>
@@ -165,8 +165,16 @@ export default function CollectionPage() {
                   <p className="mt-2 font-serif-kr text-[13px] font-bold text-[var(--color-meok)]">
                     {talisman.name}
                   </p>
+                  {talisman.personal?.wishText && (
+                    <p className="mt-0.5 truncate font-serif-kr text-[11px] text-[var(--color-galsaek)]">
+                      “{talisman.personal.wishText}”
+                    </p>
+                  )}
                   <p className="mt-0.5 text-[10px] text-[var(--color-galsaek)] opacity-70">
                     {formatDate(talisman.savedAt)}
+                    {talisman.personal?.serialNumber && (
+                      <span className="ml-1.5">{talisman.personal.serialNumber}</span>
+                    )}
                   </p>
                 </motion.div>
               ))}

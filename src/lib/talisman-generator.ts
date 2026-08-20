@@ -19,6 +19,8 @@ export interface TalismanParams {
   symbols?: string[]; // 사용할 심볼 목록
   /** 그려진 부적 그림 경로 — 있으면 이 그림을 바탕으로 쓰고 문구·낙관만 얹는다 */
   assetUrl?: string;
+  /** true 면 생성기의 기본 낙관을 찍지 않는다 — 개인 이름 인장을 따로 얹을 때 */
+  noSeal?: boolean;
 }
 
 // ─── 색상 팔레트 ────────────────────────────────────────────
@@ -418,7 +420,7 @@ function generateFromAsset(
     ? `<text x="0" y="4" text-anchor="middle" font-size="11" font-weight="bold" fill="${HANJI}" font-family="serif">${escapeXml(sealName)}</text>`
     : `<text x="0" y="-2" text-anchor="middle" font-size="9.5" font-weight="bold" fill="${HANJI}" font-family="serif">수호</text>
        <text x="0" y="10" text-anchor="middle" font-size="9.5" font-weight="bold" fill="${HANJI}" font-family="serif">부</text>`;
-  const seal = lines.length
+  const seal = lines.length && !params.noSeal
     ? `<g transform="translate(${W - 46}, ${bandY + bandH / 2})">
          <rect x="-15" y="-15" width="30" height="30" rx="4" fill="${SEAL_RED}"/>
          <rect x="-11.5" y="-11.5" width="23" height="23" rx="3" fill="none" stroke="${HANJI}" stroke-width="1" opacity="0.9"/>
@@ -522,7 +524,7 @@ function generateTraditional(
     ? `<text x="0" y="5" text-anchor="middle" font-size="12" font-weight="bold" fill="#F2E7CE" font-family="serif">${escapeXml(sealName)}</text>`
     : `<text x="0" y="-2" text-anchor="middle" font-size="11" font-weight="bold" fill="#F2E7CE" font-family="serif">수호</text>
        <text x="0" y="12" text-anchor="middle" font-size="11" font-weight="bold" fill="#F2E7CE" font-family="serif">부</text>`;
-  const seal = `
+  const seal = params.noSeal ? '' : `
     <g transform="translate(${W / 2}, ${H - 54})">
       <rect x="-19" y="-19" width="38" height="38" rx="4" fill="${SEAL_RED}"/>
       <rect x="-14.5" y="-14.5" width="29" height="29" rx="3" fill="none" stroke="#F2E7CE" stroke-width="1.2" opacity="0.9"/>
