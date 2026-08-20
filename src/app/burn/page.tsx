@@ -65,20 +65,21 @@ const CLOSING_MESSAGES = [
   "모든 걱정이 사라지지 않아도 괜찮아요.\n오늘 하나를 보낸 것만으로 충분합니다.",
 ];
 
-/* ───────── 태우기 애니메이션 (향로 영상, ~6.2초) ───────── */
+/* ───────── 태우기 애니메이션 (향로 영상, 0.75배속 ~8.3초) ───────── */
 //
 // 영상은 빈 종이가 향로에서 아래부터 타들어가 재와 연기만 남는 8초짜리다.
-// 타이밍(초): 0 온전함 · 0.7 발화 · 2 삼분의 일 · 4.5 종이 사라짐 · 이후 연기
+// 원본 타이밍(초): 0 온전함 · 0.7 발화 · 2 삼분의 일 · 4.5 종이 사라짐 · 이후 연기
+// 의식답게 천천히 — 0.75배속으로 틀고, 아래 시각들은 전부 배속을 나눠 셈한다.
 //
-// 사용자가 쓴 걱정은 영상 속 종이 위에 얹고, 불선이 올라오는 속도에 맞춰
-// 아래에서 위로 지워지게 한다 — 자기가 쓴 글이 실제로 타는 것처럼 보이도록.
+// 사용자가 쓴 걱정은 영상 속 종이 위에 얹는다. 글씨는 중간에 지우지 않고
+// 종이가 다 타서 사라지는 순간까지 남아 있다가, 종이와 함께 흐려진다.
 
 /** 영상 속 종이의 위치 (프레임 대비 %) — 글자를 이 안에 앉힌다 */
 const PAPER = { left: 21, right: 14, top: 20, bottom: 34 };
 
-const IGNITE = 0.7; // 불이 붙는 시각
-const BURN = 3.6; // 종이가 다 타는 데 걸리는 시간
-const TOTAL_MS = 6200; // 종이가 사라진 뒤 연기를 잠시 보여주고 마무리
+const RATE = 0.75; // 재생 배속
+const PAPER_GONE = 4.5 / RATE; // 종이가 사라지는 실제 시각(초)
+const TOTAL_MS = 6200 / RATE; // 연기를 잠시 보여주고 마무리 (~8.3초)
 
 function BurnAnimation({ text, onDone }: { text: string; onDone: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -96,6 +97,7 @@ function BurnAnimation({ text, onDone }: { text: string; onDone: () => void }) {
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
+    v.playbackRate = RATE; // 의식은 서두르지 않는다
     v.volume = 0.7;
     v.play().catch(() => {
       v.muted = true;
@@ -136,7 +138,7 @@ function BurnAnimation({ text, onDone }: { text: string; onDone: () => void }) {
           className="absolute inset-0 h-full w-full object-cover"
         />
 
-        {/* 내가 쓴 걱정 — 불선을 따라 아래에서 위로 지워진다 */}
+        {/* 내가 쓴 걱정 — 끝까지 남아 있다가, 종이가 사라질 때 함께 흐려진다 */}
         <motion.div
           aria-hidden
           className="absolute flex items-center justify-center overflow-hidden px-2"
@@ -146,9 +148,9 @@ function BurnAnimation({ text, onDone }: { text: string; onDone: () => void }) {
             top: `${PAPER.top}%`,
             bottom: `${PAPER.bottom}%`,
           }}
-          initial={{ clipPath: 'inset(0% 0% 0% 0%)' }}
-          animate={{ clipPath: 'inset(0% 0% 100% 0%)' }}
-          transition={{ delay: IGNITE, duration: BURN, ease: 'easeInOut' }}
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 0 }}
+          transition={{ delay: PAPER_GONE - 0.9, duration: 0.9, ease: 'easeOut' }}
         >
           <p
             className="whitespace-pre-wrap break-words text-center font-hand text-[var(--color-meok)]"
