@@ -74,8 +74,19 @@ const CLOSING_MESSAGES = [
 // 사용자가 쓴 걱정은 영상 속 종이 위에 얹는다. 글씨는 중간에 지우지 않고
 // 종이가 다 타서 사라지는 순간까지 남아 있다가, 종이와 함께 흐려진다.
 
-/** 영상 속 종이의 위치 (프레임 대비 %) — 글자를 이 안에 앉힌다 */
-const PAPER = { left: 21, right: 14, top: 20, bottom: 34 };
+/**
+ * 영상 속 종이의 위치 (프레임 대비 %) — 글자를 이 안에 앉힌다.
+ * 포스터 프레임 실측: 종이 왼쪽 21%·오른쪽 20%·위 19%, 아래는 66%쯤에서
+ * 향로 테에 가려진다. 여백을 조금 두고 그 안쪽에 글을 앉힌다.
+ */
+const PAPER = { left: 25, right: 24, top: 24, bottom: 38 };
+
+/** 걱정 길이에 따라 붓글씨 크기를 낮춘다 — 길수록 잔글씨로 눌러쓴 느낌 */
+function inkFontSize(len: number): string {
+  if (len <= 30) return 'clamp(20px, 6vw, 34px)';
+  if (len <= 90) return 'clamp(17px, 5vw, 28px)';
+  return 'clamp(14px, 4.2vw, 24px)';
+}
 
 const RATE = 0.75; // 재생 배속
 const PAPER_GONE = 4.5 / RATE; // 종이가 사라지는 실제 시각(초)
@@ -153,11 +164,17 @@ function BurnAnimation({ text, onDone }: { text: string; onDone: () => void }) {
           transition={{ delay: PAPER_GONE - 0.9, duration: 0.9, ease: 'easeOut' }}
         >
           <p
-            className="whitespace-pre-wrap break-words text-center font-hand text-[var(--color-meok)]"
+            className="whitespace-pre-wrap break-words text-center font-hand"
             style={{
-              fontSize: 'clamp(16px, 4.4vw, 30px)',
-              lineHeight: 1.7,
-              opacity: 0.9,
+              fontSize: inkFontSize(text.length),
+              lineHeight: 1.75,
+              // 먹이 한지에 스민 것처럼 — 곱하기 혼합 + 붓 번짐 그림자
+              color: '#33291E',
+              mixBlendMode: 'multiply',
+              opacity: 0.92,
+              textShadow: '0 0 1.5px rgba(51,41,30,0.55)',
+              // 손으로 얹은 종이처럼 아주 살짝 기울인다
+              transform: 'rotate(-1.2deg)',
             }}
           >
             {text}
@@ -282,7 +299,8 @@ export default function BurnPage() {
                 "어떤 걱정이든 괜찮아요. 여기 적은 글은 어디에도 저장되지 않아요."
               }
               /* 붓으로 눌러쓴 글씨 — 적는 순간부터 태울 종이처럼 보이게 */
-              className="w-full resize-none bg-transparent font-hand text-[21px] leading-[1.75] text-[var(--color-meok)] outline-none placeholder:font-serif-kr placeholder:text-[14px] placeholder:text-[var(--color-galsaek)] placeholder:opacity-50"
+              className="w-full resize-none bg-transparent font-hand text-[21px] leading-[1.75] outline-none placeholder:font-serif-kr placeholder:text-[14px] placeholder:text-[var(--color-galsaek)] placeholder:opacity-50"
+              style={{ color: '#33291E' }}
             />
             <span className="absolute bottom-3 right-4 text-[11px] tabular-nums text-[var(--color-galsaek)] opacity-60">
               {text.length}/{MAX_LEN}
