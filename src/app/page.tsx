@@ -15,11 +15,7 @@ import {
   BrushStroke,
 } from "@/components/hanji/motifs";
 import { getSaju, getSajuDetail, getOheng, getAnimal, isSamjae } from "@/data/saju";
-import {
-  getDailyFortune,
-  type LoveFortuneDetail,
-  type LoveStatus,
-} from "@/data/fortune";
+import { getDailyFortune } from "@/data/fortune";
 import {
   getTodayTalisman,
   type SajuMatchInput,
@@ -54,6 +50,23 @@ const OHENG_LABEL: Record<string, string> = {
   목: "목(木)", 화: "화(火)", 토: "토(土)", 금: "금(金)", 수: "수(水)",
 };
 
+/** 운세 근거 — 만세력이 준 사실만 담는다 (해석 문구는 넣지 않는다) */
+interface TodayBasis {
+  todayGanji: string;
+  todayGanjiHanja: string;
+  myDayStem: string;
+  myDayStemOheng: string;
+  strongEl: string;
+  weakEl: string;
+}
+
+/** 총운 아래 갈래 — 엔진이 이미 만들고 있던 값을 화면에 꺼내 쓴다 */
+const FORTUNE_BRANCHES = [
+  { key: "money", label: "재물", icon: "\u{1FA99}" },
+  { key: "health", label: "건강", icon: "\u{1F33F}" },
+  { key: "study", label: "학업·일", icon: "\u{1F4DA}" },
+] as const;
+
 interface BirthData {
   year: number;
   month: number;
@@ -61,56 +74,40 @@ interface BirthData {
   hour: number;
 }
 
-/* ── 관계 상태 (애정운 맞춤) ── */
-const LOVE_STATUS_OPTIONS: { value: LoveStatus; label: string }[] = [
-  { value: "single", label: "솔로" },
-  { value: "crush", label: "짝사랑·썸" },
-  { value: "dating", label: "연애 중" },
-  { value: "married", label: "기혼" },
-  { value: "private", label: "비공개" },
-];
-
-function loveStatusLabel(s: LoveStatus): string {
-  return LOVE_STATUS_OPTIONS.find((o) => o.value === s)?.label ?? "비공개";
-}
-
-function parseLoveStatus(v: unknown): LoveStatus | undefined {
-  return LOVE_STATUS_OPTIONS.some((o) => o.value === v)
-    ? (v as LoveStatus)
-    : undefined;
-}
-
-/** user_profile 에 loveStatus 만 병합 저장 (기존 필드 보존 — saju 페이지의 gender 저장 패턴) */
-function saveLoveStatusToProfile(status: LoveStatus) {
-  try {
-    const raw = localStorage.getItem("user_profile");
-    const obj = raw ? JSON.parse(raw) : {};
-    if (obj && typeof obj === "object") {
-      obj.loveStatus = status;
-      localStorage.setItem("user_profile", JSON.stringify(obj));
-    }
-  } catch {
-    // ignore
-  }
-}
-
-function getTodayFortune(birthData?: BirthData, loveStatus?: LoveStatus) {
+function getTodayFortune(birthData?: BirthData) {
   if (birthData) {
     const saju = getSaju(birthData.year, birthData.month, birthData.day, birthData.hour);
-    const fortune = getDailyFortune(saju, new Date(), { loveStatus });
+    const fortune = getDailyFortune(saju, new Date());
     const oheng = getOheng(saju);
-    const weakEl = (Object.entries(oheng) as [string, number][]).sort(
+    const sorted = (Object.entries(oheng) as [string, number][]).sort(
       (a, b) => a[1] - b[1]
-    )[0][0];
+    );
+    const weakEl = sorted[0][0];
+    const strongEl = sorted[sorted.length - 1][0];
+
+    // 오늘의 일진(日辰) — 만세력이 주는 사실. 해석을 붙이지 않고 그대로 보여준다.
+    const now = new Date();
+    const today = getSaju(now.getFullYear(), now.getMonth() + 1, now.getDate(), 12);
+
     return {
       score: fortune.score,
       overall: fortune.overall,
+      money: fortune.money as string | null,
+      health: fortune.health as string | null,
+      study: fortune.study as string | null,
       luckyColor: fortune.luckyColor,
       colorReason: `부족한 ${OHENG_LABEL[weakEl]} 기운을 채워주는 색`,
       luckyDirection: fortune.luckyDirection as string | null,
       luckyNumber: fortune.luckyNumber as number | null,
       dailyMantra: fortune.dailyMantra as string | null,
-      loveDetail: fortune.loveDetail as LoveFortuneDetail | null,
+      basis: {
+        todayGanji: `${today.dayStem.name}${today.dayBranch.name}`,
+        todayGanjiHanja: `${today.dayStem.hanja}${today.dayBranch.hanja}`,
+        myDayStem: `${saju.dayStem.name}(${saju.dayStem.hanja})`,
+        myDayStemOheng: OHENG_LABEL[saju.dayStem.oheng],
+        strongEl: OHENG_LABEL[strongEl],
+        weakEl: OHENG_LABEL[weakEl],
+      } as TodayBasis | null,
     };
   }
 
@@ -128,12 +125,16 @@ function getTodayFortune(birthData?: BirthData, loveStatus?: LoveStatus) {
   return {
     score: (hash % 5) + 1,
     overall: overalls[hash % overalls.length],
+    // 갈래별 운세는 사주가 있어야 나온다 — 없으면 지어내지 않고 감춘다
+    money: null as string | null,
+    health: null as string | null,
+    study: null as string | null,
     luckyColor: colors[hash % colors.length],
     colorReason: null as string | null,
     luckyDirection: null as string | null,
     luckyNumber: null as number | null,
     dailyMantra: null as string | null,
-    loveDetail: null as LoveFortuneDetail | null,
+    basis: null as TodayBasis | null,
   };
 }
 
@@ -183,9 +184,7 @@ export default function HomePage() {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [userName, setUserName] = useState("");
   const [birthData, setBirthData] = useState<BirthData | undefined>();
-  const [loveOpen, setLoveOpen] = useState(false);
-  const [loveStatus, setLoveStatus] = useState<LoveStatus | undefined>();
-  const [statusPickerOpen, setStatusPickerOpen] = useState(false);
+  const [basisOpen, setBasisOpen] = useState(false);
 
   useEffect(() => {
     const onboarded = localStorage.getItem("onboarding_completed");
@@ -227,16 +226,6 @@ export default function HomePage() {
       }
     } catch {
       setUserName("수호자");
-    }
-
-    // 관계 상태 — user_profile.loveStatus (계약 키)
-    try {
-      const profile = localStorage.getItem("user_profile");
-      if (profile) {
-        setLoveStatus(parseLoveStatus(JSON.parse(profile).loveStatus));
-      }
-    } catch {
-      // ignore
     }
 
     // 방문 기록 — 마이페이지 연속 방문 스트릭과 같은 키를 공유
@@ -288,13 +277,7 @@ export default function HomePage() {
     return <OnboardingPage />;
   }
 
-  const fortune = getTodayFortune(birthData, loveStatus);
-
-  const pickLoveStatus = (s: LoveStatus) => {
-    saveLoveStatusToProfile(s);
-    setLoveStatus(s); // state 변경 → 운세 즉시 재계산
-    setStatusPickerOpen(false);
-  };
+  const fortune = getTodayFortune(birthData);
 
   return (
     <HanjiBackground decorated>
@@ -366,101 +349,72 @@ export default function HomePage() {
               {fortune.overall}
             </p>
 
-            {/* ── 애정운 (일진 × 일지 배우자궁) — 탭하면 근거·실천 힌트 펼침 ── */}
-            {fortune.loveDetail && (
-              <button
-                onClick={() => setLoveOpen((v) => !v)}
-                className="mt-3 w-full border-t pt-3 text-left"
+            {/* ── 갈래별 운세 — 엔진이 이미 뽑아둔 재물·건강·학업을 함께 보여준다 ── */}
+            {fortune.money && (
+              <ul
+                className="mt-3 flex flex-col gap-2.5 border-t pt-3"
                 style={{ borderColor: "rgba(122,74,52,0.15)" }}
-                aria-expanded={loveOpen}
-                aria-label="애정운 자세히 보기"
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-serif-kr text-[12px] font-bold text-[var(--color-meok)]">
-                    💕 애정운
-                  </span>
-                  <span className="text-[10px] tracking-widest text-[var(--color-hwang)]">
-                    {"●".repeat(fortune.loveDetail.score)}
-                    <span className="opacity-25">
-                      {"●".repeat(5 - fortune.loveDetail.score)}
-                    </span>
-                  </span>
-                </div>
-                <p className="mt-1 text-[12.5px] leading-relaxed text-[var(--color-galsaek)]">
-                  {fortune.loveDetail.text}
-                </p>
-                {loveOpen && (
-                  <>
-                    <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--color-galsaek)] opacity-70">
-                      {fortune.loveDetail.basis}
-                    </p>
-                    <span
-                      className="mt-2 inline-block rounded-full px-2.5 py-[3px] text-[11px] font-bold text-[var(--color-juhong)]"
-                      style={{
-                        border: "1px solid rgba(167,43,33,0.3)",
-                        background: "rgba(167,43,33,0.05)",
-                      }}
-                    >
-                      {fortune.loveDetail.luckyAction}
-                    </span>
+                {FORTUNE_BRANCHES.map((b) => {
+                  const text = fortune[b.key];
+                  if (!text) return null;
+                  return (
+                    <li key={b.key} className="flex items-start gap-2">
+                      <span className="mt-[1px] shrink-0 text-[12px] leading-relaxed">
+                        {b.icon}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="font-serif-kr text-[11.5px] font-bold text-[var(--color-meok)]">
+                          {b.label}
+                        </span>
+                        <span className="ml-1.5 text-[12.5px] leading-relaxed text-[var(--color-galsaek)]">
+                          {text}
+                        </span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
 
-                    {/* ── 관계 상태 — 맞춤 조언 (탭 전파 차단: 카드 접힘 방지) ── */}
-                    {loveStatus && !statusPickerOpen ? (
-                      <span className="mt-2 flex items-center gap-1.5 text-[10px] text-[var(--color-galsaek)] opacity-70">
-                        {loveStatusLabel(loveStatus)} 기준 조언
-                        <span
-                          role="button"
-                          tabIndex={0}
-                          className="underline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setStatusPickerOpen(true);
-                          }}
-                        >
-                          변경
-                        </span>
-                      </span>
-                    ) : (
-                      <span
-                        className="mt-2 block"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <span className="block text-[10px] text-[var(--color-galsaek)] opacity-70">
-                          맞춤 조언을 위해 알려주세요 (나만 볼 수 있어요)
-                        </span>
-                        <span className="mt-1.5 flex flex-wrap gap-1.5">
-                          {LOVE_STATUS_OPTIONS.map((o) => (
-                            <span
-                              key={o.value}
-                              role="button"
-                              tabIndex={0}
-                              onClick={() => pickLoveStatus(o.value)}
-                              className="rounded-full px-2 py-[2px] text-[10.5px] font-bold"
-                              style={
-                                loveStatus === o.value
-                                  ? {
-                                      border: "1px solid rgba(167,43,33,0.4)",
-                                      background: "rgba(167,43,33,0.08)",
-                                      color: "var(--color-juhong)",
-                                    }
-                                  : {
-                                      border: "1px solid rgba(122,74,52,0.25)",
-                                      color: "var(--color-galsaek)",
-                                    }
-                              }
-                            >
-                              {o.label}
-                            </span>
-                          ))}
-                        </span>
-                      </span>
-                    )}
-                  </>
+            {/* ── 근거 — 만세력이 준 사실만. 해석을 사실인 척 붙이지 않는다 ── */}
+            {fortune.basis && (
+              <>
+                <button
+                  onClick={() => setBasisOpen((v) => !v)}
+                  className="mt-2.5 w-full text-right text-[10px] text-[var(--color-galsaek)] opacity-60"
+                  aria-expanded={basisOpen}
+                >
+                  {basisOpen ? "접기 ↑" : "왜 이런 운세인가요? ↓"}
+                </button>
+                {basisOpen && (
+                  <div
+                    className="mt-1.5 flex flex-col gap-1.5 rounded-lg px-3 py-2.5"
+                    style={{ background: "rgba(122,74,52,0.05)" }}
+                  >
+                    <p className="text-[11px] leading-relaxed text-[var(--color-galsaek)]">
+                      오늘의 일진(日辰)은{" "}
+                      <b className="text-[var(--color-meok)]">
+                        {fortune.basis.todayGanji}({fortune.basis.todayGanjiHanja})
+                      </b>
+                      , 회원님의 일간(日干)은{" "}
+                      <b className="text-[var(--color-meok)]">
+                        {fortune.basis.myDayStem}
+                      </b>{" "}
+                      {fortune.basis.myDayStemOheng} 입니다.
+                    </p>
+                    <p className="text-[11px] leading-relaxed text-[var(--color-galsaek)]">
+                      사주에 {fortune.basis.strongEl} 기운이 가장 두텁고{" "}
+                      {fortune.basis.weakEl} 기운이 가장 옅어요. 오늘의 별점은 이
+                      다섯 기운이 얼마나 고른지를 보고 매깁니다.
+                    </p>
+                    <p className="text-[10px] leading-relaxed text-[var(--color-galsaek)] opacity-70">
+                      일진과 사주는 만세력에서 계산한 값이고, 그 아래 풀이는 이
+                      앱의 해석이에요.
+                    </p>
+                  </div>
                 )}
-                <span className="mt-1.5 block text-right text-[10px] text-[var(--color-galsaek)] opacity-60">
-                  {loveOpen ? "접기 ↑" : "왜 이런 운세인가요? ↓"}
-                </span>
-              </button>
+              </>
             )}
           </div>
         </motion.section>
