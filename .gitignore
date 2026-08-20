@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 부적 그림 반입 대기 폴더 — 스크립트가 규격화해 옮긴 뒤에만 커밋된다
+public/talismans/_들어올그림/*
+!public/talismans/_들어올그림/여기에-넣으세요.txt

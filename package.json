@@ -10,7 +10,8 @@
     "prebuild": "node tools/gen-talisman-assets.mjs",
     "predev": "node tools/gen-talisman-assets.mjs",
     "test": "tsx tools/run-tests.ts",
-    "gen:calendar": "node tools/gen-calendar-data.mjs 2026 2035"
+    "gen:calendar": "node tools/gen-calendar-data.mjs 2026 2035",
+    "add-images": "node tools/add-talisman-images.mjs"
   },
   "dependencies": {
     "framer-motion": "^12.43.0",
