@@ -9,7 +9,7 @@
     "lint": "eslint",
     "prebuild": "node tools/gen-talisman-assets.mjs",
     "predev": "node tools/gen-talisman-assets.mjs",
-    "test": "tsx tools/run-good-day-tests.ts",
+    "test": "tsx tools/run-tests.ts",
     "gen:calendar": "node tools/gen-calendar-data.mjs 2026 2035"
   },
   "dependencies": {

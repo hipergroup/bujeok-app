@@ -14,13 +14,14 @@ import {
   SealLogo,
   BrushStroke,
 } from "@/components/hanji/motifs";
-import { getSaju, getSajuDetail, getOheng, getAnimal, isSamjae } from "@/data/saju";
+import { getSaju, getOheng } from "@/data/saju";
 import { getDailyFortune } from "@/data/fortune";
-import {
-  getTodayTalisman,
-  type SajuMatchInput,
-  type SajuTalismanMatch,
-} from "@/data/saju-talisman-match";
+import { getTodayFortune as loadTodayFortune } from "@/lib/todayFortuneStore";
+import { FORTUNE_AREAS, TIER_STYLE } from "@/data/today-fortune-view";
+import type { TodayFortune } from "@/data/today-fortune";
+import { RELATION_LABEL } from "@/lib/good-day/branch-relations";
+import { collectedCatalogIds } from "@/lib/collection";
+import { isWidgetInstalled } from "@/lib/widget-bridge";
 // 첫 실행 사용자 대부분이 온보딩을 보므로 별도 청크 분리(추가 왕복) 대신 함께 번들
 import OnboardingPage from "./onboarding/page";
 
@@ -50,68 +51,35 @@ const OHENG_LABEL: Record<string, string> = {
   목: "목(木)", 화: "화(火)", 토: "토(土)", 금: "금(金)", 수: "수(水)",
 };
 
-/** 운세 근거 — 만세력이 준 사실만 담는다 (해석 문구는 넣지 않는다) */
-interface TodayBasis {
-  todayGanji: string;
-  todayGanjiHanja: string;
-  myDayStem: string;
-  myDayStemOheng: string;
-  strongEl: string;
-  weakEl: string;
-}
-
-/** 총운 아래 갈래 — 엔진이 이미 만들고 있던 값을 화면에 꺼내 쓴다 */
-const FORTUNE_BRANCHES = [
-  { key: "money", label: "재물", icon: "\u{1FA99}" },
-  { key: "health", label: "건강", icon: "\u{1F33F}" },
-  { key: "study", label: "학업·일", icon: "\u{1F4DA}" },
-] as const;
-
 interface BirthData {
   year: number;
   month: number;
   day: number;
   hour: number;
+  /** false = 태어난 시 모름 → 시주를 빼고 푼다 */
+  hourKnown?: boolean;
 }
 
-function getTodayFortune(birthData?: BirthData) {
+/** 오늘의 개운(행운색·방위·숫자·주문) 전용. 본 운세는 today-fortune 엔진이 만든다. */
+function getGaeun(birthData?: BirthData) {
   if (birthData) {
     const saju = getSaju(birthData.year, birthData.month, birthData.day, birthData.hour);
     const fortune = getDailyFortune(saju, new Date());
     const oheng = getOheng(saju);
-    const sorted = (Object.entries(oheng) as [string, number][]).sort(
+    const weakEl = (Object.entries(oheng) as [string, number][]).sort(
       (a, b) => a[1] - b[1]
-    );
-    const weakEl = sorted[0][0];
-    const strongEl = sorted[sorted.length - 1][0];
-
-    // 오늘의 일진(日辰) — 만세력이 주는 사실. 해석을 붙이지 않고 그대로 보여준다.
-    const now = new Date();
-    const today = getSaju(now.getFullYear(), now.getMonth() + 1, now.getDate(), 12);
-
+    )[0][0];
     return {
-      score: fortune.score,
       overall: fortune.overall,
-      money: fortune.money as string | null,
-      health: fortune.health as string | null,
-      study: fortune.study as string | null,
       luckyColor: fortune.luckyColor,
       colorReason: `부족한 ${OHENG_LABEL[weakEl]} 기운을 채워주는 색`,
       luckyDirection: fortune.luckyDirection as string | null,
       luckyNumber: fortune.luckyNumber as number | null,
       dailyMantra: fortune.dailyMantra as string | null,
-      basis: {
-        todayGanji: `${today.dayStem.name}${today.dayBranch.name}`,
-        todayGanjiHanja: `${today.dayStem.hanja}${today.dayBranch.hanja}`,
-        myDayStem: `${saju.dayStem.name}(${saju.dayStem.hanja})`,
-        myDayStemOheng: OHENG_LABEL[saju.dayStem.oheng],
-        strongEl: OHENG_LABEL[strongEl],
-        weakEl: OHENG_LABEL[weakEl],
-      } as TodayBasis | null,
     };
   }
 
-  // 사주 정보가 없을 때의 날짜 시드 운세
+  // 사주가 없을 때 — 날짜 시드로 한 줄만 보여준다
   const seed = new Date().toDateString();
   const hash = [...seed].reduce((a, c) => a + c.charCodeAt(0), 0);
   const overalls = [
@@ -123,18 +91,12 @@ function getTodayFortune(birthData?: BirthData) {
   ];
   const colors = ["금색", "붉은색", "쪽빛", "쑥색", "보라색", "흰색"];
   return {
-    score: (hash % 5) + 1,
     overall: overalls[hash % overalls.length],
-    // 갈래별 운세는 사주가 있어야 나온다 — 없으면 지어내지 않고 감춘다
-    money: null as string | null,
-    health: null as string | null,
-    study: null as string | null,
     luckyColor: colors[hash % colors.length],
     colorReason: null as string | null,
     luckyDirection: null as string | null,
     luckyNumber: null as number | null,
     dailyMantra: null as string | null,
-    basis: null as TodayBasis | null,
   };
 }
 
@@ -205,6 +167,7 @@ export default function HomePage() {
             month: u.birth.month,
             day: u.birth.day,
             hour: u.birth.hour ?? 12,
+            hourKnown: u.birth.hourKnown !== false,
           });
         }
       } else {
@@ -218,6 +181,7 @@ export default function HomePage() {
               month: p.birthMonth ?? 1,
               day: p.birthDay ?? 1,
               hour: p.birthHour ?? 12,
+              hourKnown: p.birthHourKnown !== false,
             });
           }
         } else {
@@ -243,25 +207,35 @@ export default function HomePage() {
     setReady(true);
   }, []);
 
-  /* ── 오늘 당신에게 필요한 부적 (사주 기반) ──
-     생년월일이 없으면 null — 섹션은 안내 카드로 대체된다. */
-  const todayMatch: SajuTalismanMatch | null = useMemo(() => {
+  /* ── 오늘의 운세 — 계산 엔진이 만든 결과를 하루 한 번만 만들어 쓴다.
+     생년월일이 없으면 null (섹션이 안내 카드로 바뀐다). */
+  const today: TodayFortune | null = useMemo(() => {
     if (!birthData) return null;
     try {
-      const { year, month, day, hour } = birthData;
-      const detail = getSajuDetail(year, month, day, hour);
-      const today = new Date();
-      const input: SajuMatchInput = {
-        saju: detail,
-        oheng: getOheng(detail),
-        animal: getAnimal(year, month, day, hour),
-        samjae: isSamjae(today.getFullYear(), detail.sajuYear),
-      };
-      return getTodayTalisman(input, today);
+      return loadTodayFortune({
+        year: birthData.year,
+        month: birthData.month,
+        day: birthData.day,
+        hour: birthData.hourKnown === false ? null : birthData.hour,
+      });
     } catch {
       return null;
     }
   }, [birthData]);
+
+  /* 추천 부적을 이미 부적함에 갖고 있는지 / 위젯을 쓰고 있는지 —
+     버튼 문구가 달라진다. 화면에 그릴 때만 필요하므로 함께 계산한다. */
+  const talismanState = useMemo(() => {
+    if (!today) return null;
+    try {
+      return {
+        owned: collectedCatalogIds().has(today.talismanId),
+        widget: isWidgetInstalled() === true,
+      };
+    } catch {
+      return { owned: false, widget: false };
+    }
+  }, [today]);
 
   if (!ready) {
     return (
@@ -277,7 +251,7 @@ export default function HomePage() {
     return <OnboardingPage />;
   }
 
-  const fortune = getTodayFortune(birthData);
+  const gaeun = getGaeun(birthData);
 
   return (
     <HanjiBackground decorated>
@@ -328,64 +302,42 @@ export default function HomePage() {
           </p>
         </motion.section>
 
-        {/* ── 오늘의 운세 (사주 기반) ── */}
+        {/* ── 오늘의 운세 ──
+            ① 한마디 → ② 들어오는 기운 → ③ 분야별 → ④ 오늘의 행동
+            문구는 today-fortune 엔진이 계산 결과에 맞춰 고른 것만 쓴다. */}
         <motion.section variants={fadeUp} className="mb-6">
-          <div className="hanji-card rounded-xl px-5 py-4">
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className="font-serif-kr text-sm font-bold text-[var(--color-meok)]">
-                오늘의 운세
-                {birthData && (
-                  <span className="ml-1.5 text-[10px] font-normal text-[var(--color-galsaek)] opacity-70">
-                    사주 기반
-                  </span>
-                )}
-              </span>
-              <span className="text-xs tracking-widest text-[var(--color-hwang)]">
-                {"●".repeat(fortune.score)}
-                <span className="opacity-25">{"●".repeat(5 - fortune.score)}</span>
-              </span>
-            </div>
-            <p className="text-[13px] leading-relaxed text-[var(--color-galsaek)]">
-              {fortune.overall}
-            </p>
-
-            {/* ── 갈래별 운세 — 엔진이 이미 뽑아둔 재물·건강·학업을 함께 보여준다 ── */}
-            {fortune.money && (
-              <ul
-                className="mt-3 flex flex-col gap-2.5 border-t pt-3"
-                style={{ borderColor: "rgba(122,74,52,0.15)" }}
-              >
-                {FORTUNE_BRANCHES.map((b) => {
-                  const text = fortune[b.key];
-                  if (!text) return null;
-                  return (
-                    <li key={b.key} className="flex items-start gap-2">
-                      <span className="mt-[1px] shrink-0 text-[12px] leading-relaxed">
-                        {b.icon}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="font-serif-kr text-[11.5px] font-bold text-[var(--color-meok)]">
-                          {b.label}
-                        </span>
-                        <span className="ml-1.5 text-[12.5px] leading-relaxed text-[var(--color-galsaek)]">
-                          {text}
-                        </span>
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-
-            {/* ── 근거 — 만세력이 준 사실만. 해석을 사실인 척 붙이지 않는다 ── */}
-            {fortune.basis && (
+          <div className="hanji-card rounded-xl px-5 py-5">
+            {today ? (
               <>
+                {/* ① 오늘의 한마디 — 가장 먼저, 긴 설명 없이 */}
+                <span
+                  className="inline-block rounded-full px-2.5 py-[3px] text-[11px] font-bold"
+                  style={{
+                    color: TIER_STYLE[today.tier].color,
+                    background: TIER_STYLE[today.tier].bg,
+                  }}
+                >
+                  {today.tier}
+                </span>
+                <p className="mt-2.5 whitespace-pre-line font-serif-kr text-[17px] font-bold leading-[1.55] text-[var(--color-meok)]">
+                  {today.headline}
+                </p>
+
+                {/* ② 오늘 들어오는 기운 */}
+                <p
+                  className="mt-3.5 border-t pt-3.5 text-[13px] leading-relaxed text-[var(--color-galsaek)]"
+                  style={{ borderColor: "rgba(122,74,52,0.15)" }}
+                >
+                  {today.energy}
+                </p>
+
+                {/* 풀이 기준 — 전문 용어는 여기에만 둔다 */}
                 <button
                   onClick={() => setBasisOpen((v) => !v)}
-                  className="mt-2.5 w-full text-right text-[10px] text-[var(--color-galsaek)] opacity-60"
+                  className="mt-2 w-full text-right text-[10.5px] text-[var(--color-galsaek)] opacity-60"
                   aria-expanded={basisOpen}
                 >
-                  {basisOpen ? "접기 ↑" : "왜 이런 운세인가요? ↓"}
+                  {basisOpen ? "접기 ↑" : "풀이 기준 보기 ↓"}
                 </button>
                 {basisOpen && (
                   <div
@@ -393,27 +345,107 @@ export default function HomePage() {
                     style={{ background: "rgba(122,74,52,0.05)" }}
                   >
                     <p className="text-[11px] leading-relaxed text-[var(--color-galsaek)]">
-                      오늘의 일진(日辰)은{" "}
-                      <b className="text-[var(--color-meok)]">
-                        {fortune.basis.todayGanji}({fortune.basis.todayGanjiHanja})
-                      </b>
-                      , 회원님의 일간(日干)은{" "}
-                      <b className="text-[var(--color-meok)]">
-                        {fortune.basis.myDayStem}
-                      </b>{" "}
-                      {fortune.basis.myDayStemOheng} 입니다.
+                      오늘의 일진과 일간의 관계, 오행의 흐름, 합·충 관계를 함께
+                      살펴보았습니다.
                     </p>
                     <p className="text-[11px] leading-relaxed text-[var(--color-galsaek)]">
-                      사주에 {fortune.basis.strongEl} 기운이 가장 두텁고{" "}
-                      {fortune.basis.weakEl} 기운이 가장 옅어요. 오늘의 별점은 이
-                      다섯 기운이 얼마나 고른지를 보고 매깁니다.
+                      오늘 일진{" "}
+                      <b className="text-[var(--color-meok)]">
+                        {today.basis.todayGanji}({today.basis.todayGanjiHanja})
+                      </b>
+                      , 내 일간{" "}
+                      <b className="text-[var(--color-meok)]">
+                        {today.basis.myIlgan}({today.basis.myIlganHanja})
+                      </b>{" "}
+                      {today.basis.myIlganOheng} · 십성 {today.basis.sipseong} ·
+                      일지 관계 {RELATION_LABEL[today.basis.branchRelation]}
                     </p>
-                    <p className="text-[10px] leading-relaxed text-[var(--color-galsaek)] opacity-70">
-                      일진과 사주는 만세력에서 계산한 값이고, 그 아래 풀이는 이
-                      앱의 해석이에요.
+                    <p className="text-[11px] leading-relaxed text-[var(--color-galsaek)]">
+                      들어오는 기운 {today.basis.incomingOheng}(
+                      {today.basis.incomingRole}) · 사주에서 가장 두터운 기운{" "}
+                      {today.basis.strongOheng} · 가장 옅은 기운{" "}
+                      {today.basis.weakOheng}
                     </p>
+                    {today.basis.hourExcluded && (
+                      <p className="text-[10.5px] leading-relaxed text-[var(--color-galsaek)] opacity-75">
+                        태어난 시각을 몰라 시주(時柱)를 빼고 풀었어요.
+                      </p>
+                    )}
+                    <Link
+                      href="/unse/kijun"
+                      className="mt-0.5 text-[10.5px] font-bold text-[var(--color-juhong)]"
+                    >
+                      운세 산정 기준 전체 보기 →
+                    </Link>
                   </div>
                 )}
+
+                {/* ③ 분야별 운세 — 넷만 */}
+                <ul
+                  className="mt-3.5 flex flex-col gap-3 border-t pt-3.5"
+                  style={{ borderColor: "rgba(122,74,52,0.15)" }}
+                >
+                  {FORTUNE_AREAS.map((area) => (
+                    <li key={area.key} className="flex items-start gap-2">
+                      <span className="mt-[1px] shrink-0 text-[12px]">
+                        {area.icon}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="font-serif-kr text-[11.5px] font-bold text-[var(--color-meok)]">
+                          {area.label}
+                        </span>
+                        <span className="ml-1.5 text-[12.5px] leading-relaxed text-[var(--color-galsaek)]">
+                          {today.areas[area.key]}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* ④ 오늘의 행동 — 추상적으로 끝내지 않는다 */}
+                <div className="mt-3.5 flex flex-col gap-2">
+                  <div
+                    className="rounded-lg px-3.5 py-2.5"
+                    style={{
+                      background: "rgba(167,43,33,0.05)",
+                      border: "1px solid rgba(167,43,33,0.22)",
+                    }}
+                  >
+                    <p className="font-serif-kr text-[11px] font-bold text-[var(--color-juhong)]">
+                      오늘의 작은 실천
+                    </p>
+                    <p className="mt-1 text-[12.5px] leading-relaxed text-[var(--color-meok)]">
+                      {today.doThis}
+                    </p>
+                  </div>
+                  <div
+                    className="rounded-lg px-3.5 py-2.5"
+                    style={{ background: "rgba(122,74,52,0.06)" }}
+                  >
+                    <p className="font-serif-kr text-[11px] font-bold text-[var(--color-galsaek)]">
+                      오늘 피하면 좋은 것
+                    </p>
+                    <p className="mt-1 text-[12.5px] leading-relaxed text-[var(--color-galsaek)]">
+                      {today.avoidThis}
+                    </p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <span className="font-serif-kr text-sm font-bold text-[var(--color-meok)]">
+                  오늘의 운세
+                </span>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--color-galsaek)]">
+                  {gaeun.overall}
+                </p>
+                <Link
+                  href="/onboarding"
+                  className="mt-2.5 inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-[12px] font-bold text-[var(--color-juhong)]"
+                  style={{ border: "1px solid rgba(167,43,33,0.35)" }}
+                >
+                  사주를 넣고 자세히 보기 <span aria-hidden>→</span>
+                </Link>
               </>
             )}
           </div>
@@ -444,17 +476,17 @@ export default function HomePage() {
                   행운색
                 </span>
                 <span className="mt-1 flex items-center gap-1.5">
-                  {COLOR_SWATCH[fortune.luckyColor] && (
+                  {COLOR_SWATCH[gaeun.luckyColor] && (
                     <span
                       className="inline-block h-3 w-3 rounded-full"
                       style={{
-                        background: COLOR_SWATCH[fortune.luckyColor],
+                        background: COLOR_SWATCH[gaeun.luckyColor],
                         border: "1px solid rgba(46,46,46,0.18)",
                       }}
                     />
                   )}
                   <span className="font-serif-kr text-[13px] font-bold text-[var(--color-meok)]">
-                    {fortune.luckyColor}
+                    {gaeun.luckyColor}
                   </span>
                 </span>
               </div>
@@ -467,7 +499,7 @@ export default function HomePage() {
                   행운 방위
                 </span>
                 <span className="mt-1 font-serif-kr text-[13px] font-bold text-[var(--color-meok)]">
-                  {fortune.luckyDirection ?? "—"}
+                  {gaeun.luckyDirection ?? "—"}
                 </span>
               </div>
               {/* 행운 숫자 */}
@@ -479,24 +511,24 @@ export default function HomePage() {
                   행운 숫자
                 </span>
                 <span className="mt-1 font-serif-kr text-[13px] font-bold text-[var(--color-meok)]">
-                  {fortune.luckyNumber ?? "—"}
+                  {gaeun.luckyNumber ?? "—"}
                 </span>
               </div>
             </div>
 
-            {fortune.colorReason && (
+            {gaeun.colorReason && (
               <p className="mt-2 text-[10.5px] text-[var(--color-galsaek)] opacity-70">
-                {fortune.colorReason} — 옷·소품 하나면 충분해요
+                {gaeun.colorReason} — 옷·소품 하나면 충분해요
               </p>
             )}
 
             {/* 오늘의 주문 — 한 줄 개운 주문 */}
-            {fortune.dailyMantra && (
+            {gaeun.dailyMantra && (
               <p
                 className="mt-3 border-t pt-2.5 text-center font-serif-kr text-[12px] leading-relaxed text-[var(--color-galsaek)]"
                 style={{ borderColor: "rgba(122,74,52,0.15)" }}
               >
-                {fortune.dailyMantra}
+                {gaeun.dailyMantra}
               </p>
             )}
 
@@ -527,30 +559,24 @@ export default function HomePage() {
           </button>
         </motion.section>
 
-        {/* ── 오늘 당신에게 필요한 부적 (사주 기반 추천) ── */}
+        {/* ── ⑤ 오늘의 추천 부적 ──
+            매일 새로 만들게 하면 부적함이 복잡해진다. 43종 중 오늘 맞는
+            부적을 권하고, 이미 갖고 있으면 다시 지니게 한다. */}
         <motion.section variants={fadeUp} className="mt-4">
           <div className="mb-2 flex items-center gap-1.5 px-0.5">
             <h2 className="font-serif-kr text-sm font-bold text-[var(--color-meok)]">
-              오늘 당신에게 필요한 부적
+              오늘 {userName}님에게 필요한 부적
             </h2>
-            {todayMatch && (
+            {today && (
               <span className="text-[10px] text-[var(--color-galsaek)] opacity-70">
                 사주 기반
               </span>
             )}
           </div>
 
-          {todayMatch ? (
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              onClick={() =>
-                router.push(`/talisman?recommended=${todayMatch.talisman.id}`)
-              }
-              className="hanji-card w-full rounded-xl px-5 py-4 text-left"
-              aria-label={`${todayMatch.talisman.name} 부적 만들러 가기`}
-            >
+          {today ? (
+            <div className="hanji-card rounded-xl px-5 py-4">
               <div className="flex items-start gap-3">
-                {/* 한자 인장 */}
                 <span
                   className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg font-serif-kr text-lg font-bold leading-none text-[var(--color-juhong)]"
                   style={{
@@ -558,50 +584,41 @@ export default function HomePage() {
                     background: "rgba(167,43,33,0.06)",
                   }}
                 >
-                  {todayMatch.talisman.hanja.slice(0, 2)}
+                  {today.talismanName.slice(0, 2)}
                 </span>
-
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="font-serif-kr text-base font-bold text-[var(--color-meok)]">
-                      {todayMatch.talisman.name}
-                    </span>
-                    <span
-                      className="rounded-full px-2 py-[2px] text-[10px] font-bold text-[var(--color-galsaek)]"
-                      style={{
-                        background: "rgba(122,74,52,0.10)",
-                        border: "1px solid rgba(122,74,52,0.20)",
-                      }}
-                    >
-                      {todayMatch.talisman.category}
-                    </span>
-                  </div>
+                  <span className="font-serif-kr text-base font-bold text-[var(--color-meok)]">
+                    {today.talismanName}
+                  </span>
                   <p className="mt-1 text-[12.5px] leading-relaxed text-[var(--color-juhong)]">
-                    {todayMatch.headline}
+                    {today.talismanReason}
                   </p>
                 </div>
               </div>
 
-              {todayMatch.reasons.length > 0 && (
-                <ul className="mt-3 flex flex-col gap-1.5">
-                  {todayMatch.reasons.slice(0, 2).map((r) => (
-                    <li
-                      key={r.kind + r.text}
-                      className="flex items-start gap-1.5 text-[12px] leading-relaxed text-[var(--color-galsaek)]"
-                    >
-                      <span className="mt-[6px] shrink-0 text-[6px] text-[var(--color-juhong)] opacity-70">
-                        ●
-                      </span>
-                      <span>{r.text}</span>
-                    </li>
-                  ))}
-                </ul>
+              <button
+                onClick={() =>
+                  router.push(`/talisman?recommended=${today.talismanId}`)
+                }
+                className="mt-3.5 w-full rounded-lg py-3 font-serif-kr text-[13px] font-bold"
+                style={{
+                  color: "#F6EDD9",
+                  background: "var(--color-juhong)",
+                  boxShadow: "inset 0 0 0 1px rgba(247,233,207,0.3)",
+                }}
+              >
+                {!talismanState?.owned
+                  ? "나만의 부적 만들기"
+                  : talismanState.widget
+                    ? "위젯에 지니기"
+                    : "오늘의 부적으로 지니기"}
+              </button>
+              {talismanState?.owned && (
+                <p className="mt-1.5 text-center text-[10.5px] text-[var(--color-galsaek)] opacity-70">
+                  부적함에 이미 있어요 — 새로 만들지 않아도 괜찮아요
+                </p>
               )}
-
-              <span className="mt-3 flex items-center justify-end gap-1 text-[11.5px] font-bold text-[var(--color-juhong)]">
-                이 부적 만들러 가기 <span aria-hidden>→</span>
-              </span>
-            </motion.button>
+            </div>
           ) : (
             <div className="hanji-card rounded-xl px-5 py-4">
               <p className="text-[12.5px] leading-relaxed text-[var(--color-galsaek)]">
