@@ -51,8 +51,18 @@ function AutoSvg({ t }: { t: TalismanType }) {
   );
 }
 
-function Card({ t, asset }: { t: TalismanType; asset?: string }) {
-  const [open, setOpen] = useState(false);
+function Card({
+  t,
+  asset,
+  forceOpen,
+}: {
+  t: TalismanType;
+  asset?: string;
+  /** '모두 펼치기'가 켜져 있으면 개별 접기보다 우선한다 */
+  forceOpen?: boolean;
+}) {
+  const [openSelf, setOpenSelf] = useState(false);
+  const open = forceOpen || openSelf;
   return (
     <div className="hanji-card rounded-xl p-3">
       {asset ? (
@@ -80,7 +90,7 @@ function Card({ t, asset }: { t: TalismanType; asset?: string }) {
       {!asset && (
         <>
           <button
-            onClick={() => setOpen((v) => !v)}
+            onClick={() => setOpenSelf((v) => !v)}
             className="mt-1.5 text-[10.5px] underline"
             style={{ color: JUHONG }}
           >
@@ -118,6 +128,7 @@ function Card({ t, asset }: { t: TalismanType; asset?: string }) {
 
 export default function AtelierPage() {
   const router = useRouter();
+  const [allOpen, setAllOpen] = useState(false);
 
   const { missing, done } = useMemo(() => {
     const missing: TalismanType[] = [];
@@ -147,18 +158,52 @@ export default function AtelierPage() {
           {TALISMANS.length}종)
         </p>
 
-        <h2
-          className="mb-3 font-serif-kr text-[15px] font-bold"
-          style={{ color: JUHONG }}
+        {/* 그림 제작 공통 지침 — 모든 원형이 지켜야 하는 약속 */}
+        <div
+          className="mb-5 rounded-xl px-4 py-3.5 text-[11.5px] leading-[1.8]"
+          style={{
+            border: '1px solid rgba(122,74,52,0.3)',
+            background: 'rgba(255,251,240,0.75)',
+            color: GALSAEK,
+          }}
         >
-          🖌️ 아직 그림이 없는 부적 {missing.length}종
-          <span className="ml-2 text-[10.5px] font-normal" style={{ color: `${GALSAEK}99` }}>
-            지금은 아래의 자동 생성본으로 나가요
-          </span>
+          <p className="mb-1 font-serif-kr font-bold" style={{ color: MEOK }}>
+            그림 제작 공통 지침
+          </p>
+          <p>· 세로형 600×900 (비율 2:3), 파일명 「부적이름-전통.png」</p>
+          <p>· 상단 勅令 · 하단 急急如律令 · 중앙 글자를 부적 문법대로 배치</p>
+          <p>
+            · <b style={{ color: JUHONG }}>오른쪽 아래(가로 79% · 세로 82% 언저리)는
+            비워둘 것</b> — 완성 때 사용자의 이름 인장이 그 자리에 찍힌다
+          </p>
+          <p>· 아래쪽 15%는 여백으로 — 기원 문구 띠가 얹힐 수 있는 자리</p>
+        </div>
+
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-serif-kr text-[15px] font-bold" style={{ color: JUHONG }}>
+            🖌️ 아직 그림이 없는 부적 {missing.length}종
+          </h2>
+          <button
+            onClick={() => setAllOpen((v) => !v)}
+            className="shrink-0 rounded-full px-3 py-1 text-[11px] font-bold"
+            style={{
+              border: '1px solid rgba(167,43,33,0.4)',
+              color: JUHONG,
+              background: 'rgba(246,237,217,0.7)',
+            }}
+          >
+            {allOpen ? '참고 모두 접기' : '참고 모두 펼치기'}
+          </button>
+        </div>
+        <h2 className="hidden">
+          {'' /* 원래 제목 자리 — 위 줄로 옮겼다 */}
         </h2>
+        <p className="-mt-2 mb-3 text-[10.5px]" style={{ color: `${GALSAEK}99` }}>
+          지금은 자동 생성본으로 나가요 — 카드의 제작 참고대로 그려서 올리면 돼요
+        </p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {missing.map((t) => (
-            <Card key={t.id} t={t} />
+            <Card key={t.id} t={t} forceOpen={allOpen} />
           ))}
         </div>
 
