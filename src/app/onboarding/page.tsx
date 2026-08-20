@@ -38,6 +38,8 @@ import {
 } from '@/data/saju-interpretation';
 // 용신(用神) — 나에게 필요한 기운
 import { getYongsin, ohengLabel } from '@/data/yongsin';
+// 십이지시 표기 — 화면마다 다르지 않도록 한 곳에서
+import { HOUR_BRANCHES } from '@/lib/birth-hour';
 // 음력 → 양력 변환 (KASI 기준표)
 import { lunarToSolar, solarToLunar } from '@/lib/calendar/lunarCalendar';
 import { saveProfile } from '@/lib/store';
@@ -464,20 +466,8 @@ function UnderlineNumber({
 }
 
 /** 12지시 격자 — value 는 기존 HOURS 와 같은 시(hour) 값 */
-const HOUR_CELLS: { hanja: string; range: string; value: number }[] = [
-  { hanja: '子', range: '23-01', value: 0 },
-  { hanja: '丑', range: '01-03', value: 2 },
-  { hanja: '寅', range: '03-05', value: 4 },
-  { hanja: '卯', range: '05-07', value: 6 },
-  { hanja: '辰', range: '07-09', value: 8 },
-  { hanja: '巳', range: '09-11', value: 10 },
-  { hanja: '午', range: '11-13', value: 12 },
-  { hanja: '未', range: '13-15', value: 14 },
-  { hanja: '申', range: '15-17', value: 16 },
-  { hanja: '酉', range: '17-19', value: 18 },
-  { hanja: '戌', range: '19-21', value: 20 },
-  { hanja: '亥', range: '21-23', value: 22 },
-];
+// 태어난 시각 격자 — 표기는 lib/birth-hour 한 곳에서 온다
+const HOUR_CELLS = HOUR_BRANCHES;
 
 const GENDERS: { value: 'F' | 'M'; hanja: string; label: string }[] = [
   { value: 'F', hanja: '坤', label: '여자' },
@@ -782,8 +772,9 @@ function StepBirthInfo({
       {/* 時辰 */}
       <div className="mt-3 overflow-hidden rounded-xl" style={CARD_STYLE}>
         <CardHead hanja="時辰" sub="태어난 시각" />
+        {/* 우리 말 시간대까지 적으므로 4칸 → 3칸으로 넓힌다 */}
         <div
-          className="grid grid-cols-4"
+          className="grid grid-cols-3"
           style={{ gap: 1, background: 'rgba(122,74,52,0.14)' }}
         >
           {HOUR_CELLS.map((c) => {
@@ -804,15 +795,20 @@ function StepBirthInfo({
               >
                 <span
                   className="font-serif-kr"
-                  style={{ fontSize: 17, color: on ? JUHONG : MEOK }}
+                  style={{ fontSize: 14.5, color: on ? JUHONG : MEOK }}
                 >
-                  {c.hanja}
+                  {c.name}
+                  <span style={{ marginLeft: 2, fontSize: 10, opacity: 0.5 }}>
+                    {c.hanja}
+                  </span>
                 </span>
                 <span
                   style={{
                     marginTop: 2,
-                    fontSize: 9.5,
-                    color: 'rgba(46,46,46,0.4)',
+                    fontSize: 9,
+                    lineHeight: 1.3,
+                    textAlign: 'center',
+                    color: 'rgba(46,46,46,0.45)',
                   }}
                 >
                   {c.range}

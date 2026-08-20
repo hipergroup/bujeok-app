@@ -388,7 +388,7 @@ export default function HomePage() {
                         {today.basis.myIlgan}({today.basis.myIlganHanja})
                       </b>{" "}
                       {today.basis.myIlganOheng} · 십성 {today.basis.sipseong} ·
-                      일지 관계 {RELATION_LABEL[today.basis.branchRelation]}
+                      오늘과의 관계 {RELATION_LABEL[today.basis.branchRelation]}
                     </p>
                     <p className="text-[11px] leading-relaxed text-[var(--color-galsaek)]">
                       들어오는 기운 {today.basis.incomingOheng}(

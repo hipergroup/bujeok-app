@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import TraditionalButton from '@/components/hanji/TraditionalButton';
+import BirthFieldsKo, { type BirthValue } from '@/components/BirthFieldsKo';
 import { getPurposeSpec } from '@/lib/good-day/purposeRules';
+import { HOUR_UNKNOWN } from '@/lib/birth-hour';
 import { DIRECTION_LABEL } from '@/types/good-day';
 import type {
   DateConditions,
@@ -111,7 +113,7 @@ function addMonths(d: Date, n: number) {
   return x;
 }
 
-function Head({ hanja, sub }: { hanja: string; sub?: string }) {
+function Head({ title, sub }: { title: string; sub?: string }) {
   return (
     <div
       className="flex items-baseline gap-2"
@@ -121,11 +123,8 @@ function Head({ hanja, sub }: { hanja: string; sub?: string }) {
         borderBottom: '1px solid rgba(122,74,52,0.16)',
       }}
     >
-      <span
-        className="font-serif-kr"
-        style={{ fontSize: 12, color: GALSAEK, letterSpacing: '0.14em' }}
-      >
-        {hanja}
+      <span className="font-serif-kr font-bold" style={{ fontSize: 12.5, color: GALSAEK }}>
+        {title}
       </span>
       {sub && <span style={{ fontSize: 11, color: 'rgba(46,46,46,0.42)' }}>{sub}</span>}
     </div>
@@ -164,9 +163,15 @@ function Toggle({
 export default function DateConditionForm({
   purpose,
   onSubmit,
+  myName,
+  mySummary,
 }: {
   purpose: GoodDayPurpose;
   onSubmit: (c: DateConditions) => void;
+  /** 저장된 내 프로필 — 있으면 "나" 자리를 채운다 */
+  myName?: string;
+  /** "1995년 3월 2일 · 저녁 5시 ~ 7시 (유시)" */
+  mySummary?: string;
 }) {
   const spec = getPurposeSpec(purpose);
   const today = new Date();
@@ -180,12 +185,24 @@ export default function DateConditionForm({
   const [onlySon, setOnlySon] = useState(false);
   const [weekdaysOnly, setWeekdaysOnly] = useState(false);
 
-  // 상대방
-  const [pYear, setPYear] = useState(1995);
-  const [pMonth, setPMonth] = useState(1);
-  const [pDay, setPDay] = useState(1);
-  const [pHour, setPHour] = useState<number | null>(null);
-  const [pGender, setPGender] = useState<'M' | 'F'>('M');
+  // 첫 번째 사람 — 기본은 저장된 내 사주. 다른 사람으로 바꿔 볼 수 있다.
+  const [useOther, setUseOther] = useState(!mySummary);
+  const [self, setSelf] = useState<BirthValue>({
+    year: 1995,
+    month: 1,
+    day: 1,
+    hour: HOUR_UNKNOWN,
+    gender: 'F',
+  });
+
+  // 두 번째 사람 (상대)
+  const [partnerBirth, setPartnerBirth] = useState<BirthValue>({
+    year: 1995,
+    month: 1,
+    day: 1,
+    hour: HOUR_UNKNOWN,
+    gender: 'M',
+  });
   const [usePartner, setUsePartner] = useState(spec.partner === 'required');
 
   const maxTo = iso(addMonths(new Date(from), spec.maxMonths));
@@ -193,17 +210,20 @@ export default function DateConditionForm({
   const partnerNeeded = spec.partner === 'required';
   const canSubmit = from <= to && !rangeTooLong;
 
+  /** BirthValue → 계산에 넘기는 모양 (모름은 null) */
+  const toInput = (b: BirthValue, fallbackGender: 'M' | 'F'): PartnerInput => ({
+    year: b.year,
+    month: b.month,
+    day: b.day,
+    hour: b.hour === HOUR_UNKNOWN ? null : b.hour,
+    gender: b.gender ?? fallbackGender,
+    calendar: 'solar',
+  });
+
   const submit = () => {
     const partner: PartnerInput | undefined =
       (partnerNeeded || usePartner) && spec.partner !== 'none'
-        ? {
-            year: pYear,
-            month: pMonth,
-            day: pDay,
-            hour: pHour,
-            gender: pGender,
-            calendar: 'solar',
-          }
+        ? toInput(partnerBirth, 'M')
         : undefined;
 
     onSubmit({
@@ -217,15 +237,47 @@ export default function DateConditionForm({
         : {}),
       ...(purpose === 'contract' ? { weekdaysOnly } : {}),
       ...(purpose === 'wedding' ? { preferWeekend: true } : {}),
+      // 내 사주 대신 다른 사람으로 볼 때만 넘긴다
+      ...(useOther ? { self: toInput(self, 'F') } : {}),
       partner,
     });
   };
 
   return (
     <div className="flex flex-col gap-3">
+      {/* 누구의 날인가 — 기본은 내 사주, 다른 사람으로도 볼 수 있다 */}
+      {spec.partner !== 'none' && (
+        <div className="overflow-hidden rounded-xl" style={CARD}>
+          <Head
+            title={partnerNeeded ? '첫 번째 사람' : '누구의 날인가요'}
+            sub={useOther ? '사주를 직접 넣어요' : '저장된 내 사주로 봅니다'}
+          />
+          <div style={{ padding: '14px 16px' }}>
+            {mySummary && (
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                <Toggle on={!useOther} label={myName ? `${myName} (나)` : '내 사주'} onClick={() => setUseOther(false)} />
+                <Toggle on={useOther} label="다른 사람" onClick={() => setUseOther(true)} />
+              </div>
+            )}
+            {!useOther && mySummary ? (
+              <p style={{ fontSize: 12.5, lineHeight: 1.7, color: `${MEOK}CC` }}>{mySummary}</p>
+            ) : (
+              <>
+                {!mySummary && (
+                  <p style={{ marginBottom: 10, fontSize: 11.5, lineHeight: 1.6, color: `${GALSAEK}AA` }}>
+                    저장된 사주가 없어 직접 넣어요.
+                  </p>
+                )}
+                <BirthFieldsKo value={self} onChange={setSelf} showGender />
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 조회 기간 */}
       <div className="overflow-hidden rounded-xl" style={CARD}>
-        <Head hanja="期間" sub="언제부터 언제까지 볼까요" />
+        <Head title="기간" sub="언제부터 언제까지 볼까요" />
         <div style={{ padding: '16px' }} className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <span className="w-9 shrink-0" style={{ fontSize: 12, color: `${GALSAEK}AA` }}>
@@ -249,7 +301,7 @@ export default function DateConditionForm({
 
       {/* 요일 */}
       <div className="overflow-hidden rounded-xl" style={CARD}>
-        <Head hanja="曜日" sub="가능한 요일 (안 고르면 전체)" />
+        <Head title="요일" sub="가능한 요일 (안 고르면 전체)" />
         <div style={{ padding: '14px 16px' }} className="flex flex-wrap gap-1.5">
           {WEEKDAYS.map((w, i) => (
             <Toggle
@@ -291,7 +343,7 @@ export default function DateConditionForm({
       {/* 이사 — 방향 */}
       {purpose === 'move' && (
         <div className="overflow-hidden rounded-xl" style={CARD}>
-          <Head hanja="方位" sub="어느 쪽으로 옮기시나요" />
+          <Head title="방향" sub="어느 쪽으로 옮기시나요" />
           <div style={{ padding: '14px 16px' }} className="flex flex-wrap gap-1.5">
             {(['east', 'west', 'south', 'north', 'unknown'] as MoveDirection[]).map(
               (d) => (
@@ -323,7 +375,7 @@ export default function DateConditionForm({
       {spec.partner !== 'none' && (
         <div className="overflow-hidden rounded-xl" style={CARD}>
           <Head
-            hanja="相對"
+            title={partnerNeeded ? '두 번째 사람' : '상대방'}
             sub={partnerNeeded ? '두 분의 사주를 함께 봅니다' : '넣으면 함께 봅니다 (선택)'}
           />
           <div style={{ padding: '14px 16px' }}>
@@ -338,63 +390,14 @@ export default function DateConditionForm({
             )}
             {(partnerNeeded || usePartner) && (
               <>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={pYear}
-                    onChange={(e) => setPYear(Number(e.target.value))}
-                    aria-label="상대방 태어난 해"
-                    className="w-full bg-transparent tabular-nums outline-none"
-                    style={{ fontSize: 18, color: MEOK, borderBottom: '1.5px solid rgba(122,74,52,0.32)', paddingBottom: 6 }}
-                  />
-                  <span style={{ fontSize: 12, color: 'rgba(46,46,46,0.4)' }}>年</span>
-                  <input
-                    type="number"
-                    value={pMonth}
-                    onChange={(e) => setPMonth(Number(e.target.value))}
-                    aria-label="상대방 태어난 달"
-                    className="w-full bg-transparent tabular-nums outline-none"
-                    style={{ fontSize: 18, color: MEOK, borderBottom: '1.5px solid rgba(122,74,52,0.32)', paddingBottom: 6 }}
-                  />
-                  <span style={{ fontSize: 12, color: 'rgba(46,46,46,0.4)' }}>月</span>
-                  <input
-                    type="number"
-                    value={pDay}
-                    onChange={(e) => setPDay(Number(e.target.value))}
-                    aria-label="상대방 태어난 날"
-                    className="w-full bg-transparent tabular-nums outline-none"
-                    style={{ fontSize: 18, color: MEOK, borderBottom: '1.5px solid rgba(122,74,52,0.32)', paddingBottom: 6 }}
-                  />
-                  <span style={{ fontSize: 12, color: 'rgba(46,46,46,0.4)' }}>日</span>
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  <Toggle on={pGender === 'F'} label="坤 여자" onClick={() => setPGender('F')} />
-                  <Toggle on={pGender === 'M'} label="乾 남자" onClick={() => setPGender('M')} />
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  <Toggle
-                    on={pHour === null}
-                    label="태어난 시간 모름"
-                    onClick={() => setPHour(pHour === null ? 12 : null)}
-                  />
-                  {pHour !== null && (
-                    <input
-                      type="number"
-                      min={0}
-                      max={23}
-                      value={pHour}
-                      onChange={(e) => setPHour(Number(e.target.value))}
-                      aria-label="상대방 태어난 시"
-                      className="w-16 bg-transparent tabular-nums outline-none"
-                      style={{ fontSize: 14, color: MEOK, borderBottom: '1px solid rgba(122,74,52,0.28)' }}
-                    />
-                  )}
-                </div>
-                {pHour === null && (
+                <BirthFieldsKo
+                  value={partnerBirth}
+                  onChange={setPartnerBirth}
+                  showGender
+                />
+                {partnerBirth.hour === HOUR_UNKNOWN && (
                   <p style={{ marginTop: 8, fontSize: 11.5, lineHeight: 1.6, color: `${GALSAEK}AA` }}>
-                    시간을 모르셔도 괜찮아요. 시주를 빼고 나머지로 봅니다.
+                    시각을 모르셔도 괜찮아요. 시주를 빼고 나머지로 봅니다.
                   </p>
                 )}
               </>

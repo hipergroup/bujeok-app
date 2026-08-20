@@ -49,13 +49,17 @@ export type BranchRelation =
   | 'hae'
   | 'none';
 
+/**
+ * 화면에 그대로 나가는 말 — 한자 용어(六合·沖…) 대신 뜻이 통하는 우리말로.
+ * "…와 짝이 맞는 사이" 처럼 문장에 끼워 쓴다.
+ */
 export const RELATION_LABEL: Record<BranchRelation, string> = {
-  yukhap: '육합(六合)',
-  samhap: '삼합(三合)',
-  chung: '충(沖)',
-  hyeong: '형(刑)',
-  pa: '파(破)',
-  hae: '해(害)',
+  yukhap: '짝이 맞는 사이',
+  samhap: '서로 돕는 사이',
+  chung: '부딪히는 사이',
+  hyeong: '어긋나는 사이',
+  pa: '깨지기 쉬운 사이',
+  hae: '서로 상하는 사이',
   none: '특별한 관계 없음',
 };
 

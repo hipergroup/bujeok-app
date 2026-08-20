@@ -102,6 +102,11 @@ export interface DateConditions {
   weekdaysOnly?: boolean;
   /** 상대방 (고백은 선택, 결혼은 필수) */
   partner?: PartnerInput;
+  /**
+   * 첫 번째 사람을 저장된 내 사주 대신 직접 넣었을 때만 있다
+   * (남의 궁합·택일을 대신 봐줄 때).
+   */
+  self?: PartnerInput;
 }
 
 // ── 계산 결과 ────────────────────────────────────────────────

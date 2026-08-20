@@ -162,23 +162,37 @@ export function isSalbuDaegiwol(brideAnimal: string, lunarMonth: number): boolea
 // ── 화면 표기용 ──────────────────────────────────────────────
 
 /** 반영한 살과 그 근거 — 화면이 그대로 읽어 쓴다 */
-export const SAL_SOURCES: { name: string; source: string; note?: string }[] = [
-  { name: '월기일', source: '음력 5·14·23일' },
+export const SAL_SOURCES: {
+  name: string;
+  /** 이름만으로는 뜻을 알 수 없어, 한 줄 풀이를 함께 보여준다 */
+  meaning: string;
+  source: string;
+  note?: string;
+}[] = [
+  {
+    name: '월기일',
+    meaning: '달마다 꺼리는 세 날',
+    source: '음력 5·14·23일',
+  },
   {
     name: '고초일',
+    meaning: '메마른 날 — 혼인을 피하던 날',
     source: '『하은일록』 「경람」 · 1908년 필사본 『택일법』',
   },
   {
     name: '십악대패일',
+    meaning: '크게 꺼리는 열 가지 날',
     source: '『선택기요』 무록일 기준 (당일 일진 고정 10간지)',
   },
   {
-    name: '가취월(대리월)',
+    name: '가취월',
+    meaning: '신부 띠로 보는, 혼인하기 좋은 달',
     source: '『연길택일예목』 · 『류편역법통서대전』 권7',
-    note: '여섯 단계 중 대리월만 가점으로 반영',
+    note: '여섯 단계 중 가장 좋은 달만 가점으로 반영',
   },
   {
     name: '살부대기월',
+    meaning: '신부 띠로 보아 혼인을 미루던 달',
     source: '사주플러스·역학사전 계열 통용표',
     note: '원전 미확인 · 토끼띠와 돼지띠에 이본 있음',
   },

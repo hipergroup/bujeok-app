@@ -108,7 +108,7 @@ function scoreForPerson(
     score += delta;
     factors.push({
       rule: `relation:${relation}`,
-      label: `${who}의 일지와 그날 지지가 ${RELATION_LABEL[relation]}`,
+      label: `${who}가 태어난 날의 기운과 그날의 기운이 ${RELATION_LABEL[relation]}`,
       delta,
       kind: 'interpretation',
     });
@@ -237,7 +237,7 @@ export function recommendDates(input: RecommendInput): RecommendationResult {
         score += WEDDING_BLEND.eitherChungPenalty;
         factors.push({
           rule: 'wedding:eitherChung',
-          label: '두 분 중 한 분과 충(沖)이 겹치는 날',
+          label: '두 분 중 한 분과 정면으로 부딪히는 날',
           delta: WEDDING_BLEND.eitherChungPenalty,
           kind: 'interpretation',
         });
@@ -349,7 +349,7 @@ export function recommendDates(input: RecommendInput): RecommendationResult {
     // ── 이 날짜에만 해당하는 설명 ──
     if (mine.relation === 'yukhap' || mine.relation === 'samhap') {
       reasons.push(
-        `회원님의 일지와 ${RELATION_LABEL[mine.relation]}을 이루어, 흐름이 순조로운 날로 해석됩니다.`
+        `태어난 날의 기운과 ${RELATION_LABEL[mine.relation]}라, 흐름이 순조로운 날로 봅니다.`
       );
     }
     const yongsinHit = factors.some((f) => f.rule === 'oheng:yongsin');
@@ -368,9 +368,9 @@ export function recommendDates(input: RecommendInput): RecommendationResult {
 
     let caution: string | undefined;
     if (mine.relation === 'chung') {
-      caution = '회원님의 일지와 충(沖)이 되는 날이라, 무리한 일정은 피하시는 게 좋습니다.';
+      caution = '태어난 날의 기운과 정면으로 부딪히는 날이라, 무리한 일정은 피하시는 게 좋습니다.';
     } else if (mine.relation === 'hyeong' || mine.relation === 'pa' || mine.relation === 'hae') {
-      caution = `회원님의 일지와 ${RELATION_LABEL[mine.relation]} 관계라, 서두르지 않는 편이 좋습니다.`;
+      caution = `태어난 날의 기운과 ${RELATION_LABEL[mine.relation]}라, 서두르지 않는 편이 좋습니다.`;
     } else if (son !== 'none' && purpose === 'move') {
       caution = `이날은 ${directionLabel(son)}에 손이 있다고 보는 날입니다.`;
     }

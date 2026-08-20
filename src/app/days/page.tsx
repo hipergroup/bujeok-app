@@ -17,6 +17,7 @@ import BottomTab from '@/components/BottomTab';
 import { BackIcon } from '@/components/hanji/motifs';
 import PurposeSelector from '@/components/good-day/PurposeSelector';
 import DateConditionForm from '@/components/good-day/DateConditionForm';
+import { hourLabel } from '@/lib/birth-hour';
 import RecommendationCard, {
   formatDate,
   formatLunar,
@@ -138,12 +139,20 @@ export default function DaysPage() {
       if (!profile || !purpose) return;
       setError(null);
       try {
+        // 첫 번째 사람 — 직접 넣었으면 그 사람, 아니면 저장된 내 사주
+        const first = conditions.self ?? {
+          year: profile.birth.year,
+          month: profile.birth.month,
+          day: profile.birth.day,
+          hour: profile.birth.hour,
+          gender: profile.gender,
+        };
         const me = buildPersonSaju(
-          profile.birth.year,
-          profile.birth.month,
-          profile.birth.day,
-          profile.birth.hour,
-          profile.gender
+          first.year,
+          first.month,
+          first.day,
+          first.hour,
+          first.gender
         );
         const partner = conditions.partner
           ? buildPersonSaju(
@@ -175,16 +184,17 @@ export default function DaysPage() {
       // 결혼이면 날짜보다 궁합이 먼저다. 상대 정보가 없으면(선택 해제) 그냥 넘어간다.
       if (purpose === 'wedding' && conditions.partner) {
         const p = conditions.partner;
+        const s = conditions.self;
         setGunghap(
           getGunghap({
             a: {
-              name: profile.name || undefined,
+              name: s ? undefined : profile.name || undefined,
               // 궁합 계산은 시(時)를 반드시 받는다 — 모르면 정오로 두고 아래에 밝힌다
               birth: {
-                year: profile.birth.year,
-                month: profile.birth.month,
-                day: profile.birth.day,
-                hour: profile.birth.hour ?? 12,
+                year: s ? s.year : profile.birth.year,
+                month: s ? s.month : profile.birth.month,
+                day: s ? s.day : profile.birth.day,
+                hour: (s ? s.hour : profile.birth.hour) ?? 12,
               },
             },
             b: {
@@ -345,8 +355,8 @@ export default function DaysPage() {
                         }}
                       >
                         예식장에서 받아오는 정식 혼인택일과는 다릅니다. 두 분의
-                        사주가 크게 부딪히지 않는 날을 고르고, 전통 택일의
-                        살(煞) 중 {APPLIED_SAL.join('·')}을 함께 봅니다.
+                        사주가 크게 부딪히지 않는 날을 고르고, 예로부터 혼인에
+                        꺼리던 날 {APPLIED_SAL.length}가지를 함께 봅니다.
                       </p>
                       <ul className="mt-2.5 flex flex-col gap-1">
                         {SAL_SOURCES.map((s) => (
@@ -354,7 +364,9 @@ export default function DaysPage() {
                             key={s.name}
                             style={{ fontSize: 11, lineHeight: 1.65, color: `${GALSAEK}CC` }}
                           >
-                            <b style={{ color: `${MEOK}AA` }}>{s.name}</b> · {s.source}
+                            <b style={{ color: `${MEOK}AA` }}>{s.name}</b> —{' '}
+                            {s.meaning}
+                            <span style={{ opacity: 0.75 }}> · {s.source}</span>
                             {s.note ? ` (${s.note})` : ''}
                           </li>
                         ))}
@@ -375,7 +387,12 @@ export default function DaysPage() {
                       </p>
                     </div>
                   )}
-                  <DateConditionForm purpose={purpose} onSubmit={run} />
+                  <DateConditionForm
+                    purpose={purpose}
+                    onSubmit={run}
+                    myName={profile.name || undefined}
+                    mySummary={`${profile.birth.year}년 ${profile.birth.month}월 ${profile.birth.day}일 · ${hourLabel(profile.birth.hour)}`}
+                  />
                   {error && (
                     <p
                       className="rounded-lg"
