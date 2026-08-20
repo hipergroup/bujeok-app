@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Gowun_Batang, Song_Myung } from "next/font/google";
+import { Gowun_Batang, Song_Myung, Nanum_Brush_Script } from "next/font/google";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import "./globals.css";
 
@@ -15,6 +15,15 @@ const serifKr = Gowun_Batang({
 const brush = Song_Myung({
   weight: "400",
   variable: "--font-brush",
+  display: "swap",
+});
+
+// 손으로 적은 글씨 — 붓으로 눌러쓴 한글 (무료 상업용, OFL)
+// 걱정 태우기처럼 "사용자가 직접 쓴 글" 에만 쓴다
+const hand = Nanum_Brush_Script({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-hand",
   display: "swap",
 });
 
@@ -46,7 +55,7 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
-      className={`h-full antialiased ${serifKr.variable} ${brush.variable}`}
+      className={`h-full antialiased ${serifKr.variable} ${brush.variable} ${hand.variable}`}
     >
       <body className="min-h-dvh flex flex-col">
         {children}

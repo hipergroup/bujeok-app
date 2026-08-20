@@ -106,22 +106,25 @@ function BurnAnimation({ text, onDone }: { text: string; onDone: () => void }) {
   }, []);
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-6 pb-24">
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: [0, 1, 1, 0] }}
-        transition={{ duration: TOTAL_MS / 1000, times: [0, 0.12, 0.7, 1] }}
-        className="mb-5 font-serif-kr text-sm text-[var(--color-galsaek)]"
-      >
-        걱정을 태워 보내는 중이에요…
-      </motion.p>
-
-      <motion.div
-        initial={{ opacity: 0, scale: 0.97 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-[320px] overflow-hidden rounded-xl"
-        style={{ aspectRatio: '720 / 1280' }}
+    // 태우는 동안은 화면을 통째로 내어준다 — 머리말·탭까지 덮는 온전한 의식
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.45 }}
+      className="fixed inset-0 z-[200] overflow-hidden"
+      style={{ background: '#0C0906' }}
+    >
+      {/*
+        영상 프레임을 화면에 꽉 차게 키운다 (object-cover 와 같은 계산).
+        글자는 이 프레임 안의 비율 좌표로 얹히므로, 가장자리가 잘려도 종이
+        위에 그대로 남는다 — 영상만 따로 늘리면 글자가 어긋난다.
+      */}
+      <div
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{
+          width: 'max(100vw, calc(100dvh * 720 / 1280))',
+          height: 'max(100dvh, calc(100vw * 1280 / 720))',
+        }}
       >
         {/* autoPlay·muted 를 두지 않는다 — 위 effect 가 소리와 함께 재생을 건다 */}
         <video
@@ -148,14 +151,33 @@ function BurnAnimation({ text, onDone }: { text: string; onDone: () => void }) {
           transition={{ delay: IGNITE, duration: BURN, ease: 'easeInOut' }}
         >
           <p
-            className="whitespace-pre-wrap break-words text-center font-serif-kr text-[var(--color-meok)]"
-            style={{ fontSize: 12, lineHeight: 1.85, opacity: 0.88 }}
+            className="whitespace-pre-wrap break-words text-center font-hand text-[var(--color-meok)]"
+            style={{
+              fontSize: 'clamp(16px, 4.4vw, 30px)',
+              lineHeight: 1.7,
+              opacity: 0.9,
+            }}
           >
             {text}
           </p>
         </motion.div>
-      </motion.div>
-    </div>
+      </div>
+
+      {/* 안내 한 줄 — 영상 위 아래쪽에 얹는다 */}
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 1, 1, 0] }}
+        transition={{ duration: TOTAL_MS / 1000, times: [0, 0.12, 0.7, 1] }}
+        className="absolute inset-x-0 text-center font-serif-kr text-sm"
+        style={{
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 40px)',
+          color: 'rgba(242,231,206,0.75)',
+          textShadow: '0 2px 12px rgba(0,0,0,0.85)',
+        }}
+      >
+        걱정을 태워 보내는 중이에요…
+      </motion.p>
+    </motion.div>
   );
 }
 /* ───────── 페이지 ───────── */
@@ -257,7 +279,8 @@ export default function BurnPage() {
               placeholder={
                 "어떤 걱정이든 괜찮아요. 여기 적은 글은 어디에도 저장되지 않아요."
               }
-              className="w-full resize-none bg-transparent font-serif-kr text-[15px] leading-[1.9] text-[var(--color-meok)] outline-none placeholder:text-[var(--color-galsaek)] placeholder:opacity-50"
+              /* 붓으로 눌러쓴 글씨 — 적는 순간부터 태울 종이처럼 보이게 */
+              className="w-full resize-none bg-transparent font-hand text-[21px] leading-[1.75] text-[var(--color-meok)] outline-none placeholder:font-serif-kr placeholder:text-[14px] placeholder:text-[var(--color-galsaek)] placeholder:opacity-50"
             />
             <span className="absolute bottom-3 right-4 text-[11px] tabular-nums text-[var(--color-galsaek)] opacity-60">
               {text.length}/{MAX_LEN}

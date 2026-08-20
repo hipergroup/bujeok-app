@@ -226,6 +226,11 @@ button {
   font-family: var(--font-brush), var(--font-serif-kr), serif;
 }
 
+/* 사용자가 직접 쓴 글씨 — 붓으로 눌러쓴 손글씨 */
+.font-hand {
+  font-family: var(--font-hand), var(--font-brush), "AppleMyungjo", serif;
+}
+
 /* 가로 스크롤 (기운 선택 등) */
 .energy-scroll {
   display: flex;
