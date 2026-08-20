@@ -25,6 +25,86 @@ function iso(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * 년·월·일 한글 선택 — 브라우저의 <input type="date">는 기기 언어를 따라
+ * 영어(mm/dd/yyyy)로 보이는 일이 있어, 우리 글로 직접 고른다.
+ */
+function KoreanDateSelect({
+  value,
+  onChange,
+}: {
+  value: string; // YYYY-MM-DD
+  onChange: (v: string) => void;
+}) {
+  const [y, m, d] = value.split('-').map(Number);
+  const thisYear = new Date().getFullYear();
+  const years = [thisYear, thisYear + 1, thisYear + 2];
+  const daysInMonth = new Date(y, m, 0).getDate();
+
+  const set = (ny: number, nm: number, nd: number) => {
+    const max = new Date(ny, nm, 0).getDate();
+    const day = Math.min(nd, max);
+    onChange(
+      `${ny}-${String(nm).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    );
+  };
+
+  const selStyle: React.CSSProperties = {
+    fontSize: 14,
+    color: MEOK,
+    borderBottom: '1px solid rgba(122,74,52,0.28)',
+    paddingBottom: 6,
+    background: 'transparent',
+    appearance: 'none',
+    WebkitAppearance: 'none',
+    textAlign: 'center',
+  };
+
+  return (
+    <span className="flex flex-1 items-center gap-1">
+      <select
+        value={y}
+        onChange={(e) => set(Number(e.target.value), m, d)}
+        className="min-w-0 flex-[1.4] outline-none"
+        style={selStyle}
+        aria-label="년"
+      >
+        {years.map((yy) => (
+          <option key={yy} value={yy}>
+            {yy}년
+          </option>
+        ))}
+      </select>
+      <select
+        value={m}
+        onChange={(e) => set(y, Number(e.target.value), d)}
+        className="min-w-0 flex-1 outline-none"
+        style={selStyle}
+        aria-label="월"
+      >
+        {Array.from({ length: 12 }, (_, i) => i + 1).map((mm) => (
+          <option key={mm} value={mm}>
+            {mm}월
+          </option>
+        ))}
+      </select>
+      <select
+        value={d}
+        onChange={(e) => set(y, m, Number(e.target.value))}
+        className="min-w-0 flex-1 outline-none"
+        style={selStyle}
+        aria-label="일"
+      >
+        {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((dd) => (
+          <option key={dd} value={dd}>
+            {dd}일
+          </option>
+        ))}
+      </select>
+    </span>
+  );
+}
+
 function addMonths(d: Date, n: number) {
   const x = new Date(d);
   x.setMonth(x.getMonth() + n);
@@ -146,22 +226,19 @@ export default function DateConditionForm({
       {/* 조회 기간 */}
       <div className="overflow-hidden rounded-xl" style={CARD}>
         <Head hanja="期間" sub="언제부터 언제까지 볼까요" />
-        <div style={{ padding: '16px' }} className="flex items-center gap-2">
-          <input
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            className="flex-1 bg-transparent outline-none"
-            style={{ fontSize: 14, color: MEOK, borderBottom: '1px solid rgba(122,74,52,0.28)', paddingBottom: 6 }}
-          />
-          <span style={{ fontSize: 12, color: `${GALSAEK}AA` }}>~</span>
-          <input
-            type="date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className="flex-1 bg-transparent outline-none"
-            style={{ fontSize: 14, color: MEOK, borderBottom: '1px solid rgba(122,74,52,0.28)', paddingBottom: 6 }}
-          />
+        <div style={{ padding: '16px' }} className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <span className="w-9 shrink-0" style={{ fontSize: 12, color: `${GALSAEK}AA` }}>
+              부터
+            </span>
+            <KoreanDateSelect value={from} onChange={setFrom} />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-9 shrink-0" style={{ fontSize: 12, color: `${GALSAEK}AA` }}>
+              까지
+            </span>
+            <KoreanDateSelect value={to} onChange={setTo} />
+          </div>
         </div>
         {rangeTooLong && (
           <p style={{ padding: '0 16px 12px', fontSize: 11.5, color: JUHONG }}>
