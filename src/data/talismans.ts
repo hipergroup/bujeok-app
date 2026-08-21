@@ -2177,7 +2177,21 @@ export function getTalismanRecommendation(
     return s;
   };
 
-  return [...candidates].sort((a, b) => score(b) - score(a))[0];
+  // 동점이면 늘 카탈로그 앞쪽이 이겨 특정 부적(벽사부·재물부)에 쏠렸다.
+  // 키워드+부적 id 로 정한 1 미만의 결정적 가중치로 동점만 가른다 —
+  // 같은 답이면 언제나 같은 부적, 답이 다르면 동점끼리도 갈린다.
+  const tieBreak = (t: TalismanType): number => {
+    const str = keywords.join('|') + '::' + t.id;
+    let h = 5381;
+    for (let i = 0; i < str.length; i++) {
+      h = ((h << 5) + h + str.charCodeAt(i)) >>> 0;
+    }
+    return (h % 997) / 997;
+  };
+
+  return [...candidates].sort(
+    (a, b) => score(b) + tieBreak(b) - (score(a) + tieBreak(a))
+  )[0];
 }
 
 /** 카테고리별 랜덤 부적 반환 */
