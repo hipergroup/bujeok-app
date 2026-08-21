@@ -12,6 +12,7 @@
 import { TalismanCategory, type TalismanType } from '@/data/talismans';
 import type { SavedTalisman } from './types';
 import { stampSvgFragment, seedVariation } from './personal-talisman';
+import { assetPath } from './assetPath';
 
 export const ANSEO_ID = 'anseo-01';
 
@@ -58,24 +59,21 @@ export const ANSEO_TALISMAN: TalismanType = {
 export const ANSEO_W = 360;
 export const ANSEO_H = 560;
 
-/** 마지막 획의 시작(위 기러기 곁)과 끝(아래 기러기 곁) */
-export const STROKE_START = { x: 258, y: 172 };
-export const STROKE_END = { x: 102, y: 388 };
+/** 마지막 획의 시작(위 기러기 부리 곁)과 끝(아래 기러기 머리 곁) */
+export const STROKE_START = { x: 202, y: 168 };
+export const STROKE_END = { x: 146, y: 384 };
 /** 시작·끝 판정 반경 */
 export const STROKE_TOLERANCE = 40;
 
-const RED = '#A72B21';
-const INK = '#B22222';
-const PAPER = '#F5E6B8';
-const PAPER_EDGE = '#E8D49A';
+/** 원형 그림에서 뽑은 색 — 획·인장·도착인이 그림과 한 몸처럼 보이게 */
+export const ANSEO_RED = '#931B0E';
+export const ANSEO_PAPER = '#DAA43B';
+const RED = ANSEO_RED;
+const PAPER = ANSEO_PAPER;
 
-/** 나는 기러기 — 동양화의 원산(遠山) 새 획: 두 날개 곡선 + 짧은 몸 */
-function goose(x: number, y: number, scale: number, rotate: number): string {
-  return `<g transform="translate(${x},${y}) rotate(${rotate}) scale(${scale})" stroke="${INK}" fill="none" stroke-linecap="round">
-    <path d="M-36 6 Q-16 -16 0 -2" stroke-width="6.5"/>
-    <path d="M0 -2 Q16 -16 36 6" stroke-width="6.5"/>
-    <path d="M-2 -1 q4 9 1 17" stroke-width="4.5"/>
-  </g>`;
+/** 원형 그림 경로 — GitHub Pages basePath 보정 */
+function anseoImageUrl(): string {
+  return assetPath('/yeollak/anseo-base.jpg');
 }
 
 export interface AnseoArt {
@@ -85,46 +83,17 @@ export interface AnseoArt {
   guide: string;
 }
 
-/** 바탕 그림 — 종이·구름·달·기러기 둘·상하단 부적 문법 */
+/**
+ * 바탕 — 직접 그린 원형 그림(기러기 둘 + 봉인된 소식)을 그대로 쓴다.
+ * 그림은 1024×1536(2:3)이라 360×560 화폭에 살짝 잘라(slice) 채운다.
+ */
 export function anseoBaseArt(): AnseoArt {
   const base = `
-  <defs>
-    <filter id="anseo-paper"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0.45 0 0 0 0 0.32 0 0 0 0 0.12 0 0 0 0.05 0"/><feComposite operator="over" in2="SourceGraphic"/></filter>
-  </defs>
   <rect width="${ANSEO_W}" height="${ANSEO_H}" fill="${PAPER}"/>
-  <rect width="${ANSEO_W}" height="${ANSEO_H}" fill="${PAPER}" filter="url(#anseo-paper)" opacity="0.5"/>
-  <rect x="10" y="10" width="${ANSEO_W - 20}" height="${ANSEO_H - 20}" fill="none" stroke="${INK}" stroke-width="2" opacity="0.75"/>
-  <rect x="16" y="16" width="${ANSEO_W - 32}" height="${ANSEO_H - 32}" fill="none" stroke="${INK}" stroke-width="0.8" opacity="0.5"/>
+  <image href="${anseoImageUrl()}" x="0" y="0" width="${ANSEO_W}" height="${ANSEO_H}" preserveAspectRatio="xMidYMid slice"/>`;
 
-  <!-- 상단 칙령 -->
-  <text x="${ANSEO_W / 2}" y="46" text-anchor="middle" font-size="19" font-weight="bold" fill="${INK}" font-family="'Gowun Batang', 'AppleMyungjo', serif">勅 令</text>
-
-  <!-- 달 -->
-  <circle cx="86" cy="112" r="26" fill="none" stroke="${INK}" stroke-width="2" opacity="0.55"/>
-  <circle cx="86" cy="112" r="20" fill="${INK}" opacity="0.08"/>
-
-  <!-- 구름 -->
-  <g stroke="${INK}" fill="none" stroke-linecap="round" opacity="0.45">
-    <path d="M232 96 q14 -12 30 -4 q16 -10 28 2" stroke-width="2.4"/>
-    <path d="M244 108 q12 -8 24 -2" stroke-width="2"/>
-    <path d="M56 300 q14 -12 30 -4 q16 -10 28 2" stroke-width="2.2"/>
-    <path d="M262 448 q12 -10 26 -3 q13 -8 24 2" stroke-width="2.2"/>
-  </g>
-
-  <!-- 중앙 글자 雁書 (세로) -->
-  <text x="${ANSEO_W / 2}" y="258" text-anchor="middle" font-size="52" font-weight="bold" fill="${INK}" font-family="'Gowun Batang', 'AppleMyungjo', serif" opacity="0.92">雁</text>
-  <text x="${ANSEO_W / 2}" y="330" text-anchor="middle" font-size="52" font-weight="bold" fill="${INK}" font-family="'Gowun Batang', 'AppleMyungjo', serif" opacity="0.92">書</text>
-
-  <!-- 떠나는 기러기 (위) · 기다리는 기러기 (아래) -->
-  ${goose(272, 150, 1.0, -14)}
-  ${goose(88, 408, 0.82, 8)}
-
-  <!-- 하단 주문 -->
-  <text x="${ANSEO_W / 2}" y="${ANSEO_H - 38}" text-anchor="middle" font-size="15" font-weight="bold" fill="${INK}" font-family="'Gowun Batang', 'AppleMyungjo', serif" opacity="0.9">急 急 如 律 令</text>
-  <line x1="120" y1="${ANSEO_H - 58}" x2="${ANSEO_W - 120}" y2="${ANSEO_H - 58}" stroke="${INK}" stroke-width="0.8" opacity="0.4"/>`;
-
-  // 길은 중앙 雁書 글자를 지나지 않도록 오른쪽으로 돌아 글자 아래로 내려온다
-  const guide = `<path d="M${STROKE_START.x} ${STROKE_START.y} C 318 240, 292 362, ${STROKE_END.x} ${STROKE_END.y}" fill="none" stroke="${INK}" stroke-width="2" stroke-dasharray="2 9" stroke-linecap="round" opacity="0.4"/>`;
+  // 길은 가운데 봉인된 소식을 오른쪽으로 돌아 지난다
+  const guide = `<path d="M${STROKE_START.x} ${STROKE_START.y} C 262 226, 248 330, ${STROKE_END.x} ${STROKE_END.y}" fill="none" stroke="${RED}" stroke-width="2" stroke-dasharray="2 9" stroke-linecap="round" opacity="0.5"/>`;
 
   return { base, guide };
 }
@@ -159,18 +128,22 @@ export function buildAnseoSVG(saved: SavedTalisman): string {
   let seal = '';
   if (p) {
     const v = seedVariation(p.visualSeed);
-    seal = `<g transform="translate(${(0.79 + v.anchorDx) * ANSEO_W}, ${(0.82 + v.anchorDy) * ANSEO_H})">${stampSvgFragment(
+    // 인장도 그림에서 뽑은 붉은색·종이색으로 — 한 화폭에서 나온 것처럼
+    const fragment = stampSvgFragment(
       p.stampText,
       0.13 * ANSEO_W,
       p.stampRotation,
       p.stampOpacity
-    )}</g>`;
+    )
+      .replaceAll('#A72B21', RED)
+      .replaceAll('#F6EDD9', '#F2DFA6');
+    seal = `<g transform="translate(${(0.79 + v.anchorDx) * ANSEO_W}, ${(0.82 + v.anchorDy) * ANSEO_H})">${fragment}</g>`;
   }
 
   const arrival = a?.arrivedAt ? arrivalStamp(a.arrivedAt) : '';
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ANSEO_W} ${ANSEO_H}" preserveAspectRatio="xMidYMid meet">
-  <rect width="${ANSEO_W}" height="${ANSEO_H}" fill="${PAPER_EDGE}"/>
+  <rect width="${ANSEO_W}" height="${ANSEO_H}" fill="${PAPER}"/>
   ${base}
   ${stroke}
   ${arrival}

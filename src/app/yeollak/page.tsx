@@ -26,6 +26,7 @@ import TraditionalButton from '@/components/hanji/TraditionalButton';
 import { BackIcon } from '@/components/hanji/motifs';
 import { NameStamp } from '@/components/PersonalTalismanView';
 import {
+  ANSEO_RED,
   ANSEO_TALISMAN,
   ANSEO_W,
   ANSEO_H,
@@ -303,11 +304,11 @@ function StrokeStep({
           dangerouslySetInnerHTML={{
             __html: `${base}${donePath ? '' : guide}
             ${donePath ? '' : `
-              <circle cx="${STROKE_START.x}" cy="${STROKE_START.y}" r="13" fill="rgba(167,43,33,0.14)" stroke="${'#A72B21'}" stroke-width="1.5">
+              <circle cx="${STROKE_START.x}" cy="${STROKE_START.y}" r="13" fill="rgba(147,27,14,0.16)" stroke="${ANSEO_RED}" stroke-width="1.5">
                 <animate attributeName="r" values="10;14;10" dur="1.8s" repeatCount="indefinite"/>
               </circle>
-              <circle cx="${STROKE_END.x}" cy="${STROKE_END.y}" r="11" fill="none" stroke="${'#A72B21'}" stroke-width="1.5" stroke-dasharray="3 4"/>`}
-            ${livePath || donePath ? `<path d="${donePath || livePath}" fill="none" stroke="#A72B21" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>` : ''}`,
+              <circle cx="${STROKE_END.x}" cy="${STROKE_END.y}" r="11" fill="none" stroke="${ANSEO_RED}" stroke-width="1.5" stroke-dasharray="3 4"/>`}
+            ${livePath || donePath ? `<path d="${donePath || livePath}" fill="none" stroke="${ANSEO_RED}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>` : ''}`,
           }}
         />
       </div>
