@@ -8,6 +8,7 @@ import { hasWidgetBridge, pushTalismanToWidget } from '@/lib/widget-bridge';
 import TalismanThumbnail from './TalismanThumbnail';
 import PersonalTalismanView, { NameStamp } from './PersonalTalismanView';
 import { buildPersonalSVG, markPlacedOnHome } from '@/lib/personal-talisman';
+import { buildAnseoSVG, markAnseoArrived } from '@/lib/anseo';
 import { composeShareImage, shareOrDownload } from '@/lib/share-card';
 import { ShareMotif, DownloadMotif, TrashMotif, PinTalismanMotif } from './hanji/motifs';
 
@@ -87,6 +88,8 @@ export default function TalismanModal({
   actionButton,
 }: TalismanModalProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  /** 연락기원부 — 방금 도착인을 찍었으면 화면을 새 모습으로 */
+  const [arrivedNow, setArrivedNow] = useState<string | null>(null);
   /* 네이티브 앱에서만 true — 홈 화면 위젯으로 보내기 지원 여부 */
   const [canWidget, setCanWidget] = useState(false);
   const [widgetDone, setWidgetDone] = useState(false);
@@ -129,13 +132,17 @@ export default function TalismanModal({
 
   const handleDownload = () => {
     // 개인 부적 — 인장까지 담긴 모습 그대로 PNG 합성
-    if (saved && talisman.personal) {
+    if (saved && (talisman.personal || talisman.anseo)) {
       void (async () => {
         try {
-          const blob = await composeShareImage(buildPersonalSVG(talisman), 'original', {
-            name: talisman.name,
-            hanja: talisman.hanja,
-          });
+          const blob = await composeShareImage(
+            talisman.anseo ? buildAnseoSVG(talisman) : buildPersonalSVG(talisman),
+            'original',
+            {
+              name: talisman.name,
+              hanja: talisman.hanja,
+            }
+          );
           await shareOrDownload(blob, `수호부_${talisman.name}`, '');
         } catch {
           /* 합성 실패 — 다음 시도 가능 */
@@ -169,7 +176,11 @@ export default function TalismanModal({
      개인 부적은 저장된 이미지가 없으므로 원형 + 인장으로 그때 합성한다 */
   const handleWidget = async () => {
     if (!saved || widgetDone) return;
-    const svg = talisman.personal ? buildPersonalSVG(talisman) : talisman.svg;
+    const svg = talisman.anseo
+      ? buildAnseoSVG(talisman)
+      : talisman.personal
+        ? buildPersonalSVG(talisman)
+        : talisman.svg;
     if (!svg) return;
     if (talisman.personal) markPlacedOnHome(talisman.id);
     await pushTalismanToWidget(svg, {
@@ -231,7 +242,19 @@ export default function TalismanModal({
           <div className="flex flex-col items-center px-6 pt-2">
             {/* Talisman SVG */}
             <div id="talisman-modal-svg">
-              {saved && talisman.personal ? (
+              {saved && talisman.anseo ? (
+                <div
+                  style={{ width: 200, aspectRatio: '360 / 560' }}
+                  className="overflow-hidden rounded-xl"
+                  dangerouslySetInnerHTML={{
+                    __html: buildAnseoSVG(
+                      arrivedNow
+                        ? { ...talisman, anseo: { ...talisman.anseo, arrivedAt: arrivedNow } }
+                        : talisman
+                    ),
+                  }}
+                />
+              ) : saved && talisman.personal ? (
                 <PersonalTalismanView
                   talisman={talisman}
                   width={200}
@@ -282,6 +305,65 @@ export default function TalismanModal({
               >
                 &ldquo;{talisman.note}&rdquo;
               </p>
+            )}
+
+            {/* 연락기원부 — 봉인은 열지 않고, 도착만 기록한다 */}
+            {saved && talisman.anseo && (
+              <div
+                className="mt-4 w-full rounded-xl px-4 py-3.5"
+                style={{
+                  border: '1px solid rgba(122,74,52,0.3)',
+                  backgroundColor: 'rgba(255,251,240,0.75)',
+                }}
+              >
+                <div className="flex items-start gap-3 py-1">
+                  <span className="w-16 shrink-0 text-[11px] font-bold text-[var(--color-galsaek)]">
+                    기다리는 이
+                  </span>
+                  <span className="font-serif-kr text-[12.5px] text-[var(--color-meok)]">
+                    {talisman.anseo.recipientAlias || '—'}
+                  </span>
+                </div>
+                <div className="flex items-start gap-3 py-1">
+                  <span className="w-16 shrink-0 text-[11px] font-bold text-[var(--color-galsaek)]">
+                    봉인한 한마디
+                  </span>
+                  <span className="text-[12px] leading-relaxed text-[var(--color-galsaek)]">
+                    부적 속에 접혀 있어요 — 소식이 닿을 때까지 열어보지 않기로 했어요.
+                  </span>
+                </div>
+                {(talisman.anseo.arrivedAt || arrivedNow) ? (
+                  <div className="flex items-start gap-3 py-1">
+                    <span className="w-16 shrink-0 text-[11px] font-bold text-[var(--color-galsaek)]">
+                      소식 닿은 날
+                    </span>
+                    <span className="font-serif-kr text-[12.5px] font-bold text-[var(--color-juhong)]">
+                      {new Date(
+                        arrivedNow ?? talisman.anseo.arrivedAt!
+                      ).toLocaleDateString('ko-KR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })}{' '}
+                      — 도착인이 찍혔어요
+                    </span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      const t = markAnseoArrived(talisman.id);
+                      if (t?.anseo?.arrivedAt) setArrivedNow(t.anseo.arrivedAt);
+                    }}
+                    className="mt-2 w-full rounded-lg py-2.5 font-serif-kr text-[13px] font-bold text-[var(--color-juhong)] transition active:scale-[0.99]"
+                    style={{
+                      border: '1.5px solid var(--color-juhong)',
+                      backgroundColor: 'rgba(167,43,33,0.05)',
+                    }}
+                  >
+                    소식이 닿았어요
+                  </button>
+                )}
+              </div>
             )}
 
             {/* 개인 부적 기록 — 원형 위에 담긴 한 사람의 기록 */}

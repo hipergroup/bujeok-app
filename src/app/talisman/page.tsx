@@ -739,6 +739,25 @@ function TalismanFlow() {
               ))}
             </div>
 
+            {/* 특별한 부적 — 연락기원부 (전용 의식 화면) */}
+            <button
+              onClick={() => router.push("/yeollak")}
+              className="mt-5 w-full rounded-xl px-5 py-4 text-left transition active:scale-[0.99]"
+              style={{
+                border: "1.5px solid rgba(167,43,33,0.4)",
+                background: "rgba(255,251,240,0.8)",
+              }}
+            >
+              <p className="font-serif-kr text-[14px] font-bold text-[var(--color-juhong)]">
+                🪶 연락기원부 <span className="text-[11px] font-normal opacity-70">雁書符</span>
+              </p>
+              <p className="mt-1 text-[11.5px] leading-relaxed text-[var(--color-galsaek)]">
+                기러기가 기다리던 소식을 전해오는 부적.
+                <br />
+                두 기러기 사이의 마지막 한 획을 직접 이어 완성해요 →
+              </p>
+            </button>
+
             {/* 서비스의 마음 — 원형 부적 위에 한 사람의 염원을 담는다 */}
             <p
               className="mt-8 whitespace-pre-line text-center font-serif-kr text-[11.5px] leading-[1.9] text-[var(--color-galsaek)] opacity-80"

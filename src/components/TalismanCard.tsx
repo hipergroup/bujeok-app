@@ -5,6 +5,7 @@ import { SavedTalisman, TalismanInfo } from '@/lib/types';
 import { getEnergyByCategory } from '@/data/energies';
 import TalismanThumbnail from './TalismanThumbnail';
 import PersonalTalismanView from './PersonalTalismanView';
+import { buildAnseoSVG } from '@/lib/anseo';
 
 interface TalismanCardProps {
   talisman: SavedTalisman | TalismanInfo;
@@ -25,6 +26,16 @@ export function TalismanVisual({
   /** 픽셀 값 또는 '100%' 등 CSS 폭 */
   width: number | string;
 }) {
+  // 연락기원부 — 사용자가 그은 획·도착인까지 전용 화면으로 합성
+  if (isSaved(talisman) && talisman.anseo) {
+    return (
+      <div
+        style={{ width, aspectRatio: '360 / 560' }}
+        className="overflow-hidden rounded-lg"
+        dangerouslySetInnerHTML={{ __html: buildAnseoSVG(talisman) }}
+      />
+    );
+  }
   // 개인 부적 — 저장된 이미지가 아니라 원형 + 이름 인장으로 매번 다시 합성
   if (isSaved(talisman) && talisman.personal) {
     return (

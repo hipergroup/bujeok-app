@@ -56,6 +56,24 @@ export interface SavedTalisman extends TalismanType {
   giftKey?: string;
   /** 개인 부적 기록 — 있으면 원형 이미지 + 이름 인장으로 다시 합성해 그린다 */
   personal?: PersonalMeta;
+  /** 연락기원부(雁書符) 전용 기록 — 있으면 기러기 전용 화면으로 그린다 */
+  anseo?: AnseoMeta;
+}
+
+/**
+ * 연락기원부 기록.
+ * 봉인한 한마디(sealedText)는 완성 순간에 한 번 보여준 뒤 다시 펼치지 않는다 —
+ * 화면 어디에도 본문을 표시하지 않는 것이 이 부적의 약속이다.
+ */
+export interface AnseoMeta {
+  /** 소식을 기다리는 상대 — 이니셜이나 나만 아는 별칭 */
+  recipientAlias: string;
+  /** 봉인한 한마디 (완성 후에는 표시하지 않는다) */
+  sealedText: string;
+  /** 사용자가 직접 그은 마지막 획 — 360×560 좌표계의 SVG path d */
+  strokePath: string;
+  /** 소식이 닿은 날 (ISO). 있으면 붉은 도착인이 찍힌다 */
+  arrivedAt?: string;
 }
 
 /** 카테고리 표시 색상 */

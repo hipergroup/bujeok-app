@@ -8,7 +8,7 @@
 
 import type { SavedTalisman, PersonalMeta } from './types';
 import type { TalismanType } from '@/data/talismans';
-import { getOriginTalisman, type StampAnchor } from '@/data/talisman-origin';
+import { getOriginTalisman, SERIAL_CODE, type StampAnchor } from '@/data/talisman-origin';
 import { generateTalismanSVG } from './talisman-generator';
 
 const COLLECTION_KEY = 'bujeok-collection';
@@ -117,7 +117,10 @@ export function createPersonalTalisman(input: CreatePersonalInput): SavedTalisma
     ownerName: input.ownerName.trim(),
     wishText: input.wishText.trim().slice(0, 50),
     recommendationReason: input.recommendationReason,
-    serialNumber: serialNumberOf(origin?.serialCode ?? '願', now),
+    serialNumber: serialNumberOf(
+      origin?.serialCode ?? SERIAL_CODE[input.talisman.category] ?? '願',
+      now
+    ),
     stampText: stampTextOf(input.ownerName),
     stampRotation: Math.round(v.rotation * 100) / 100,
     stampOpacity: Math.round(v.opacity * 1000) / 1000,
