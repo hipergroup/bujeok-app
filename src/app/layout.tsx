@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Gowun_Batang, Song_Myung, Nanum_Brush_Script } from "next/font/google";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import ScrollToTop from "@/components/ScrollToTop";
 import "./globals.css";
 
 // 본문·제목용 명조 (무료 상업용, OFL)
@@ -58,6 +59,7 @@ export default function RootLayout({
       className={`h-full antialiased ${serifKr.variable} ${brush.variable} ${hand.variable}`}
     >
       <body className="min-h-dvh flex flex-col">
+        <ScrollToTop />
         {children}
         <ServiceWorkerRegister />
       </body>
