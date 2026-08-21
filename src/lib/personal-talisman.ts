@@ -274,11 +274,7 @@ export function buildPersonalSVG(saved: SavedTalisman): string {
 
   const W = 360;
   const H = 560;
-  const anchor: StampAnchor = origin?.stampAnchor ?? { x: 0.79, y: 0.82, size: 0.13 };
   const v = seedVariation(p.visualSeed);
-  const cx = (anchor.x + v.anchorDx) * W;
-  const cy = (anchor.y + v.anchorDy) * H;
-  const side = anchor.size * W;
 
   // 사용자별 미세한 먹·종이 결 (원본 위 아주 옅은 오버레이 — 문양 변형 아님)
   const grain = `<radialGradient id="p-grain" cx="${(v.grainX * 100).toFixed(1)}%" cy="${(v.grainY * 100).toFixed(1)}%" r="85%">
@@ -286,14 +282,10 @@ export function buildPersonalSVG(saved: SavedTalisman): string {
       <stop offset="100%" stop-color="#7A4A34" stop-opacity="0"/>
     </radialGradient>`;
 
+  // 이름 인장은 얹지 않는다 — 그림과 어긋나 보여 뺐다 (2026-08-21).
+  // 화면(PersonalTalismanView)과 같은 모습이도록 종이 결만 남긴다.
   const overlay = `<defs>${grain}</defs>
-  <rect width="${W}" height="${H}" fill="url(#p-grain)"/>
-  <g transform="translate(${cx.toFixed(1)}, ${cy.toFixed(1)})">${stampSvgFragment(
-    p.stampText,
-    side,
-    p.stampRotation,
-    p.stampOpacity
-  )}</g>`;
+  <rect width="${W}" height="${H}" fill="url(#p-grain)"/>`;
 
   // </svg> 앞에 개인화 레이어 삽입
   const idx = base.lastIndexOf('</svg>');

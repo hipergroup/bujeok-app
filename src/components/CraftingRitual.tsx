@@ -7,7 +7,7 @@
 //  · 원형 부적이 위에서 아래로 붓이 지나가듯 드러난다 (clip-path)
 //  · 붉은 먹이 종이에 옅게 스며든다
 //  · 종이가 아주 약하게 흔들린다
-//  · 마지막에 이름 인장이 '탁' 찍힌다 (+ 가능한 기기에서 짧은 진동)
+//  · 마지막에 부적이 온전히 자리를 잡는다 (+ 가능한 기기에서 짧은 진동)
 // 금빛·반짝이·마법진 같은 과장은 쓰지 않는다.
 // prefers-reduced-motion 환경에서는 단순 페이드로 대체한다.
 // ============================================================
@@ -21,7 +21,7 @@ const STAGES = [
   '마음을 고르고 있습니다',
   '당신에게 필요한 부적을 펼치고 있습니다',
   '염원을 부적에 담고 있습니다',
-  '당신의 이름으로 인장을 찍습니다',
+  '정성을 다해 마무리하고 있습니다',
 ] as const;
 
 export default function CraftingRitual({
@@ -33,7 +33,6 @@ export default function CraftingRitual({
 }) {
   const reduced = useReducedMotion();
   const [stage, setStage] = useState(0);
-  const [stamped, setStamped] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
@@ -43,7 +42,6 @@ export default function CraftingRitual({
           [900, () => setStage(1)],
           [1800, () => setStage(2)],
           [2700, () => setStage(3)],
-          [3100, () => setStamped(true)],
           [4200, onDone],
         ]
       : [
@@ -51,7 +49,6 @@ export default function CraftingRitual({
           [3400, () => setStage(2)],
           [5200, () => setStage(3)],
           [5600, () => {
-            setStamped(true);
             try {
               navigator.vibrate?.(30); // 지원 기기에서만 — 작고 절제된 진동
             } catch {
@@ -73,11 +70,7 @@ export default function CraftingRitual({
       >
         <div className={reduced ? '' : 'craft-reveal'}>
           <div className="relative overflow-hidden rounded-xl shadow-[0_10px_30px_rgba(43,24,16,0.25)]">
-            <PersonalTalismanView
-              talisman={talisman}
-              width="100%"
-              stampVisible={stamped}
-            />
+            <PersonalTalismanView talisman={talisman} width="100%" />
             {/* 붉은 먹이 스며드는 층 */}
             {!reduced && (
               <div aria-hidden className="craft-ink pointer-events-none absolute inset-0" />

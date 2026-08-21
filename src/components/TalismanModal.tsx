@@ -6,7 +6,7 @@ import { SavedTalisman, TalismanInfo } from '@/lib/types';
 import { getEnergyByCategory } from '@/data/energies';
 import { hasWidgetBridge, pushTalismanToWidget } from '@/lib/widget-bridge';
 import TalismanThumbnail from './TalismanThumbnail';
-import PersonalTalismanView, { NameStamp } from './PersonalTalismanView';
+import PersonalTalismanView from './PersonalTalismanView';
 import { buildPersonalSVG, markPlacedOnHome } from '@/lib/personal-talisman';
 import { buildAnseoSVG, markAnseoArrived } from '@/lib/anseo';
 import { composeShareImage, shareOrDownload } from '@/lib/share-card';
@@ -401,21 +401,7 @@ export default function TalismanModal({
                     {talisman.personal.serialNumber}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 py-1">
-                  <span className="w-14 shrink-0 text-[11px] font-bold text-[var(--color-galsaek)]">
-                    이름 인장
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <NameStamp
-                      text={talisman.personal.stampText}
-                      side={26}
-                      rotation={talisman.personal.stampRotation}
-                    />
-                    <span className="font-serif-kr text-[12.5px] text-[var(--color-meok)]">
-                      {talisman.personal.ownerName || '수호부'}
-                    </span>
-                  </span>
-                </div>
+
               </div>
             )}
 

@@ -356,16 +356,6 @@ function modernBorder(w: number, h: number, color: string): string {
 
 // ─── 인장 (도장) 생성 ───────────────────────────────────────
 
-function sealStamp(x: number, y: number, name: string, color: string): string {
-  const displayName = name.length > 3 ? name.slice(0, 3) : name;
-  const size = 28;
-  return `
-    <g transform="translate(${x},${y})" opacity="0.85">
-      <rect x="${-size / 2}" y="${-size / 2}" width="${size}" height="${size}" rx="3" fill="none" stroke="${color}" stroke-width="2"/>
-      <text x="0" y="3" text-anchor="middle" font-size="12" font-weight="bold" fill="${color}" font-family="serif">${escapeXml(displayName)}</text>
-    </g>
-  `;
-}
 
 // ─── 메인 생성 함수 ─────────────────────────────────────────
 
@@ -384,7 +374,7 @@ function generateFromAsset(
   H: number,
   params: TalismanParams
 ): string {
-  const { assetUrl, message, userName } = params;
+  const { assetUrl, message } = params;
   const SEAL_RED = '#A72B21';
   const HANJI = '#F2E7CE';
 
@@ -411,22 +401,8 @@ function generateFromAsset(
     )
     .join('');
 
-  // 낙관 — 문구 띠 오른쪽 끝에 찍는다
-  const sealName =
-    userName && userName.trim().length >= 2 && userName.trim().length <= 3
-      ? userName.trim()
-      : null;
-  const sealText = sealName
-    ? `<text x="0" y="4" text-anchor="middle" font-size="11" font-weight="bold" fill="${HANJI}" font-family="serif">${escapeXml(sealName)}</text>`
-    : `<text x="0" y="-2" text-anchor="middle" font-size="9.5" font-weight="bold" fill="${HANJI}" font-family="serif">수호</text>
-       <text x="0" y="10" text-anchor="middle" font-size="9.5" font-weight="bold" fill="${HANJI}" font-family="serif">부</text>`;
-  const seal = lines.length && !params.noSeal
-    ? `<g transform="translate(${W - 46}, ${bandY + bandH / 2})">
-         <rect x="-15" y="-15" width="30" height="30" rx="4" fill="${SEAL_RED}"/>
-         <rect x="-11.5" y="-11.5" width="23" height="23" rx="3" fill="none" stroke="${HANJI}" stroke-width="1" opacity="0.9"/>
-         ${sealText}
-       </g>`
-    : '';
+  // 낙관은 찍지 않는다 — 그림과 어긋나 보여 뺐다 (2026-08-21)
+  const seal = '';
 
   // 그림은 잘리지 않게 온전히 담고(meet), 남는 여백은 한지색으로 채운다
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
@@ -464,7 +440,7 @@ function generateTraditional(
   preset: BackgroundPreset | undefined,
   params: TalismanParams
 ): string {
-  const { bgColor, animal, title, hanja, message, mantra, userName } = params;
+  const { bgColor, animal, title, hanja, message, mantra } = params;
 
   const trad = preset?.trad ?? { bg: '#F2E7CE', ink: '#A72B21', text: '#2E2E2E' };
   const bg = trad.bg || bgColor || '#F2E7CE';
@@ -515,14 +491,8 @@ function generateTraditional(
     });
   });
 
-  // ── 낙관 (하단 중앙) ──
-  const sealName =
-    userName && userName.trim().length >= 2 && userName.trim().length <= 3
-      ? userName.trim()
-      : null;
-  const sealText = sealName
-    ? `<text x="0" y="5" text-anchor="middle" font-size="12" font-weight="bold" fill="#F2E7CE" font-family="serif">${escapeXml(sealName)}</text>`
-    : `<text x="0" y="-2" text-anchor="middle" font-size="11" font-weight="bold" fill="#F2E7CE" font-family="serif">수호</text>
+  // ── 낙관 (하단 중앙) — 이름은 넣지 않고 '수호부' 낙관으로 통일 (2026-08-21) ──
+  const sealText = `<text x="0" y="-2" text-anchor="middle" font-size="11" font-weight="bold" fill="#F2E7CE" font-family="serif">수호</text>
        <text x="0" y="12" text-anchor="middle" font-size="11" font-weight="bold" fill="#F2E7CE" font-family="serif">부</text>`;
   const seal = params.noSeal ? '' : `
     <g transform="translate(${W / 2}, ${H - 54})">
@@ -626,10 +596,8 @@ function generateModern(
     messageText += `<text x="${W / 2}" y="${300 + i * 28}" text-anchor="middle" font-size="16" fill="${ink}" font-family="'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif">${escapeXml(msgLines[i])}</text>`;
   }
 
-  // 인장
-  const seal = userName
-    ? sealStamp(W - 55, H - 60, userName, accent)
-    : '';
+  // 인장은 찍지 않는다 (2026-08-21)
+  const seal = '';
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
   <defs>

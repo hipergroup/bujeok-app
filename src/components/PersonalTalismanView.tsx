@@ -95,13 +95,10 @@ export function NameStamp({
 export default function PersonalTalismanView({
   talisman,
   width,
-  stampVisible = true,
   className = '',
 }: {
   talisman: SavedTalisman;
   width: number | string;
-  /** 짓는 연출 중에는 인장을 숨겼다가 마지막에 찍는다 */
-  stampVisible?: boolean;
   className?: string;
 }) {
   const sourceId = talisman.sourceId ?? talisman.id;
@@ -128,7 +125,6 @@ export default function PersonalTalismanView({
   }, [sourceId, hasPersonal]);
 
   const v = p ? seedVariation(p.visualSeed) : null;
-  const anchor = origin?.stampAnchor ?? { x: 0.79, y: 0.82, size: 0.13 };
 
   return (
     <div
@@ -163,54 +159,8 @@ export default function PersonalTalismanView({
         />
       )}
 
-      {/* 이름 인장 — 별도 레이어 */}
-      {p && v && stampVisible && (
-        <div
-          data-stamp
-          className="absolute"
-          style={{
-            left: `${((anchor.x + v.anchorDx) * 100).toFixed(2)}%`,
-            top: `${(((anchor.y + v.anchorDy) * 560) / 560) * 100}%`,
-            transform: 'translate(-50%, -50%)',
-            // side 는 컨테이너 너비 기준 — % 로 못 주므로 부모 폭 대비 계산
-            width: `${anchor.size * 100}%`,
-          }}
-        >
-          <StampByWidth
-            text={p.stampText}
-            rotation={p.stampRotation}
-            opacity={p.stampOpacity}
-          />
-        </div>
-      )}
+      {/* 이름 인장은 얹지 않는다 — 그림과 어긋나 보여 뺐다 (2026-08-21) */}
     </div>
   );
 }
 
-/**
- * 부모 폭에 맞춰 커지는 인장 — 공유 이미지와 완전히 같은 모습이 되도록
- * personal-talisman 의 SVG 조각을 그대로 그린다.
- */
-function StampByWidth({
-  text,
-  rotation,
-  opacity,
-}: {
-  text: string;
-  rotation: number;
-  opacity: number;
-}) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 -60 120 120" style="display:block;overflow:visible">${stampSvgFragment(
-    text,
-    100,
-    rotation,
-    opacity
-  )}</svg>`;
-  return (
-    <div
-      aria-hidden
-      style={{ width: '100%', aspectRatio: '1 / 1' }}
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
-  );
-}

@@ -50,7 +50,7 @@ import {
   buildPersonalSVG,
 } from "@/lib/personal-talisman";
 import { WISH_SUGGESTIONS, ORIGIN_CONCEPT_LINES } from "@/data/talisman-origin";
-import PersonalTalismanView, { NameStamp } from "@/components/PersonalTalismanView";
+import PersonalTalismanView from "@/components/PersonalTalismanView";
 import CraftingRitual from "@/components/CraftingRitual";
 
 /* ───────── types ───────── */
@@ -1049,21 +1049,7 @@ function TalismanFlow() {
                   </span>
                 </div>
               ))}
-              <div className="flex items-center gap-3 py-1.5">
-                <span className="w-14 shrink-0 text-[11px] font-bold text-[var(--color-galsaek)]">
-                  이름 인장
-                </span>
-                <span className="flex items-center gap-2">
-                  <NameStamp
-                    text={personalResult.personal?.stampText ?? "수호부"}
-                    side={30}
-                    rotation={personalResult.personal?.stampRotation ?? 0}
-                  />
-                  <span className="font-serif-kr text-[12.5px] text-[var(--color-meok)]">
-                    {personalResult.personal?.ownerName || "수호부"}
-                  </span>
-                </span>
-              </div>
+
             </motion.div>
 
             <motion.div
