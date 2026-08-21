@@ -11,8 +11,29 @@ export const TALISMAN_ASSETS: Record<
   string,
   Partial<Record<TalismanStyle, string>>
 > = {
+  "과거급제부": {
+    "traditional": "/talismans/%E1%84%80%E1%85%AA%E1%84%80%E1%85%A5%E1%84%80%E1%85%B3%E1%86%B8%E1%84%8C%E1%85%A6%E1%84%87%E1%85%AE-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%90%E1%85%A9%E1%86%BC.png"
+  },
+  "구설방지부": {
+    "traditional": "/talismans/%E1%84%80%E1%85%AE%E1%84%89%E1%85%A5%E1%86%AF%E1%84%87%E1%85%A1%E1%86%BC%E1%84%8C%E1%85%B5%E1%84%87%E1%85%AE-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%90%E1%85%A9%E1%86%BC.png"
+  },
+  "눈병부": {
+    "traditional": "/talismans/%E1%84%82%E1%85%AE%E1%86%AB%E1%84%87%E1%85%A7%E1%86%BC%E1%84%87%E1%85%AE-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%90%E1%85%A9%E1%86%BC.png"
+  },
   "두통부": {
     "traditional": "/talismans/%E1%84%83%E1%85%AE%E1%84%90%E1%85%A9%E1%86%BC%E1%84%87%E1%85%AE-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%90%E1%85%A9%E1%86%BC.png"
+  },
+  "마마부": {
+    "traditional": "/talismans/%E1%84%86%E1%85%A1%E1%84%86%E1%85%A1%E1%84%87%E1%85%AE-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%90%E1%85%A9%E1%86%BC.png"
+  },
+  "부부화합부": {
+    "traditional": "/talismans/%E1%84%87%E1%85%AE%E1%84%87%E1%85%AE%E1%84%92%E1%85%AA%E1%84%92%E1%85%A1%E1%86%B8%E1%84%87%E1%85%AE-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%90%E1%85%A9%E1%86%BC.png"
+  },
+  "불면부": {
+    "traditional": "/talismans/%E1%84%87%E1%85%AE%E1%86%AF%E1%84%86%E1%85%A7%E1%86%AB%E1%84%87%E1%85%AE-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%90%E1%85%A9%E1%86%BC.png"
+  },
+  "불화방지부": {
+    "traditional": "/talismans/%E1%84%87%E1%85%AE%E1%86%AF%E1%84%92%E1%85%AA%E1%84%87%E1%85%A1%E1%86%BC%E1%84%8C%E1%85%B5%E1%84%87%E1%85%AE-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%90%E1%85%A9%E1%86%BC.png"
   },
   "소아부": {
     "traditional": "/talismans/%E1%84%89%E1%85%A9%E1%84%8B%E1%85%A1%E1%84%87%E1%85%AE-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%90%E1%85%A9%E1%86%BC.png"
@@ -22,6 +43,18 @@ export const TALISMAN_ASSETS: Record<
   },
   "안태부": {
     "traditional": "/talismans/%E1%84%8B%E1%85%A1%E1%86%AB%E1%84%90%E1%85%A2%E1%84%87%E1%85%AE-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%90%E1%85%A9%E1%86%BC.png"
+  },
+  "잡인퇴거부": {
+    "traditional": "/talismans/%E1%84%8C%E1%85%A1%E1%86%B8%E1%84%8B%E1%85%B5%E1%86%AB%E1%84%90%E1%85%AC%E1%84%80%E1%85%A5%E1%84%87%E1%85%AE-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%90%E1%85%A9%E1%86%BC.png"
+  },
+  "진택부": {
+    "traditional": "/talismans/%E1%84%8C%E1%85%B5%E1%86%AB%E1%84%90%E1%85%A2%E1%86%A8%E1%84%87%E1%85%AE-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%90%E1%85%A9%E1%86%BC.png"
+  },
+  "출입문부": {
+    "traditional": "/talismans/%E1%84%8E%E1%85%AE%E1%86%AF%E1%84%8B%E1%85%B5%E1%86%B8%E1%84%86%E1%85%AE%E1%86%AB%E1%84%87%E1%85%AE-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%90%E1%85%A9%E1%86%BC.png"
+  },
+  "화목부": {
+    "traditional": "/talismans/%E1%84%92%E1%85%AA%E1%84%86%E1%85%A9%E1%86%A8%E1%84%87%E1%85%AE-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%90%E1%85%A9%E1%86%BC.png"
   },
   "개업대길부": {
     "traditional": "/talismans/%EA%B0%9C%EC%97%85%EB%8C%80%EA%B8%B8%EB%B6%80-%EC%A0%84%ED%86%B5.png"
