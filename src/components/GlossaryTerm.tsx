@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useDragControls } from 'framer-motion';
 import { getGlossary, type GlossaryEntry } from '@/data/glossary';
 
 /**
@@ -95,6 +95,8 @@ function GlossarySheet({
     };
   }, [onClose]);
 
+  const dragControls = useDragControls();
+
   if (!entry) return null;
 
   const related = (entry.related ?? [])
@@ -121,34 +123,28 @@ function GlossarySheet({
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 320 }}
         onClick={(e) => e.stopPropagation()}
+        drag="y"
+        dragControls={dragControls}
+        dragListener={false}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.7 }}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 110 || info.velocity.y > 600) onClose();
+        }}
         className="hanji-surface relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-3xl px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3 text-[var(--color-meok)]"
         style={{ borderTop: '1px solid rgba(122, 74, 52, 0.4)' }}
       >
-        {/* 손잡이 */}
-        <div className="mb-3 flex justify-center">
+        {/* 손잡이 — 잡고 끌어내리면 닫힌다 */}
+        <div
+          className="mb-3 flex cursor-grab justify-center py-1.5"
+          style={{ touchAction: 'none' }}
+          onPointerDown={(e) => dragControls.start(e)}
+        >
           <div className="h-1 w-10 rounded-full bg-[var(--color-galsaek)] opacity-30" />
         </div>
 
-        {/* 닫기 */}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="닫기"
-          className="absolute right-4 top-4 rounded-full p-1.5 text-[var(--color-galsaek)] transition hover:text-[var(--color-juhong)]"
-          style={{ border: '1px solid rgba(122,74,52,0.3)' }}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
-            <path
-              d="M4 4l8 8M12 4l-8 8"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
-
         {/* 용어 + 한자 */}
-        <div className="flex items-baseline gap-2 pr-10">
+        <div className="flex items-baseline gap-2">
           <h2 className="font-serif-kr text-xl font-bold tracking-wide">
             {entry.term}
           </h2>

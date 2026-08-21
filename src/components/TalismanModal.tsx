@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { SavedTalisman, TalismanInfo } from '@/lib/types';
 import { getEnergyByCategory } from '@/data/energies';
 import { hasWidgetBridge, pushTalismanToWidget } from '@/lib/widget-bridge';
@@ -88,6 +88,8 @@ export default function TalismanModal({
   actionButton,
 }: TalismanModalProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  /* 손잡이를 잡고 끌어내리면 닫힌다 — 본문 스크롤과 겹치지 않게 손잡이만 끈다 */
+  const dragControls = useDragControls();
   /** 연락기원부 — 방금 도착인을 찍었으면 화면을 새 모습으로 */
   const [arrivedNow, setArrivedNow] = useState<string | null>(null);
   /* 네이티브 앱에서만 true — 홈 화면 위젯으로 보내기 지원 여부 */
@@ -215,29 +217,25 @@ export default function TalismanModal({
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 28, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
+          drag="y"
+          dragControls={dragControls}
+          dragListener={false}
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={{ top: 0, bottom: 0.7 }}
+          onDragEnd={(_, info) => {
+            if (info.offset.y > 110 || info.velocity.y > 600) onClose();
+          }}
           className="hanji-surface relative max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl pb-[max(2rem,env(safe-area-inset-bottom))]"
           style={{ borderTop: '1px solid rgba(122,74,52,0.4)' }}
         >
-          {/* Drag handle */}
-          <div className="hanji-surface sticky top-0 z-10 flex justify-center pb-2 pt-3">
+          {/* 손잡이 — 잡고 끌어내리면 닫힌다 */}
+          <div
+            className="hanji-surface sticky top-0 z-10 flex cursor-grab justify-center pb-3 pt-3"
+            style={{ touchAction: 'none' }}
+            onPointerDown={(e) => dragControls.start(e)}
+          >
             <div className="h-1 w-10 rounded-full bg-[var(--color-galsaek)] opacity-30" />
           </div>
-
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute right-4 top-3 rounded-full p-1.5 text-[var(--color-galsaek)] transition hover:text-[var(--color-juhong)]"
-            style={{ border: '1px solid rgba(122,74,52,0.3)' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path
-                d="M4 4l8 8M12 4l-8 8"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
 
           <div className="flex flex-col items-center px-6 pt-2">
             {/* Talisman SVG */}
